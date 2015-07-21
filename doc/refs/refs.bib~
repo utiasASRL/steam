@@ -1,0 +1,647 @@
+
+@inproceedings{alvarez09,
+	Author = {M Alvarez and D Luengo and N Lawrence},
+	Booktitle = {Proceedings of the Int. Conf. on Artificial Intelligence and Statistics (AISTATS)},
+	Date-Added = {2014-04-12 11:30:15 -0400},
+	Date-Modified = {2014-04-12 11:31:38 -0400},
+	Title = {{Latent force models}},
+	Year = {2009}}
+
+@inproceedings{hartikainen12,
+	Author = {J Hartikainen and M Sepp\"{a}nen and S S\"{a}rkk\"{a}},
+	Booktitle = {Proc. ICML},
+	Date-Added = {2014-04-12 11:27:38 -0400},
+	Date-Modified = {2014-04-12 11:36:08 -0400},
+	Title = {{State-space inference for non-linear latent force models with application to satellite orbit prediction}},
+	Year = {2012}}
+
+@article{newman09,
+	Author = {P Newman and G Sibley and M Smith and M Cummins and A Harrison and C Mei and I Posner and R Shade and D Schroeter and L Murphy and W Churchill and D Cole and I Reid},
+	Date-Added = {2014-04-08 14:19:05 -0400},
+	Date-Modified = {2014-04-08 14:21:38 -0400},
+	Journal = {IJRR},
+	Number = {11-12},
+	Pages = {1406-1433},
+	Title = {{Navigating, recognising and describing urban spaces with vision and laser}},
+	Volume = {28},
+	Year = {2009}}
+
+@incollection{triggs00,
+	Author = {B Triggs and P McLauchlan and R Hartley and A Fitzgibbon},
+	Booktitle = {Vision Algorithms: Theory and Practice},
+	Date-Added = {2014-04-08 13:23:51 -0400},
+	Date-Modified = {2014-04-08 13:25:38 -0400},
+	Editor = {B Triggs and A Zisserman and R Szeliski},
+	Pages = {298-372},
+	Publisher = {Springer Berlin Heidelberg},
+	Series = {Lecture Notes in Computer Science},
+	Title = {{Bundle adjustment --- A modern synthesis}},
+	Volume = {1883},
+	Year = {2000},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1007/3-540-44480-7_21}}
+
+@inproceedings{solin14,
+	Author = {A Solin and S S\"{a}rkk\"{a}},
+	Booktitle = {Proceedings of the Int. Conf. on Artificial Intelligence and Statistics (AISTATS)},
+	Date-Added = {2014-04-08 13:03:08 -0400},
+	Date-Modified = {2014-04-12 11:31:59 -0400},
+	Title = {{Explicit link between periodic covariance functions and state space models}},
+	Year = {2014}}
+
+@book{maybeck79,
+	Author = {P S Maybeck},
+	Date-Added = {2014-04-08 10:14:46 -0400},
+	Date-Modified = {2014-04-08 13:27:38 -0400},
+	Publisher = {Academic Press Inc.},
+	Series = {Mathematics in Science and Engineering},
+	Title = {{Stochastic Models, Estimation, and Control}},
+	Volume = {141},
+	Year = {1979}}
+
+@article{sarkka13c,
+	Author = {S S\"{a}rkk\"{a} and J Sarmavuori},
+	Date-Added = {2013-12-27 16:35:57 +0000},
+	Date-Modified = {2013-12-27 17:04:42 +0000},
+	Journal = {Signal Processing},
+	Number = {2},
+	Pages = {500-510},
+	Title = {{G}aussian Filtering and Smoothing for Continuous-Discrete Dynamic Systems},
+	Volume = {93},
+	Year = {2013}}
+
+@article{lindgren11,
+	Author = {F Lindgren and H Rue and J Lindstr\"{o}m},
+	Date-Added = {2013-12-27 16:34:07 +0000},
+	Date-Modified = {2014-04-08 13:18:40 -0400},
+	Journal = {J. of the Royal Stat. Society: Series B},
+	Number = {4},
+	Pages = {423-498},
+	Title = {{An explicit link between {G}aussian fields and {G}aussian {M}arkov random fields: the stochastic partial differential equation approach}},
+	Volume = {73},
+	Year = {2011}}
+
+@inproceedings{lovegrove13,
+	Author = {S Lovegrove and A Patron-Perez and G Sibley},
+	Booktitle = {Proc. BMVC},
+	Date-Added = {2013-12-18 16:53:05 +0000},
+	Date-Modified = {2013-12-27 17:22:16 +0000},
+	Title = {Spline Fusion: A continuous-time representation for visual-inertial fusion with application to rolling shutter cameras},
+	Year = {2013}}
+
+@book{stengel94,
+	Author = {R F Stengel},
+	Date-Added = {2013-12-02 13:21:19 +0000},
+	Date-Modified = {2013-12-02 13:22:03 +0000},
+	Publisher = {Dover Publications Inc.},
+	Title = {Optimal Control and Estimation},
+	Year = {1994}}
+
+@inproceedings{hartikainen11,
+	Author = {J Hartikainen and S S\"{a}rkk\"{a}},
+	Booktitle = {Proceedings of the 27th Conference on Uncertainty in Artificial Intelligence},
+	Date-Added = {2013-11-29 11:49:18 +0000},
+	Date-Modified = {2013-11-29 11:50:11 +0000},
+	Title = {Sequential Inference for Latent Force Models},
+	Year = {2011}}
+
+@inproceedings{hartikainen10,
+	Author = {J Hartikainen and S S\"{a}rkk\"{a}},
+	Booktitle = {Proc. of the IEEE Int. Work. on Machine Learning for Signal Processing},
+	Date-Added = {2013-11-29 11:46:29 +0000},
+	Date-Modified = {2013-12-27 16:25:45 +0000},
+	Title = {{K}alman Filtering and Smoothing Solutions to Temporal {G}aussian Process Regression Models},
+	Year = {2010}}
+
+@inproceedings{grau12,
+	Author = {O Grau and J Pansiot},
+	Booktitle = {Proceedings of the 9th European Conference on Visual Media Production},
+	Date-Added = {2013-11-29 10:21:58 +0000},
+	Date-Modified = {2013-11-29 10:22:38 +0000},
+	Pages = {94--98},
+	Title = {Motion and Velocity Estimation of Rolling Shutter Cameras},
+	Year = {2012},
+	Bdsk-Url-1 = {http://doi.acm.org/10.1145/2414688.2414700},
+	Bdsk-Url-2 = {http://dx.doi.org/10.1145/2414688.2414700}}
+
+@article{walter07,
+	Author = {M R Walter and R M Eustice and J J Leonard},
+	Date-Added = {2013-11-29 10:21:16 +0000},
+	Date-Modified = {2013-12-27 17:24:44 +0000},
+	Journal = {IJRR},
+	Number = {4},
+	Pages = {335--359},
+	Title = {Exactly sparse extended information filters for feature-based {SLAM}},
+	Volume = {26},
+	Year = {2007}}
+
+@article{eustice06,
+	Author = {R M Eustice and H Singh and J J Leonard},
+	Date-Added = {2013-11-29 10:20:21 +0000},
+	Date-Modified = {2013-12-27 17:12:16 +0000},
+	Journal = {IEEE TRO},
+	Number = {6},
+	Pages = {1100--1114},
+	Title = {Exactly sparse delayed-state filters for view-based {SLAM}},
+	Volume = {22},
+	Year = {2006}}
+
+@article{davison07,
+	Author = {A J Davison and I D Reid and N D Molton and O Stasse},
+	Date-Added = {2013-11-29 10:16:02 +0000},
+	Date-Modified = {2013-12-27 17:14:30 +0000},
+	Journal = {IEEE T. PAMI},
+	Number = {6},
+	Pages = {1052-1067},
+	Title = {{MonoSLAM}: Real-time Single Camera {SLAM}},
+	Volume = {29},
+	Year = {2007}}
+
+@inproceedings{tong_crv12,
+	Annote = {full-paper-refereed},
+	Author = {C H Tong and P Furgale and T D Barfoot},
+	Booktitle = {Proc. of the 9th Conf. on Computer and Robot Vision},
+	Date-Added = {2013-11-26 14:24:03 +0000},
+	Date-Modified = {2013-11-29 12:54:27 +0000},
+	Pages = {206-213},
+	Title = {{G}aussian Process {G}auss-{N}ewton: Non-Parametric State Estimation},
+	Year = {2012},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RElpOUy5vYmplY3RzViRjbGFzc1dOUy5rZXlzog8QgASABoAHohMUgAKAA1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgMGRpXTlMuZGF0YU8RAbgAAAAAAbgAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAMarQ7ZIKwAABT/UgBB0b25nX2NydjIwMTIucGRmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFP9SezFUxqAAAAAAAAAAAAAIAAwAACSAAAAAAAAAAAAAAAAAAAAAEc2JpYgAQAAgAAMare/YAAAARAAgAAMxVaegAAAABACAFP9SABT/UcwU/vFkFPnP8AAt+tQAN5SMAB/pCAACQ5wACAEdNYWNpbnRvc2ggSEQ6VXNlcnM6Y2hpOlJlc2VhcmNoOnN2bjpwYXBlcnM6Q2hpOkNWOnNiaWI6dG9uZ19jcnYyMDEyLnBkZgAADgAiABAAdABvAG4AZwBfAGMAcgB2ADIAMAAxADIALgBwAGQAZgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASADpVc2Vycy9jaGkvUmVzZWFyY2gvc3ZuL3BhcGVycy9DaGkvQ1Yvc2JpYi90b25nX2NydjIwMTIucGRmABMAAS8AABUAAgAK//8AAIAF0hwdHh9YJGNsYXNzZXNaJGNsYXNzbmFtZaMfICFdTlNNdXRhYmxlRGF0YVZOU0RhdGFYTlNPYmplY3RfEB4uLi8uLi9DVi9zYmliL3RvbmdfY3J2MjAxMi5wZGbSHB0kJaIlIVxOU0RpY3Rpb25hcnkSAAGGoF8QD05TS2V5ZWRBcmNoaXZlcgAIABEAFgAfACgAMgA1ADoAPABFAEsAUgBdAGQAbABvAHEAcwB1AHgAegB8AIYAkwCYAKACXAJeAmMCbAJ3AnsCiQKQApkCugK/AsICzwLUAAAAAAAAAgEAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAuY=},
+	Bdsk-Url-1 = {sbib/tong_crv2012.pdf}}
+
+@inproceedings{ferris07,
+	Annote = {- use GPLVMs to model wifi data gathered walking around a building
+- like dimensionality reduction - revisiting the same place (loop closure) will have similar mappings},
+	Author = {B Ferris and D Fox and N Lawrence},
+	Booktitle = {Proc. IJCAI},
+	Date-Added = {2013-11-26 14:20:39 +0000},
+	Date-Modified = {2013-12-27 17:13:10 +0000},
+	Title = {Wifi-{SLAM} using {Gaussian} Process Latent Variable Models},
+	Year = {2007}}
+
+@inproceedings{ferris06,
+	Annote = {- learn a Wifi map using GPs and ground truth locations
+- localize using a particle filter and the GP map/measurement model},
+	Author = {B Ferris and D H\"{a}hnel and D Fox},
+	Booktitle = {Proc. RSS},
+	Date-Added = {2013-11-26 14:12:21 +0000},
+	Date-Modified = {2013-12-27 17:12:45 +0000},
+	Title = {Gaussian Processes for signal strength-based localization},
+	Year = {2006}}
+
+@article{ko09,
+	Annote = {- learn GP models for sensors, use them in BFs (EKF,UKF,PF) for state estimation
+- shows that including a parametric model helps significantly - use the GP just to learn the deviations
+- includes GP linearization terms for the EKF},
+	Author = {J Ko and D Fox},
+	Date-Added = {2013-11-26 14:11:12 +0000},
+	Date-Modified = {2013-11-26 14:12:01 +0000},
+	Journal = {Autonomous Robots},
+	Month = {July},
+	Number = {1},
+	Pages = {75-90},
+	Title = {{GP-BayesFilters}: Bayesian filtering using {Gaussian} process prediction and observation models},
+	Volume = {27},
+	Year = {2009}}
+
+@article{ko11,
+	Annote = {- key limitation of GPs is that they need ground truth
+- instead, we optimize over the hidden input states as well (conditioning with a prior, these input states are the true rover positions)
+- control and observation models are also modelled as GPs},
+	Author = {J Ko and D Fox},
+	Date-Added = {2013-11-26 14:11:12 +0000},
+	Date-Modified = {2013-11-26 14:27:07 +0000},
+	Journal = {Auton. Robots},
+	Number = {1},
+	Pages = {3-23},
+	Title = {Learning {GP-BayesFilters} via {Gaussian} Process Latent Variable Models},
+	Volume = {30},
+	Year = {2011}}
+
+@inproceedings{lawrence03,
+	Annote = {- original GPLVM paper - consider it like a nonlinear PCA (dimensionality reduction for visualization)},
+	Author = {N Lawrence},
+	Booktitle = {Proc. NIPS},
+	Date-Added = {2013-11-26 14:11:12 +0000},
+	Date-Modified = {2013-12-27 17:20:58 +0000},
+	Title = {Gaussian Process Latent Variable Models for Visualization of High Dimensional Data},
+	Year = {2003}}
+
+@inproceedings{sarkka11,
+	Annote = {- present GP prediction equations for linear operator measurement function (derivative, integral, non-invertible, etc.)},
+	Author = {S S\"{a}rkk\"{a}},
+	Booktitle = {Proc. of the Int. Conf. on Art. Neural Networks},
+	Date-Added = {2013-11-26 14:09:55 +0000},
+	Date-Modified = {2013-11-29 12:53:42 +0000},
+	Pages = {151-158},
+	Title = {Linear Operators and Stochastic Partial Differential Equations in {Gaussian} Process Regression},
+	Year = {2011}}
+
+@article{deisenroth12,
+	Author = {M P Deisenroth and R Turner and M Huber and U D Hanebeck and C E Rasmussen},
+	Date-Added = {2013-11-26 14:03:13 +0000},
+	Date-Modified = {2013-12-27 17:16:37 +0000},
+	Journal = {IEEE T. Automatic Control},
+	Pages = {1865-1871},
+	Title = {Robust Filtering and Smoothing with {G}aussian Processes},
+	Volume = {57},
+	Year = {2012}}
+
+@article{dellaert06,
+	Author = {F Dellaert and M Kaess},
+	Date-Added = {2013-11-26 11:43:42 +0000},
+	Date-Modified = {2013-12-27 17:17:03 +0000},
+	Journal = {IJRR},
+	Number = {12},
+	Pages = {1181-1204},
+	Title = {Square {Root} {SAM}: Simultaneous Localization and Mapping via Square Root Information Smoothing},
+	Volume = {25},
+	Year = {2006}}
+
+@article{kaess12,
+	Author = {M Kaess and H Johannsson and R Roberts and V Ila and J J Leonard and F Dellaert},
+	Date-Added = {2013-11-26 11:35:14 +0000},
+	Date-Modified = {2013-12-27 17:19:50 +0000},
+	Journal = {IJRR},
+	Number = {2},
+	Pages = {217-236},
+	Title = {{iSAM2}: Incremental Smoothing and Mapping Using the {B}ayes Tree},
+	Volume = {31},
+	Year = {2012}}
+
+@book{sarkka13b,
+	Author = {S S\"{a}rkk\"{a}},
+	Date-Added = {2013-11-26 10:13:39 +0000},
+	Date-Modified = {2013-11-26 11:40:36 +0000},
+	Publisher = {Cambridge University Press},
+	Title = {{B}ayesian Filtering and Smoothing},
+	Year = {2013},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1109/MSP.2013.2246292}}
+
+@phdthesis{sarkka06,
+	Author = {S S\"{a}rkk\"{a}},
+	Date-Added = {2013-11-25 14:25:04 +0000},
+	Date-Modified = {2013-11-25 20:50:29 +0000},
+	School = {Helsinki Uni. of Technology},
+	Title = {Recursive Bayesian Inference on Stochastic Differential Equations},
+	Year = {2006}}
+
+@book{rasmussen06,
+	Address = {Cambridge, MA},
+	Author = {C E Rasmussen and C K I Williams},
+	Date-Added = {2013-11-25 13:34:40 +0000},
+	Date-Modified = {2013-11-26 11:40:15 +0000},
+	Publisher = {MIT Press},
+	Title = {{G}aussian Processes for Machine Learning},
+	Year = {2006}}
+
+@inproceedings{bosse09,
+	Author = {M Bosse and R Zlot},
+	Booktitle = {Proc. ICRA},
+	Date-Added = {2013-11-25 13:27:36 +0000},
+	Date-Modified = {2013-12-27 17:15:53 +0000},
+	Title = {Continuous {3D} scan-matching with a spinning {2D} laser},
+	Year = {2009},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1109/ROBOT.2009.5152851}}
+
+@inproceedings{dong_fsr12,
+	Annote = {full-paper-refereed},
+	Author = {H J Dong and T D Barfoot},
+	Booktitle = {Proc. Field and Service Robotics},
+	Date-Added = {2013-11-25 13:23:51 +0000},
+	Date-Modified = {2013-12-27 17:17:32 +0000},
+	Title = {Lighting-Invariant Visual Odometry using Lidar Intensity Imagery and Pose Interpolation},
+	Year = {2012},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RElpOUy5vYmplY3RzViRjbGFzc1dOUy5rZXlzog8QgASABoAHohMUgAKAA1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgMGRpXTlMuZGF0YU8RAZQAAAAAAZQAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAM4T+NJIKwAAACHvNg5kb25nX2ZzcjEyLnBkZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIe+wy+WWgAAAAAAAAAAAAAIAAwAACSAAAAAAAAAAAAAAAAAAAAAEc2JpYgAQAAgAAM4UMRIAAAARAAgAAMvlzsAAAAABABQAIe82ACF9BAAGQiYABj+9AAISKQACAD9NYWNpbnRvc2ggSEQ6VXNlcnM6AHRkYjoARG9jdW1lbnRzOgBXZWJDVjoAc2JpYjoAZG9uZ19mc3IxMi5wZGYAAA4AHgAOAGQAbwBuAGcAXwBmAHMAcgAxADIALgBwAGQAZgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASAC1Vc2Vycy90ZGIvRG9jdW1lbnRzL1dlYkNWL3NiaWIvZG9uZ19mc3IxMi5wZGYAABMAAS8AABUAAgAK//8AAIAF0hwdHh9YJGNsYXNzZXNaJGNsYXNzbmFtZaMfICFdTlNNdXRhYmxlRGF0YVZOU0RhdGFYTlNPYmplY3RfEB8uLi8uLi9XZWJDVi9zYmliL2RvbmdfZnNyMTIucGRm0hwdJCWiJSFcTlNEaWN0aW9uYXJ5EgABhqBfEA9OU0tleWVkQXJjaGl2ZXIACAARABYAHwAoADIANQA6ADwARQBLAFIAXQBkAGwAbwBxAHMAdQB4AHoAfACGAJMAmACgAjgCOgI/AkgCUwJXAmUCbAJ1ApcCnAKfAqwCsQAAAAAAAAIBAAAAAAAAACgAAAAAAAAAAAAAAAAAAALD}}
+
+@inproceedings{bibby10,
+	Author = {C Bibby and I D Reid},
+	Booktitle = {Proc. ICRA},
+	Date-Added = {2013-11-25 13:22:00 +0000},
+	Date-Modified = {2013-12-27 17:15:46 +0000},
+	Title = {A hybrid {SLAM} representation for dynamic marine environments},
+	Year = {2010}}
+
+@inproceedings{hedborg12,
+	Author = {J Hedborg and P Forss\'en and M Felsberg and E Ringaby},
+	Booktitle = {Proc. CVPR},
+	Date-Added = {2013-11-25 13:19:18 +0000},
+	Date-Modified = {2013-12-27 17:19:13 +0000},
+	Title = {Rolling Shutter Bundle Adjustment},
+	Year = {2012}}
+
+@inproceedings{strasdat10,
+	Author = {H Strasdat and J M M Montiel and A J Davison},
+	Booktitle = {Proc. ICRA},
+	Date-Added = {2013-11-25 12:10:45 +0000},
+	Date-Modified = {2013-12-27 17:28:57 +0000},
+	Title = {Real-time monocular {SLAM}: Why filter?},
+	Year = {2010},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1109/ROBOT.2010.5509636}}
+
+@article{thrun06,
+	Abstract = {                 This article presents GraphSLAM, a unifying algorithm for the offline SLAM                     problem. GraphSLAM is closely related to a recent sequence of research papers on                     applying optimization techniques to SLAM problems. It transforms the SLAM                     posterior into a graphical network, representing the log-likelihood of the data.                     It then reduces this graph using variable elimination techniques, arriving at a                     lower-dimensional problems that is then solved using conventional optimization                     techniques. As a result, GraphSLAM can generate maps with 108 or more                     features. The paper discusses a greedy algorithm for data association, and                     presents results for SLAM in urban environments with occasional GPS measurements.             },
+	Author = {S Thrun and M Montemerlo},
+	Date-Added = {2013-11-25 12:08:43 +0000},
+	Date-Modified = {2013-12-27 17:24:07 +0000},
+	Journal = {IJRR},
+	Number = {5-6},
+	Pages = {403-429},
+	Title = {The Graph {SLAM} Algorithm with Applications to Large-Scale Mapping of Urban Structures},
+	Volume = {25},
+	Year = {2006},
+	Bdsk-Url-1 = {http://ijr.sagepub.com/content/25/5-6/403.abstract},
+	Bdsk-Url-2 = {http://dx.doi.org/10.1177/0278364906065387}}
+
+@article{kaess08,
+	Author = {M Kaess and A Ranganathan and R Dellaert},
+	Date-Added = {2013-11-25 12:03:13 +0000},
+	Date-Modified = {2013-12-27 17:06:18 +0000},
+	Journal = {IEEE TRO},
+	Number = {6},
+	Pages = {1365-1378},
+	Title = {{iSAM}: Incremental Smoothing and Mapping},
+	Volume = {24},
+	Year = {2008},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1109/TRO.2008.2006706}}
+
+@article{sibley10,
+	Author = {G Sibley and L Matthies and G Sukhatme},
+	Date-Added = {2013-11-25 11:47:11 +0000},
+	Date-Modified = {2013-11-25 11:57:54 +0000},
+	Journal = {Journal of Field Robotics},
+	Number = {5},
+	Pages = {587--608},
+	Title = {Sliding window filter with application to planetary landing},
+	Volume = {27},
+	Year = {2010},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1002/rob.20360}}
+
+@article{kalman60,
+	Author = {R E Kalman},
+	Date-Added = {2013-11-25 11:39:16 +0000},
+	Date-Modified = {2013-11-25 11:56:01 +0000},
+	Journal = {Transactions of the ASME--Journal of Basic Engineering},
+	Number = {Series D},
+	Pages = {35-45},
+	Title = {A New Approach to Linear Filtering and Prediction Problems},
+	Volume = {82},
+	Year = {1960}}
+
+@article{lu97,
+	Author = {F Lu and E Milios},
+	Date-Added = {2013-11-25 11:31:46 +0000},
+	Date-Modified = {2013-11-25 20:49:46 +0000},
+	Journal = {Auton. Robots},
+	Number = {4},
+	Pages = {333-349},
+	Title = {Globally Consistent Range Scan Alignment for Environment Mapping},
+	Volume = {4},
+	Year = {1997}}
+
+@inproceedings{furgale_icra12,
+	Annote = {full-paper-refereed},
+	Author = {P T Furgale and T D Barfoot and G Sibley},
+	Booktitle = {Proc. ICRA},
+	Date-Added = {2013-11-25 11:17:39 +0000},
+	Date-Modified = {2013-12-27 17:15:38 +0000},
+	Title = {Continuous-Time Batch Estimation Using Temporal Basis Functions},
+	Year = {2012},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RElpOUy5vYmplY3RzViRjbGFzc1dOUy5rZXlzog8QgASABoAHohMUgAKAA1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgMGRpXTlMuZGF0YU8RAaQAAAAAAaQAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAM4T+NJIKwAAACHvNhJmdXJnYWxlX2ljcmExMi5wZGYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIfAoy9qzuwAAAAAAAAAAAAIAAwAACSAAAAAAAAAAAAAAAAAAAAAEc2JpYgAQAAgAAM4UMRIAAAARAAgAAMva6/sAAAABABQAIe82ACF9BAAGQiYABj+9AAISKQACAENNYWNpbnRvc2ggSEQ6VXNlcnM6AHRkYjoARG9jdW1lbnRzOgBXZWJDVjoAc2JpYjoAZnVyZ2FsZV9pY3JhMTIucGRmAAAOACYAEgBmAHUAcgBnAGEAbABlAF8AaQBjAHIAYQAxADIALgBwAGQAZgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASADFVc2Vycy90ZGIvRG9jdW1lbnRzL1dlYkNWL3NiaWIvZnVyZ2FsZV9pY3JhMTIucGRmAAATAAEvAAAVAAIACv//AACABdIcHR4fWCRjbGFzc2VzWiRjbGFzc25hbWWjHyAhXU5TTXV0YWJsZURhdGFWTlNEYXRhWE5TT2JqZWN0XxAjLi4vLi4vV2ViQ1Yvc2JpYi9mdXJnYWxlX2ljcmExMi5wZGbSHB0kJaIlIVxOU0RpY3Rpb25hcnkSAAGGoF8QD05TS2V5ZWRBcmNoaXZlcgAIABEAFgAfACgAMgA1ADoAPABFAEsAUgBdAGQAbABvAHEAcwB1AHgAegB8AIYAkwCYAKACSAJKAk8CWAJjAmcCdQJ8AoUCqwKwArMCwALFAAAAAAAAAgEAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAtc=}}
+
+@techreport{brown58,
+	Author = {D C Brown},
+	Date-Added = {2013-11-25 11:15:23 +0000},
+	Date-Modified = {2013-12-27 16:24:53 +0000},
+	Institution = {Patrick Airforce Base},
+	Title = {A Solution to the General Problem of Multiple Station Analytical Stereotriangulation},
+	Type = {{RCA-MTP} Data Reduction Tech. Report No. 43},
+	Year = {1958}}
+
+@book{jazwinski70,
+	Author = {A H Jazwinski},
+	Date-Added = {2013-11-25 11:11:47 +0000},
+	Date-Modified = {2013-12-27 16:26:46 +0000},
+	Publisher = {Academic, New York},
+	Title = {Stochastic Processes and Filtering Theory},
+	Year = {1970}}
+
+@article{kalman61,
+	Author = {R E Kalman and R S Bucy},
+	Date-Added = {2013-11-25 11:11:01 +0000},
+	Date-Modified = {2013-11-26 11:39:10 +0000},
+	Journal = {Transactions of the ASME--Journal of Basic Engineering},
+	Number = {3},
+	Pages = {95--108},
+	Title = {New results in linear filtering and prediction theory},
+	Volume = {83},
+	Year = {1961}}
+
+@inproceedings{brooks85,
+	Author = {R Brooks},
+	Booktitle = {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
+	Date-Added = {2013-11-25 10:58:14 +0000},
+	Date-Modified = {2013-11-25 13:29:12 +0000},
+	Pages = {824-829},
+	Title = {Visual Map Making for a Mobile Robot},
+	Volume = 2,
+	Year = 1985}
+
+@article{durrantwhyte06a,
+	Author = {H Durrant-Whyte and T Bailey},
+	Date-Added = {2013-11-25 10:58:14 +0000},
+	Date-Modified = {2013-12-27 17:25:58 +0000},
+	Journal = {IEEE RAM},
+	Number = 3,
+	Pages = {99-110},
+	Title = {{SLAM}: Part {I} {E}ssential Algorithms},
+	Volume = 11,
+	Year = 2006}
+
+@article{durrantwhyte06b,
+	Author = {T Bailey and H Durrant-Whyte},
+	Date-Added = {2013-11-25 10:58:14 +0000},
+	Date-Modified = {2013-12-27 17:26:29 +0000},
+	Journal = {IEEE RAM},
+	Number = 3,
+	Pages = {108-117},
+	Title = {{SLAM}: Part {II} {S}tate of the Art},
+	Volume = 13,
+	Year = 2006}
+
+@article{durrantwhyte88,
+	Author = {H F Durrant--Whyte},
+	Date-Added = {2013-11-25 10:58:14 +0000},
+	Date-Modified = {2013-11-25 20:47:59 +0000},
+	Journal = {IEEE Journal of Robotics and Automation},
+	Number = 1,
+	Pages = {23--31},
+	Title = {Uncertain Geometry in Robotics},
+	Volume = 4,
+	Year = 1988}
+
+@article{smith86,
+	Author = {R C Smith and P Cheeseman},
+	Date-Added = {2013-11-25 10:58:14 +0000},
+	Date-Modified = {2013-12-27 17:23:07 +0000},
+	Journal = {IJRR},
+	Number = {4},
+	Pages = {56--68},
+	Title = {On the Representation and Estimation of Spatial Uncertainty},
+	Volume = {5},
+	Year = {1986}}
+
+@incollection{smith90,
+	Address = {New York},
+	Author = {R C Smith and M Self and P Cheeseman},
+	Booktitle = {Autonomous Robot Vehicles},
+	Date-Added = {2013-11-25 10:58:14 +0000},
+	Date-Modified = {2013-11-25 11:58:17 +0000},
+	Editor = {Ingemar J. Cox and Gordon T. Wilfong},
+	Pages = {167--193},
+	Publisher = {Springer Verlag},
+	Title = {Estimating Uncertain Spatial Relationships in Robotics},
+	Year = {1990},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RElpOUy5vYmplY3RzViRjbGFzc1dOUy5rZXlzog8QgASABoAHohMUgAKAA1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgMGRpXTlMuZGF0YU8RAcgAAAAAAcgAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAM4T+NJIKwAAABY/MR8xMC4xMTExJTJGai4xNDY3LTk4NiM4OThDN0YuYmliAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiYx/z2mipAAAAAAAAAAAAAMAAgAACSAAAAAAAAAAAAAAAAAAAAAGLlRyYXNoABAACAAAzhQxEgAAABEACAAAz2na5AAAAAEADAAWPzEABj+9AAISKQACAEBNYWNpbnRvc2ggSEQ6VXNlcnM6AHRkYjoALlRyYXNoOgAxMC4xMTExJTJGai4xNDY3LTk4NiM4OThDN0YuYmliAA4ATgAmADEAMAAuADEAMQAxADEAJQAyAEYAagAuADEANAA2ADcALQA5ADgANgA4AC4AMgAwADEAMQAuADAAMAA3ADcANwAuAHgALgBiAGkAYgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASADdVc2Vycy90ZGIvLlRyYXNoLzEwLjExMTElMkZqLjE0NjctOTg2OC4yMDExLjAwNzc3LnguYmliAAATAAEvAAAVAAIACv//AACABdIcHR4fWCRjbGFzc2VzWiRjbGFzc25hbWWjHyAhXU5TTXV0YWJsZURhdGFWTlNEYXRhWE5TT2JqZWN0XxA2Li4vLi4vLi4vLlRyYXNoLzEwLjExMTElMkZqLjE0NjctOTg2OC4yMDExLjAwNzc3LnguYmli0hwdJCWiJSFcTlNEaWN0aW9uYXJ5EgABhqBfEA9OU0tleWVkQXJjaGl2ZXIACAARABYAHwAoADIANQA6ADwARQBLAFIAXQBkAGwAbwBxAHMAdQB4AHoAfACGAJMAmACgAmwCbgJzAnwChwKLApkCoAKpAuIC5wLqAvcC/AAAAAAAAAIBAAAAAAAAACgAAAAAAAAAAAAAAAAAAAMO}}
+
+@article{tong_ijrr13b,
+	Annote = {journal},
+	Author = {C H Tong and P T Furgale and T D Barfoot},
+	Date-Added = {2013-11-22 13:38:01 +0000},
+	Date-Modified = {2013-12-27 17:24:33 +0000},
+	Journal = {IJRR},
+	Number = {5},
+	Pages = {507-525},
+	Title = {{G}aussian Process {G}auss-{N}ewton for Non-Parametric Simultaneous Localization and Mapping},
+	Volume = {32},
+	Year = {2013},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RElpOUy5vYmplY3RzViRjbGFzc1dOUy5rZXlzog8QgASABoAHohMUgAKAA1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgMGRpXTlMuZGF0YU8RAZwAAAAAAZwAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAM4T+NJIKwAAACHvNhB0b25nX2lqcnIxM2IucGRmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIfEFzcOgQlBERiBDQVJPAAIAAwAACSAAAAAAAAAAAAAAAAAAAAAEc2JpYgAQAAgAAM4UMRIAAAARAAgAAM3D2IIAAAABABQAIe82ACF9BAAGQiYABj+9AAISKQACAEFNYWNpbnRvc2ggSEQ6VXNlcnM6AHRkYjoARG9jdW1lbnRzOgBXZWJDVjoAc2JpYjoAdG9uZ19panJyMTNiLnBkZgAADgAiABAAdABvAG4AZwBfAGkAagByAHIAMQAzAGIALgBwAGQAZgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASAC9Vc2Vycy90ZGIvRG9jdW1lbnRzL1dlYkNWL3NiaWIvdG9uZ19panJyMTNiLnBkZgAAEwABLwAAFQACAAr//wAAgAXSHB0eH1gkY2xhc3Nlc1okY2xhc3NuYW1lox8gIV1OU011dGFibGVEYXRhVk5TRGF0YVhOU09iamVjdF8QIS4uLy4uL1dlYkNWL3NiaWIvdG9uZ19panJyMTNiLnBkZtIcHSQloiUhXE5TRGljdGlvbmFyeRIAAYagXxAPTlNLZXllZEFyY2hpdmVyAAgAEQAWAB8AKAAyADUAOgA8AEUASwBSAF0AZABsAG8AcQBzAHUAeAB6AHwAhgCTAJgAoAJAAkICRwJQAlsCXwJtAnQCfQKhAqYCqQK2ArsAAAAAAAACAQAAAAAAAAAoAAAAAAAAAAAAAAAAAAACzQ==}}
+
+@article{sarkka13,
+	Author = {S S\"{a}rkk\"{a} and A Solin and J Hartikainen},
+	Date-Added = {2013-11-22 13:37:56 +0000},
+	Date-Modified = {2013-12-27 16:37:21 +0000},
+	Journal = {IEEE Signal Processing Magazine},
+	Number = {4},
+	Pages = {51-61},
+	Title = {Spatiotemporal Learning via Infinite-Dimensional {B}ayesian Filtering and Smoothing: A Look at {G}aussian Process Regression Through {K}alman Filtering},
+	Volume = {30},
+	Year = {2013},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1109/MSP.2013.2246292}}
+
+@inproceedings{oth_cvpr13,
+   Author = {L Oth and P T Furgale and L Kneip and R Siegwart},
+   Title = {Rolling Shutter Camera Calibration},
+   Booktitle = {Proc. of The IEEE International Conference on Computer Vision and Pattern Recognition (CVPR)},
+   Address = {Portland, USA},
+   Month = {June},
+   Year = {2013}
+}
+
+@article{jumarie_90,
+	author = {Guy Jumarie},
+	title = {Nonlinear Filtering. {A} Weighted Mean Squares Approach and a {B}ayesian One via the Maximum Entropy Principle},
+	journal = {Signal Processing},
+	volume = {21},
+	number = {4},
+	pages = {323-338},
+	year = {1990}
+}
+
+@article{bell_94,
+	author = {B. M. Bell},
+	title = {The iterated kalman smoother as a {G}auss-{N}ewton method},
+	journal = {SIAM Journal on Optimization},
+	volume = {4},
+	number = {3},
+	pages = {626-636},
+	year = {1994}
+}
+
+@inproceedings{barfoot_rss14,
+	Address = {Berkeley, USA},
+	Author = {T D Barfoot and C H Tong and S S\"{a}rkk\"{a}},
+	Booktitle = {Proceedings of Robotics: Science and Systems (RSS)},
+	Month = {12-16 July},
+	Note = {},
+	Title = {Batch Continuous-Time Trajectory Estimation as Exactly Sparse Gaussian Process Regression},
+	Year = {2014}
+}
+
+@article{barfoot_tro14,
+	Author = {Timothy D Barfoot and Paul T Furgale},
+	Doi = {10.1109/TRO.2014.2298059},
+	Journal = {IEEE Transactions on Robotics},
+	Note = {},
+	Title = {Associating Uncertainty with Three-Dimensional Poses for use in Estimation Problems},
+	Year = {2014}}
+
+@article{barfoot_aa11,
+	Annote = {journal},
+	Author = {T D Barfoot and J R Forbes and P T Furgale},
+	Date-Added = {2011-12-06 09:09:26 -0500},
+	Date-Modified = {2011-12-06 09:09:26 -0500},
+	Doi = {10.1016/j.actaastro.2010.06.049},
+	Journal = {Acta Astronautica},
+	Local-Url = {sbib/barfoot_aa10.pdf},
+	Note = {Version with unpublished appendix available (\href{http://asrl.utias.utoronto.ca/~tdb/bib/barfoot_aa10_appendix.pdf}{pdf})},
+	Number = {1-2},
+	Pages = {101-112},
+	Title = {Pose Estimation using Linearized Rotations and Quaternion Algebra},
+	Url = {sbib/barfoot_aa10.pdf},
+	Volume = {68},
+	Year = {2011},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RFFpOUy5vYmplY3RzV05TLmtleXNWJGNsYXNzog8QgASABqISE4ACgAOAB1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgNGRpXTlMuZGF0YU8RAZwAAAAAAZwAAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAMjC8XdIKwAAABU6dRBiYXJmb290X2FhMTAucGRmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALqEjyeAxQAAAAAAAAAAAAAIAAwAACSAAAAAAAAAAAAAAAAAAAAAEc2JpYgAQAAgAAMjDKbcAAAARAAgAAMngaYAAAAABABQAFTp1ABU6FwAPH4QABx+xAACWQgACAEFNYWNpbnRvc2ggSEQ6VXNlcnM6AHRkYjoARG9jdW1lbnRzOgBXZWJDVjoAc2JpYjoAYmFyZm9vdF9hYTEwLnBkZgAADgAiABAAYgBhAHIAZgBvAG8AdABfAGEAYQAxADAALgBwAGQAZgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASAC9Vc2Vycy90ZGIvRG9jdW1lbnRzL1dlYkNWL3NiaWIvYmFyZm9vdF9hYTEwLnBkZgAAEwABLwAAFQACAAr//wAAgAXSHB0eH1gkY2xhc3Nlc1okY2xhc3NuYW1lox8gIV1OU011dGFibGVEYXRhVk5TRGF0YVhOU09iamVjdF8QIS4uLy4uL1dlYkNWL3NiaWIvYmFyZm9vdF9hYTEwLnBkZtIcHSQloiUhXE5TRGljdGlvbmFyeRIAAYagXxAPTlNLZXllZEFyY2hpdmVyAAgAEQAWAB8AKAAyADUAOgA8AEUASwBSAF0AZQBsAG8AcQBzAHYAeAB6AHwAhgCTAJgAoAJAAkICRwJQAlsCXwJtAnQCfQKhAqYCqQK2ArsAAAAAAAACAQAAAAAAAAAoAAAAAAAAAAAAAAAAAAACzQ==},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1016/j.actaastro.2010.06.049}}
+
+@misc{furgale_phd11,
+	Author = {P T Furgale},
+	Date-Added = {2011-12-06 09:09:26 -0500},
+	Date-Modified = {2011-12-06 09:09:26 -0500},
+	Howpublished = {Ph.D. Thesis, University of Toronto},
+	Local-Url = {bib/furgale_phd11.pdf},
+	Title = {Extensions to the Visual Odometry Pipeline for the Exploration of Planetary Surfaces},
+	Url = {bib/furgale_phd11.pdf},
+	Year = {2011},
+	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUIJidUJHRvcFgkb2JqZWN0c1gkdmVyc2lvblkkYXJjaGl2ZXLRBgdUcm9vdIABqAkKFRYXGyIjVSRudWxs0wsMDQ4RFFpOUy5vYmplY3RzV05TLmtleXNWJGNsYXNzog8QgASABqISE4ACgAOAB1lhbGlhc0RhdGFccmVsYXRpdmVQYXRo0hgNGRpXTlMuZGF0YU8RAZ4AAAAAAZ4AAgAADE1hY2ludG9zaCBIRAAAAAAAAAAAAAAAAAAAAMjC8XdIKwAAABU6QRFiYXJmb290X3BoZDAyLnBkZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTpQwrScMAAAAAAAAAAAAAIAAwAACSAAAAAAAAAAAAAAAAAAAAADYmliAAAQAAgAAMjDKbcAAAARAAgAAMK01HAAAAABABQAFTpBABU6FwAPH4QABx+xAACWQgACAEFNYWNpbnRvc2ggSEQ6VXNlcnM6AHRkYjoARG9jdW1lbnRzOgBXZWJDVjoAYmliOgBiYXJmb290X3BoZDAyLnBkZgAADgAkABEAYgBhAHIAZgBvAG8AdABfAHAAaABkADAAMgAuAHAAZABmAA8AGgAMAE0AYQBjAGkAbgB0AG8AcwBoACAASABEABIAL1VzZXJzL3RkYi9Eb2N1bWVudHMvV2ViQ1YvYmliL2JhcmZvb3RfcGhkMDIucGRmAAATAAEvAAAVAAIACv//AACABdIcHR4fWCRjbGFzc2VzWiRjbGFzc25hbWWjHyAhXU5TTXV0YWJsZURhdGFWTlNEYXRhWE5TT2JqZWN0XxAhLi4vLi4vV2ViQ1YvYmliL2JhcmZvb3RfcGhkMDIucGRm0hwdJCWiJSFcTlNEaWN0aW9uYXJ5EgABhqBfEA9OU0tleWVkQXJjaGl2ZXIACAARABYAHwAoADIANQA6ADwARQBLAFIAXQBlAGwAbwBxAHMAdgB4AHoAfACGAJMAmACgAkICRAJJAlICXQJhAm8CdgJ/AqMCqAKrArgCvQAAAAAAAAIBAAAAAAAAACgAAAAAAAAAAAAAAAAAAALP}}
+
+@book{hughes86,
+	Address = {New York},
+	Author = {P C Hughes},
+	Date-Added = {2011-12-06 09:09:26 -0500},
+	Date-Modified = {2011-12-06 09:09:26 -0500},
+	Publisher = {John Wiley \& Sons},
+	Title = {Spacecraft Attitude Dynamics},
+	Year = {1986}}
+
+@article{klarsfeld89,
+	Author = {S Klarsfeld and J A Oteo},
+	Date-Added = {2011-12-06 09:09:26 -0500},
+	Date-Modified = {2011-12-06 09:09:26 -0500},
+	Journal = {Journal of Phys. A: Math. Gen.},
+	Pages = {4565-4572},
+	Title = {The Baker-Campbell-Hausdorff formula and the convergence of the Magnus expansion},
+	Volume = {22},
+	Year = {1989}}
+
+@techreport{deleuterio89,
+	Author = {G M T D'Eleuterio},
+	Date-Added = {2012-03-16 16:15:23 -0400},
+	Date-Modified = {2012-03-16 16:16:56 -0400},
+	Institution = {Dynacon Enterprises Ltd.},
+	Month = {June},
+	Number = {SS-3},
+	Title = {Multibody Dynamics for Space Station Manipulators: Recursive Dynamics of Topological Chains},
+	Year = {1985}}
+
+@article{deleuterio92,
+	Author = {G M T D'Eleuterio},
+	Date-Added = {2012-03-16 16:13:47 -0400},
+	Date-Modified = {2012-03-16 16:14:57 -0400},
+	Journal = {Dynamics and Stability of Systems},
+	Number = {2},
+	Pages = {61-89},
+	Title = {Dynamics of an Elastic Multibody Chain: Part C -- Recursive Dynamics},
+	Volume = {7},
+	Year = {1992}}
+
+

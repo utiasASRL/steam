@@ -1,0 +1,10 @@
+\begin{thebibliography}{1}
+\newcommand{\enquote}[1]{``#1''}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{Barfoot and Furgale(2014)}]{barfoot_tro14}
+Barfoot, T.~D. and Furgale, P.~T., \enquote{Associating Uncertainty with
+  Three-Dimensional Poses for use in Estimation Problems,} \emph{IEEE
+  Transactions on Robotics}, 2014.
+
+\end{thebibliography}
