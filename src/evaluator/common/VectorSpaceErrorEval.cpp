@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 
 #include <glog/logging.h>
 

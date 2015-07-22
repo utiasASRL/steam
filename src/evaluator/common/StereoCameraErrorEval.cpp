@@ -4,10 +4,10 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 
 #include <glog/logging.h>
-#include <lgmath/SE3.hpp>
+
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {

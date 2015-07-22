@@ -13,7 +13,7 @@
 
 #include <Eigen/Core>
 #include <lgmath/Transformation.hpp>
-#include <steam/evaluator/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 
 namespace steam {
 namespace data {

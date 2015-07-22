@@ -10,12 +10,7 @@
 
 #include <glog/logging.h>
 
-#include <steam/OptimizationProblem.hpp>
-#include <steam/state/VectorSpaceStateVar.hpp>
-#include <steam/solver/VanillaGaussNewtonSolver.hpp>
-#include <steam/solver/LineSearchGaussNewtonSolver.hpp>
-#include <steam/solver/DoglegGaussNewtonSolver.hpp>
-#include <steam/solver/LevMarqGaussNewtonSolver.hpp>
+#include <steam.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief A simple error metric designed to test trust region methods.

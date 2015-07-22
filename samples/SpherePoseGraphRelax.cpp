@@ -10,12 +10,9 @@
 
 #include <glog/logging.h>
 
-#include <lgmath/Transformation.hpp>
-
+#include <lgmath.hpp>
+#include <steam.hpp>
 #include <steam/data/ParseSphere.hpp>
-#include <steam/OptimizationProblem.hpp>
-#include <steam/solver/VanillaGaussNewtonSolver.hpp>
-#include <steam/evaluator/TransformErrorEval.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves an iSAM1 spherical pose graph problem

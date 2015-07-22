@@ -6,7 +6,7 @@
 
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 
-#include <lgmath/SE3.hpp>
+#include <LGMath.hpp>
 #include <glog/logging.h>
 
 namespace steam {

@@ -67,7 +67,6 @@ double HuberLossFunc::weight(double whitened_error_norm) const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 double DcsLossFunc::cost(double whitened_error_norm) const {
   double e2 = whitened_error_norm*whitened_error_norm;
-  double abse = fabs(whitened_error_norm); // should already be positive anyway ...
   if (e2 <= k_) {
     return 0.5*e2;
   } else {

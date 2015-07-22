@@ -10,14 +10,11 @@
 
 #include <glog/logging.h>
 
-#include <lgmath/SE3.hpp>
+#include <lgmath.hpp>
 
+#include <lgmath.hpp>
+#include <steam.hpp>
 #include <steam/data/ParseBA.hpp>
-#include <steam/OptimizationProblem.hpp>
-#include <steam/solver/DoglegGaussNewtonSolver.hpp>
-
-#include <steam/evaluator/StereoCameraErrorEval.hpp>
-#include <steam/evaluator/TransformEvalOperations.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves simple bundle adjustment problems

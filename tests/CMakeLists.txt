@@ -8,7 +8,7 @@ project(catch_tests)
 ### Misc
 ################################################################################
 # Expose required variable (CATCH_INCLUDE_DIR) to parent scope
-set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+set(CATCH_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty"
         CACHE INTERNAL "Path to include folder for Catch")
 
 # Disable compiler warnings that Catch throws

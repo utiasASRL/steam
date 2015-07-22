@@ -6,7 +6,7 @@
 
 #include <steam/evaluator/TransformEvaluators.hpp>
 
-#include <lgmath/SE3.hpp>
+#include <lgmath.hpp>
 #include <glog/logging.h>
 
 namespace steam {

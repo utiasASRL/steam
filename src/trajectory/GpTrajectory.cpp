@@ -6,13 +6,12 @@
 
 #include <steam/trajectory/GpTrajectory.hpp>
 
+#include <lgmath.hpp>
+#include <glog/logging.h>
+
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
-
-#include <steam/evaluator/VectorSpaceErrorEval.hpp>
-
-#include <lgmath/SE3.hpp>
-#include <glog/logging.h>
+#include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 
 namespace steam {
 namespace se3 {

@@ -101,7 +101,7 @@ set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${LGMath_LIBRARIES})
 ################################################################################
 
 # Find the header files
-file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/steam/*.hpp")
+file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
 
 # Find the sources files
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")

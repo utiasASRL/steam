@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/TransformErrorEval.hpp>
+#include <steam/evaluator/common/TransformErrorEval.hpp>
 
 #include <glog/logging.h>
 #include <steam/evaluator/TransformEvalOperations.hpp>

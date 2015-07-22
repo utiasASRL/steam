@@ -9,10 +9,8 @@
 
 #include <glog/logging.h>
 
-#include <steam/OptimizationProblem.hpp>
-#include <steam/solver/VanillaGaussNewtonSolver.hpp>
-//#include <steam/evaluator/RelativeTransformErrorEval.hpp>
-#include <steam/evaluator/TransformErrorEval.hpp>
+#include <lgmath.hpp>
+#include <steam.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Structure to store simulated relative transform measurements
