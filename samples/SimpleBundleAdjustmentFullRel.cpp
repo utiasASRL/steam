@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBundleAdjustmentRelLand.cpp
+/// \file SimpleBundleAdjustmentFullRel.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///        with relative landmarks.
+///        with relative landmarks and poses.
 ///
-/// \author Sean Anderson, ASRL
+/// \author Michael Warren, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
