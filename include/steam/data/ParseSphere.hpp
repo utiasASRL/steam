@@ -13,7 +13,7 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <lgmath/Transformation.hpp>
+#include <lgmath.hpp>
 
 namespace steam {
 namespace data {

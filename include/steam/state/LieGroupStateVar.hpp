@@ -8,7 +8,7 @@
 #define STEAM_LIE_GROUP_STATE_VARIABLE_HPP
 
 #include <steam/state/StateVariable.hpp>
-#include <lgmath/Transformation.hpp>
+#include <lgmath.hpp>
 
 namespace steam {
 

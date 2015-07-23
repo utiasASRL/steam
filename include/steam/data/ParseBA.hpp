@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include <Eigen/Core>
-#include <lgmath/Transformation.hpp>
+#include <lgmath.hpp>
 #include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 
 namespace steam {
