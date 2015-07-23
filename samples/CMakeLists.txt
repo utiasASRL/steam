@@ -18,9 +18,13 @@ target_link_libraries(SpherePoseGraphRelax steam ${DEPEND_LIBS})
 add_executable(SimpleBundleAdjustment ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBundleAdjustment.cpp)
 target_link_libraries(SimpleBundleAdjustment steam ${DEPEND_LIBS})
 
-# bundle adjustment example with hardcoded GP factors
+# bundle adjustment example with relative landmarks
 add_executable(SimpleBundleAdjustmentRelLand ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBundleAdjustmentRelLand.cpp)
 target_link_libraries(SimpleBundleAdjustmentRelLand steam ${DEPEND_LIBS})
+
+# bundle adjustment example with fully relative landmarks and poses
+add_executable(SimpleBundleAdjustmentFullRel ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBundleAdjustmentFullRel.cpp)
+target_link_libraries(SimpleBundleAdjustmentFullRel steam ${DEPEND_LIBS})
 
 # bundle adjustment example with hardcoded GP factors
 add_executable(NaiveGPandBA ${CMAKE_CURRENT_SOURCE_DIR}/NaiveGPandBA.cpp)
