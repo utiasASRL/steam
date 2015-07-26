@@ -5,7 +5,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/solver/GaussNewtonSolverBase.hpp>
-#include <glog/logging.h>
 
 #include <iostream>
 #include <Eigen/Cholesky>
@@ -106,7 +105,12 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewton() const {
 
   // Perform a Cholesky factorization of A (takes the bulk of the time)
   solver.compute(gaussNewtonLHS);
-  CHECK(solver.info() == Eigen::Success) << "Eigen LLT Decomposition Failed. Likely, matrix is not positive semi-definite.";
+  if (solver.info() != Eigen::Success) {
+    throw steam_solver_failure("During steam solve, Eigen LLT decomposition failed. "
+                               "Likely, matrix is not positive semi-definite.");
+  }
+
+  // todo, also check for determinant?
 
   // Do the backward pass, using the Cholesky factorization (fast)
   return solver.solve(gaussNewtonRHS);

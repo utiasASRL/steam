@@ -12,7 +12,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include <glog/logging.h>
+#include <stdexcept>
 
 namespace steam {
 namespace parse {
@@ -34,7 +34,10 @@ static std::vector<std::vector<std::string> > loadData(const std::string& fileNa
 
   // Open file stream and check that it is error free
   std::ifstream inFileStream( fileName.c_str() );
-  CHECK(inFileStream.good()) << "error opening input file " << fileName;
+  if (!inFileStream.good()) {
+    std::stringstream ss; ss << "error opening input file " << fileName;
+    throw std::invalid_argument(ss.str());
+  }
 
   // Create output variable
   std::vector<std::vector<std::string> > strMatrix;
@@ -64,7 +67,9 @@ static std::vector<std::vector<std::string> > loadData(const std::string& fileNa
 static void writeData(const std::string& fileName,
                       const std::vector<std::vector<std::string> >& strMatrix, char delim = ',') {
 
-  CHECK_GE(strMatrix.size(), 1u) << "Provided matrix of strings had no entries.";
+  if (strMatrix.size() < 1u) {
+    throw std::invalid_argument("Provided matrix of strings had no entries.");
+  }
 
   std::ofstream outFileStream;
   outFileStream.open(fileName.c_str());
@@ -72,7 +77,11 @@ static void writeData(const std::string& fileName,
   // Iterate over the rows of the string matrix and write comma-separated fields
   for (std::vector<std::vector<std::string> >::const_iterator itRow = strMatrix.begin() ; itRow != strMatrix.end(); ++itRow) {
     const unsigned fields = itRow->size();
-    CHECK_GE(fields, 1u) << "String matrix row has no entries.";
+
+    if (fields < 1u) {
+      throw std::invalid_argument("String matrix row has no entries.");
+    }
+
     outFileStream << itRow->at(0);
     for (unsigned i = 1; i < fields; i++) {
       outFileStream << delim << itRow->at(i);

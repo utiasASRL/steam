@@ -5,7 +5,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/CostTerm.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 
@@ -42,7 +41,11 @@ Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJaco
 
   // Whiten and weight the Jacobians
   for (unsigned int i = 0; i < outJacobians->size(); i++) {
-    CHECK(noiseModel_->getSqrtInformation().cols() == (*outJacobians)[i].jac.rows()); // TODO, remove this check, and instead check dimensions of all 'parties' on construction of object...
+
+    if (noiseModel_->getSqrtInformation().cols() != (*outJacobians)[i].jac.rows()) {
+      throw std::runtime_error("Dimension mismatch");
+    }
+
     (*outJacobians)[i].jac = sqrt_w*noiseModel_->getSqrtInformation()*(*outJacobians)[i].jac;
   }
 

@@ -7,7 +7,6 @@
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
 #include <lgmath.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 namespace se3 {
@@ -57,7 +56,9 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
   lgmath::se3::Transformation pose2 = pose2_->evaluate(&jacs2);
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->reserve(jacs1.size() + jacs2.size());
 
@@ -133,7 +134,9 @@ lgmath::se3::Transformation InverseTransformEvaluator::evaluate(std::vector<Jaco
   lgmath::se3::Transformation poseInverse = pose_->evaluate(&jacsCopy).inverse();
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->resize(jacsCopy.size());
 
@@ -186,7 +189,9 @@ Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate(std::vector<Jacobian>* jacs)
   Eigen::Matrix<double,6,1> vec = pose_->evaluate(&jacsCopy).vec();
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->resize(jacsCopy.size());
 
@@ -250,7 +255,9 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate(std::vector<Jacobian>* jacs) 
   Eigen::Vector4d point_in_c = pose * landmark_->getValue();
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->reserve(poseJacs.size() + 1);
 

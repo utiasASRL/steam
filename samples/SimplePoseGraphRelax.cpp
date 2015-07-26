@@ -7,8 +7,6 @@
 
 #include <iostream>
 
-#include <glog/logging.h>
-
 #include <lgmath.hpp>
 #include <steam.hpp>
 
@@ -25,9 +23,6 @@ struct RelMeas {
 /// \brief Example that loads and solves a relative pose graph problem
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-
-  // Init glog
-  google::InitGoogleLogging(argv[0]);
 
   ///
   /// Setup 'Dataset'

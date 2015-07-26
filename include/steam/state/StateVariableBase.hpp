@@ -11,8 +11,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include <glog/logging.h>
-
 namespace steam {
 
 /// Defines type we will use for IDs (to be used in some maps and unordered maps)
@@ -83,7 +81,12 @@ public:
   /////////////////////////////////////////////////////////////////////////////////////////////
   StateVariableBase(unsigned int perturbDim, bool isLocked = false)
     : perturbDim_(perturbDim), isLocked_(isLocked) {
-    CHECK(perturbDim_ > 0);
+
+    // Throw logic error
+    if (perturbDim_ <= 0) {
+      throw std::invalid_argument("Tried to initialize a StateVariableBase with "
+                                  "a zero-size perturbation dimension");
+    }
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////

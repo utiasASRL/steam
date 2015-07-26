@@ -6,7 +6,6 @@
 
 #include <steam/solver/SolverBase.hpp>
 
-#include <glog/logging.h>
 #include <iostream>
 
 #include <steam/common/Timer.hpp>
@@ -36,7 +35,7 @@ void SolverBase::iterate() {
 
   // Check is solver has already converged
   if (solverConverged_) {
-    LOG(WARNING) << "Requested an interation when solver has already converged, iteration ignored.";
+    std::cout << "[STEAM WARN] Requested an interation when solver has already converged, iteration ignored.";
     return;
   }
 

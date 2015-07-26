@@ -6,7 +6,6 @@
 
 #include <steam/solver/VanillaGaussNewtonSolver.hpp>
 
-#include <glog/logging.h>
 #include <iostream>
 
 #include <steam/common/Timer.hpp>
@@ -24,7 +23,11 @@ VanillaGaussNewtonSolver::VanillaGaussNewtonSolver(OptimizationProblem* problem,
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool VanillaGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
-  CHECK_NOTNULL(newCost);
+
+  if (newCost == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input "
+                                "'newCost' in linearizeSolveAndUpdate");
+  }
 
   steam::Timer iterTimer;
   steam::Timer timer;

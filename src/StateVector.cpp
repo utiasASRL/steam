@@ -8,8 +8,6 @@
 #include <steam/sparse/BlockVector.hpp>
 
 #include <iostream>
-#include <glog/logging.h>
-
 
 namespace steam {
 
@@ -51,9 +49,11 @@ StateVector& StateVector::operator= (const StateVector& other) {
 void StateVector::copyValues(const StateVector& other) {
 
   // Check state vector are the same size
-  CHECK(!states_.empty());
-  CHECK(this->numBlockEntries_ == other.numBlockEntries_);
-  CHECK(this->states_.size() == other.states_.size());
+  if (this->states_.empty() ||
+      this->numBlockEntries_ != other.numBlockEntries_ ||
+      this->states_.size() != other.states_.size()) {
+    throw std::invalid_argument("StateVector size was not the same in copyValues()");
+  }
 
   // Iterate over the state vectors and perform a "deep" copy without allocation new memory.
   // Keeping the original pointers is important as they are shared in other places, and we
@@ -64,11 +64,14 @@ void StateVector::copyValues(const StateVector& other) {
 
     // Find matching state by ID
     boost::unordered_map<StateID, StateContainer>::const_iterator itOther = other.states_.find(it->second.state->getKey().getID());
-    CHECK(itOther != other.states_.end());
 
-    // Check state variables and state structure are the same
-    CHECK(it->second.state->getKey().getID() == itOther->second.state->getKey().getID()) << ", failed: " << it->second.state->getKey().getID() << " == " << itOther->second.state->getKey().getID();
-    CHECK(it->second.localBlockIndex == itOther->second.localBlockIndex) << ", failed: " << it->second.localBlockIndex << " == " << itOther->second.localBlockIndex;
+    // Check that matching state was found and has the same structure
+    if (itOther == other.states_.end() ||
+        it->second.state->getKey().getID() != itOther->second.state->getKey().getID() ||
+        it->second.localBlockIndex != itOther->second.localBlockIndex) {
+      throw std::runtime_error("StateVector was missing an entry in copyValues(), "
+                               "or structure of StateVector did not match.");
+    }
 
     // Copy
     it->second.state->setFromCopy(itOther->second.state);
@@ -82,11 +85,16 @@ void StateVector::copyValues(const StateVector& other) {
 void StateVector::addStateVariable(const StateVariableBase::Ptr& state) {
 
   // Verify that state is not locked
-  CHECK(!state->isLocked()) << "Tried to add locked state variable to an optimizable state vector.";
+  if (state->isLocked()) {
+    throw std::invalid_argument("Tried to add locked state variable to "
+                                "an optimizable state vector");
+  }
 
   // Verify we don't already have this state
   StateKey key = state->getKey();
-  CHECK(!this->hasStateVariable(key));
+  if (this->hasStateVariable(key)) {
+    throw std::runtime_error("StateVector already contains the state being added.");
+  }
 
   // Create new container
   StateContainer newEntry;
@@ -119,7 +127,9 @@ StateVariableBase::ConstPtr StateVector::getStateVariable(const StateKey& key) c
   boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
 
   // Check that it was found
-  CHECK(it != states_.end());
+  if (it == states_.end()) {
+    throw std::runtime_error("State variable was not found in call to getStateVariable()");
+  }
 
   // Return state variable reference
   return it->second.state;
@@ -144,7 +154,11 @@ int StateVector::getStateBlockIndex(const StateKey& key) const {
   //  **Note the likely causes that this occurs:
   //      1)  A cost term includes a state that is not added to the problem
   //      2)  A cost term is not checking whether states are locked, and adding a Jacobian for a locked state variable
-  CHECK(it != states_.end()) << ", tried to find a state that does not exist in the state vector (ID: " << key.getID() << ").";
+  if (it == states_.end()) {
+    std::stringstream ss; ss << "Tried to find a state that does not exist "
+                                "in the state vector (ID: " << key.getID() << ").";
+    throw std::runtime_error(ss.str());
+  }
 
   // Return block index
   return it->second.localBlockIndex;
@@ -164,7 +178,10 @@ std::vector<unsigned int> StateVector::getStateBlockSizes() const {
        it != states_.end(); ++it ) {
 
     // Check that the local block index is in a valid range
-    CHECK(it->second.localBlockIndex >= 0 && it->second.localBlockIndex < (int)result.size());
+    if (it->second.localBlockIndex < 0 ||
+        it->second.localBlockIndex >= (int)result.size()) {
+      throw std::logic_error("localBlockIndex is not a valid range");
+    }
 
     // Populate return vector
     result[it->second.localBlockIndex] = it->second.state->getPerturbDim();
@@ -185,7 +202,9 @@ void StateVector::update(const Eigen::VectorXd& perturbation) {
   for ( boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.begin(); it != states_.end(); ++it ) {
 
     // Check for valid index
-    CHECK(it->second.localBlockIndex >= 0);
+    if (it->second.localBlockIndex < 0) {
+      throw std::runtime_error("localBlockIndex is not initialized");
+    }
 
     // Update state
     it->second.state->update(blkPerturb.getBlkVector(it->second.localBlockIndex));

@@ -6,7 +6,6 @@
 
 #include <steam/evaluator/common/TransformErrorEval.hpp>
 
-#include <glog/logging.h>
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {

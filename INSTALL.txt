@@ -14,15 +14,6 @@ Eigen:
 5) cmake ..
 6) sudo make install
 
-Google Logging (Glog):
-1) wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
-2) tar zxvf glog-0.3.3.tar.gz
-3) cd glog-0.3.3
-4) ./configure
-5) make && make install
-6) make clean
-7) make distclean
-
 Install
 -------
 1) mkdir build && cd build

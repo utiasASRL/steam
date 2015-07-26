@@ -7,7 +7,6 @@
 
 #include <steam/data/ParseSphere.hpp>
 #include <steam/common/ParseUtils.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 namespace data {
@@ -37,17 +36,24 @@ std::vector<SphereEdge> parseSphereDataset(const std::string& file) {
 
   // Parse space delimited file into a matrix of strings
   std::vector<std::vector<std::string> > temp = steam::parse::loadData(file, ' ');
-  CHECK_GE(temp.size(), 1u) << "The file: " << file << ", was empty.";
+  if (temp.size() < 1u) {
+    std::stringstream ss; ss << "The file: " << file << ", was empty.";
+    throw std::invalid_argument(ss.str());
+  }
 
   // Loop over each line and parse edge
   std::vector<SphereEdge> result;
   for (std::vector<std::vector<std::string> >::iterator it = temp.begin(); it != temp.end(); ++it) {
 
-    // Check for one of the two valid sizes
-    CHECK(it->size() == 30 || it->size() == 9);
-
     // Check it is an edge
-    CHECK(it->at(0) == "EDGE3");
+    if (it->at(0) != "EDGE3") {
+      throw std::logic_error("File format is incorrect, expected prefix EDGE3.");
+    }
+
+    // Check for one of the two valid sizes
+    if (it->size() != 30 && it->size() != 9) {
+      throw std::logic_error("File format (number of entries per line) is incorrect.");
+    }
 
     // Parse IDs
     SphereEdge edge;

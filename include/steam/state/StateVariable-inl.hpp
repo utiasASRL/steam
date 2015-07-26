@@ -6,8 +6,6 @@
 
 #include <steam/state/StateVariable.hpp>
 
-#include <glog/logging.h>
-
 namespace steam {
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +35,9 @@ const TYPE& StateVariable<TYPE>::getValue() const {
 /////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE>
 void StateVariable<TYPE>::setFromCopy(const StateVariableBase::ConstPtr& other) {
-  CHECK(this->getKey().equals(other->getKey()));
+  if (!this->getKey().equals(other->getKey())) {
+    throw std::invalid_argument("State variable keys did not match in setFromCopy()");
+  }
   StateVariable<TYPE>::ConstPtr p = boost::static_pointer_cast<const StateVariable<TYPE> >(other);
   value_ = p->value_;
 }

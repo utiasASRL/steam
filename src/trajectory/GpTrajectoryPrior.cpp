@@ -7,7 +7,6 @@
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
 
 #include <lgmath.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 namespace se3 {
@@ -61,7 +60,9 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(std::vector<Jacobian>* jacs) const {
   double deltaTime = (knot2_->time - knot1_->time).seconds();
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->reserve(4);
 

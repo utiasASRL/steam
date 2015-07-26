@@ -8,7 +8,6 @@
 #include <steam/data/ParseBA.hpp>
 
 #include <iostream>
-#include <glog/logging.h>
 
 #include <steam/common/ParseUtils.hpp>
 
@@ -22,7 +21,10 @@ SimpleBaDataset parseSimpleBaDataset(const std::string& file) {
 
   // Parse comma delimited file into a matrix of strings
   std::vector<std::vector<std::string> > temp = steam::parse::loadData(file, ',');
-  CHECK_GE(temp.size(), 1u) << "The file: " << file << ", was empty.";
+  if (temp.size() < 1u) {
+    std::stringstream ss; ss << "The file: " << file << ", was empty.";
+    throw std::invalid_argument(ss.str());
+  }
 
   // Loop over each line and parse accordingly
   SimpleBaDataset result;
@@ -96,7 +98,7 @@ SimpleBaDataset parseSimpleBaDataset(const std::string& file) {
       }
       result.meas.push_back(temp);
     } else { // unrecognized line
-      CHECK(0) << "unrecognized field";
+      throw std::logic_error("file contained unrecognized field");
     }
   }
 

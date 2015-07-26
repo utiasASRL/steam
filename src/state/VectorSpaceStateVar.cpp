@@ -5,7 +5,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/state/VectorSpaceStateVar.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 
@@ -19,7 +18,12 @@ VectorSpaceStateVar::VectorSpaceStateVar(Eigen::VectorXd v) : StateVariable(v, v
 ///          this += perturbation
 /////////////////////////////////////////////////////////////////////////////////////////////
 bool VectorSpaceStateVar::update(const Eigen::VectorXd& perturbation) {
-  CHECK(perturbation.size() == this->getPerturbDim());
+
+  if (perturbation.size() != this->getPerturbDim()) {
+    throw std::runtime_error("During attempt to update a state variable, the provided "
+                             "perturbation (VectorXd) was not the correct size.");
+  }
+
   this->value_ = this->value_ + perturbation;
   return true;
 }
