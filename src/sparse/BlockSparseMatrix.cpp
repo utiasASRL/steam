@@ -123,7 +123,11 @@ void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixX
   }
   if (m.rows() != (int)blkRowSizes_[r] ||
       m.cols() != (int)blkColSizes_[c]) {
-    throw std::invalid_argument("Size of matrix did not align with block structure.");
+    std::stringstream ss; ss << "Size of matrix did not align with block structure; row: "
+                             << r << " col: " << c << " failed the check: "
+                             << m.rows() << " == " << (int)blkRowSizes_[r] << " && "
+                             << m.cols() << " == " << (int)blkColSizes_[c];
+    throw std::invalid_argument(ss.str());
   }
 
   std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
