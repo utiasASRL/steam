@@ -71,16 +71,6 @@ else(EIGEN3_FOUND)
   message(STATUS "NOT FOUND: Eigen")
 endif(EIGEN3_FOUND)
 
-# find Glog
-#find_package(Glog REQUIRED)
-#if(GLOG_FOUND)
-#  message(STATUS "FOUND: Glog at ${GLOG_LIBRARIES}")
-#  include_directories(${GLOG_INCLUDE_DIRS})
-#  set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${GLOG_LIBRARIES})
-#else(GLOG_FOUND)
-#  message(STATUS "NOT FOUND: Glog")
-#endif(GLOG_FOUND)
-
 # find OpenMP - multithreading package
 find_package(OpenMP)
 if(OPENMP_FOUND)
