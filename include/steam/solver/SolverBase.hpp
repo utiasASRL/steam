@@ -15,14 +15,14 @@
 
 namespace steam {
 
-
-// current behaviour.. construct solver on an optimization problem.. optimize.. now the solver keeps
-// a copy of the matrices incase we want to query covariance, but is stuck in its converged state..
-//
-// TODO is there concern that people might change the problem during optimization?
-//   to ensure:
-//     problem becomes locked once optimization starts? ... or optimizer can detect that problem has changed...
-//     variables must be added to problem as locked, or not... cannot be locked after through shared memory..
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Reports solver failures (e.g. LLT decomposition fail). Catch and handle properly
+//////////////////////////////////////////////////////////////////////////////////////////////
+class steam_solver_failure : public std::runtime_error
+{
+public:
+    steam_solver_failure(const std::string& s) : std::runtime_error(s) {}
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Basic solver interface
