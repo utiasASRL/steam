@@ -8,8 +8,6 @@
 
 #include <iostream>
 
-#include <glog/logging.h>
-
 #include <lgmath.hpp>
 #include <steam.hpp>
 #include <steam/data/ParseSphere.hpp>
@@ -18,9 +16,6 @@
 /// \brief Example that loads and solves an iSAM1 spherical pose graph problem
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-
-  // Init glog
-  google::InitGoogleLogging(argv[0]);
 
   ///
   /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)

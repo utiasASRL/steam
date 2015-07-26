@@ -6,8 +6,6 @@
 
 #include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 
-#include <glog/logging.h>
-
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {
@@ -51,7 +49,9 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate(std::vector<Jacobian>* jacs) con
   Eigen::Matrix4d cameraJac = cameraModelJacobian(point_in_c);
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->resize(jacsTemp.size());
 

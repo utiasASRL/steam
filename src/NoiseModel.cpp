@@ -7,9 +7,9 @@
 #include <steam/NoiseModel.hpp>
 
 #include <iostream>
+#include <stdexcept>
 
 #include <Eigen/Cholesky>
-#include <glog/logging.h>
 
 namespace steam {
 
@@ -100,8 +100,11 @@ void NoiseModel::assertPositiveDefiniteMatrix(const Eigen::MatrixXd& matrix) {
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigsolver(matrix, Eigen::EigenvaluesOnly);
 
   // Check the minimum eigen value
-  CHECK(eigsolver.eigenvalues().minCoeff() > 0) << "Covariance must be positive definite. "
+  if (eigsolver.eigenvalues().minCoeff() <= 0) {
+    std::stringstream ss; ss << "Covariance must be positive definite. "
                              << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff();
+    throw std::invalid_argument(ss.str());
+  }
 }
 
 } // steam

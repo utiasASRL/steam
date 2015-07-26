@@ -8,10 +8,6 @@
 
 #include <iostream>
 
-#include <glog/logging.h>
-
-#include <lgmath.hpp>
-
 #include <lgmath.hpp>
 #include <steam.hpp>
 #include <steam/data/ParseBA.hpp>
@@ -20,9 +16,6 @@
 /// \brief Example that loads and solves simple bundle adjustment problems
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv) {
-
-  // Init glog
-  google::InitGoogleLogging(argv[0]);
 
   ///
   /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)

@@ -6,7 +6,6 @@
 
 #include <steam/solver/LineSearchGaussNewtonSolver.hpp>
 
-#include <glog/logging.h>
 #include <iostream>
 
 #include <steam/common/Timer.hpp>
@@ -24,7 +23,11 @@ LineSearchGaussNewtonSolver::LineSearchGaussNewtonSolver(OptimizationProblem* pr
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
-  CHECK_NOTNULL(newCost);
+
+  if (newCost == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input "
+                                "'newCost' in linearizeSolveAndUpdate");
+  }
 
   // Logging variables
   steam::Timer iterTimer;

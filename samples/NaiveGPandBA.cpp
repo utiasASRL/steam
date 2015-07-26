@@ -6,12 +6,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-
 #include <iostream>
-
-#include <glog/logging.h>
-
-#include <lgmath.hpp>
 
 #include <lgmath.hpp>
 #include <steam.hpp>
@@ -69,7 +64,9 @@ public:
     double deltaTime = (time2_ - time1_);
 
     // Check and initialize jacobian array
-    CHECK_NOTNULL(jacs);
+    if (jacs == NULL) {
+      throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+    }
     jacs->clear();
     jacs->reserve(4);
 
@@ -133,9 +130,6 @@ private:
 /// \brief Example that loads and solves simple bundle adjustment problems, with a GP prior
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-
-  // Init glog
-  google::InitGoogleLogging(argv[0]);
 
   ///
   /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)
@@ -241,7 +235,6 @@ int main(int argc, char **argv) {
   }
 
   // Generate cost terms related to GP prior
-  CHECK(poses_ic_k_0.size() == varpi_ic.size());
   for (unsigned int i = 1; i < poses_ic_k_0.size(); i++)
   {
     // Get references to times, poses and velocities

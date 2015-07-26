@@ -7,7 +7,6 @@
 #include <steam/OptimizationProblem.hpp>
 
 #include <iomanip>
-#include <glog/logging.h>
 
 namespace steam {
 
@@ -63,9 +62,11 @@ const std::vector<CostTerm::ConstPtr>& OptimizationProblem::getCostTerms() const
 //////////////////////////////////////////////////////////////////////////////////////////////
 double OptimizationProblem::proposeUpdate(const Eigen::VectorXd& stateStep) {
 
-  // Check that an update is not already pending
-  CHECK(pendingProposedState_ != true) <<
-    "There is already a pending update, accept or reject before proposing a new one.";
+  // Check that an update is not already pending 
+  if (pendingProposedState_) {
+    throw std::runtime_error("There is already a pending update, accept "
+                             "or reject before proposing a new one.");
+  }
 
   // Make copy of state vector
   stateVectorBackup_ = stateVec_;
@@ -84,7 +85,9 @@ double OptimizationProblem::proposeUpdate(const Eigen::VectorXd& stateStep) {
 void OptimizationProblem::acceptProposedState() {
 
   // Check that an update has been proposed
-  CHECK(pendingProposedState_ == true) << "You must call proposeUpdate before accept.";
+  if (!pendingProposedState_) {
+    throw std::runtime_error("You must call proposeUpdate before accept.");
+  }
 
   // Switch flag, accepting the update
   pendingProposedState_ = false;
@@ -96,7 +99,9 @@ void OptimizationProblem::acceptProposedState() {
 void OptimizationProblem::rejectProposedState() {
 
   // Check that an update has been proposed
-  CHECK(pendingProposedState_ == true) << "You must call proposeUpdate before rejecting.";
+  if (!pendingProposedState_) {
+    throw std::runtime_error("You must call proposeUpdate before rejecting.");
+  }
 
   // Revert to previous state
   stateVec_.copyValues(stateVectorBackup_);

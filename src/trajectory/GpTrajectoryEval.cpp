@@ -7,7 +7,6 @@
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 
 #include <lgmath.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 namespace se3 {
@@ -80,7 +79,9 @@ lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {
 lgmath::se3::Transformation GpTrajectoryEval::evaluate(std::vector<Jacobian>* jacs) const {
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   jacs->reserve(4);
 

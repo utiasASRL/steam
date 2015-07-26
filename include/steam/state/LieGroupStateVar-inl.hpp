@@ -5,7 +5,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/state/LieGroupStateVar.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 
@@ -36,7 +35,12 @@ LieGroupStateVar<TYPE,DIM>::LieGroupStateVar(const Eigen::Matrix<double,DIM,1>& 
 /////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE, int DIM>
 bool LieGroupStateVar<TYPE,DIM>::update(const Eigen::VectorXd& perturbation) {
-  CHECK(perturbation.size() == this->getPerturbDim());
+
+  if (perturbation.size() != this->getPerturbDim()) {
+    throw std::runtime_error("During attempt to update a state variable, the provided "
+                             "perturbation (VectorXd) was not the correct size.");
+  }
+
   // Update the Lie matrix using a left-multiplicative perturbation
   this->value_ = TYPE(perturbation)*this->value_;
   return true;

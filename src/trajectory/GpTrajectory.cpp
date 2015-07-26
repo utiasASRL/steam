@@ -7,7 +7,6 @@
 #include <steam/trajectory/GpTrajectory.hpp>
 
 #include <lgmath.hpp>
-#include <glog/logging.h>
 
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
@@ -40,7 +39,9 @@ void GpTrajectory::add(const steam::Time& time, const lgmath::se3::Transformatio
   } else {
 
     // Check that time is `advancing'
-    CHECK(time.nanosecs() > knotMap_.rbegin()->first) << "Tried to add a knot in the middle of the curve";
+    if (time.nanosecs() <= knotMap_.rbegin()->first) {
+      throw std::runtime_error("Tried to add a knot in the middle of the curve");
+    }
   }
 
   // Insert in map
@@ -70,7 +71,9 @@ void GpTrajectory::add(const steam::Time& time, const lgmath::se3::Transformatio
     std::map<boost::int64_t, Knot::Ptr>::reverse_iterator rit = knotMap_.rbegin();
 
     // Check that time is `advancing'
-    CHECK(time.nanosecs() > rit->first) << "Tried to add a knot in the middle of the curve";
+    if (time.nanosecs() <= rit->first) {
+      throw std::runtime_error("Tried to add a knot in the middle of the curve");
+    }
 
     // Estimate velocity
     double deltaTime = (time - rit->second->time).seconds();
@@ -107,7 +110,9 @@ void GpTrajectory::add(const steam::Time& time) {
     std::map<boost::int64_t, Knot::Ptr>::reverse_iterator rit = knotMap_.rbegin();
 
     // Check that time is `advancing'
-    CHECK(time.nanosecs() > rit->first) << "Tried to add a knot in the middle of the curve";
+    if (time.nanosecs() <= rit->first) {
+      throw std::runtime_error("Tried to add a knot in the middle of the curve");
+    }
 
     // Extrapolate pose
     Eigen::Matrix<double,6,1> xi = (time - rit->second->time).seconds()*rit->second->varpi->getValue();
@@ -133,7 +138,9 @@ TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time)
 
   // Get first iterator
   std::map<boost::int64_t, Knot::Ptr>::const_iterator it1 = knotMap_.lower_bound(time.nanosecs());
-  CHECK(it1 != knotMap_.end()) << "Time " << time.nanosecs() << " is not in the bounds.";
+  if (it1 == knotMap_.end()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+  }
 
   // Check if we requested time exactly
   if (it1->second->time == time) {
@@ -143,9 +150,15 @@ TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time)
   }
 
   // Get `earlier' iterator
-  CHECK(it1 != knotMap_.begin()) << "Should not trigger... something has gone wrong.";
+  if (it1 == knotMap_.begin()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                             "should not trigger... report to a STEAM contributor.");
+  }
   std::map<boost::int64_t, Knot::Ptr>::const_iterator it2 = it1; --it1;
-  CHECK(time > it1->second->time && time < it2->second->time) << "Time is not in bounds.. it should be... something has gone wrong.";
+  if (time <= it1->second->time || time >= it2->second->time) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                             "should not trigger... report to a STEAM contributor.");
+  }
 
   // Create interpolated evaluator
   return GpTrajectoryEval::MakeShared(time, it1->second, it2->second);
@@ -209,11 +222,15 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
 
   // Add initial prior terms if variables are not locked
   std::map<boost::int64_t, Knot::Ptr>::const_iterator it1 = knotMap_.begin();
-  CHECK(it1 != knotMap_.end()) << "Map is not empty, so this should not be true";
+  if (it1 == knotMap_.end()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                             "should not trigger... report to a STEAM contributor.");
+  }
 
   // If initial pose is unlocked, add a prior
   if (!it1->second->T_k0->isLocked()) {
-    CHECK(0) << "Behaviour has changed and pose is not locked by default... need to add prior here.";
+    throw std::logic_error("Behaviour has changed and the initial pose is not locked by default..."
+                           "an initial prior term needs to be added.");
   }
 
   // If initial velocity is unlocked, add a prior

@@ -6,7 +6,6 @@
 
 #include <steam/solver/DoglegGaussNewtonSolver.hpp>
 
-#include <glog/logging.h>
 #include <iostream>
 
 #include <steam/common/Timer.hpp>
@@ -26,7 +25,11 @@ DoglegGaussNewtonSolver::DoglegGaussNewtonSolver(OptimizationProblem* problem, c
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
-  CHECK_NOTNULL(newCost);
+
+  if (newCost == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input "
+                                "'newCost' in linearizeSolveAndUpdate");
+  }
 
   // Logging variables
   steam::Timer iterTimer;
@@ -51,7 +54,9 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // todo: could check if gradient descent before solving...
   Eigen::VectorXd gaussNewtonStep = this->solveGaussNewton();
   Eigen::VectorXd gradDescentStep = this->getCauchyPoint();
-  CHECK(gaussNewtonStep.rows() == gradDescentStep.rows()) << "failed: " << gaussNewtonStep.rows() << " == " << gradDescentStep.rows();
+  if (gaussNewtonStep.rows() != gradDescentStep.rows()) {
+    throw std::logic_error("Gauss-Newton and gradient descent dimensions did not match.");
+  }
   solveTime = timer.milliseconds();
 
   // Apply update (w line search)

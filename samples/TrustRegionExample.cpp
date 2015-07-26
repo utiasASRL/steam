@@ -8,8 +8,6 @@
 
 #include <iostream>
 
-#include <glog/logging.h>
-
 #include <steam.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,7 +31,9 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   DivergenceErrorEval(const steam::VectorSpaceStateVar::ConstPtr& stateVec)
     : stateVec_(stateVec) {
-    CHECK(stateVec_->getPerturbDim() == 1);
+    if (stateVec_->getPerturbDim() != 1) {
+      throw std::invalid_argument("Dimension was improper size");
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,9 @@ public:
     double x = stateVec_->getValue()[0];
 
     // Check for null ptr and clear jacobians
-    CHECK_NOTNULL(jacs);
+    if (jacs == NULL) {
+      throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+    }
     jacs->clear();
 
     // If state not locked, add Jacobian
@@ -122,9 +124,6 @@ void setupDivergenceProblem(steam::OptimizationProblem* problem) {
 /// \brief Example of trying to solve the convergence problem with several solvers
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-
-  // Init glog
-  google::InitGoogleLogging(argv[0]);
 
   // Solve using Vanilla Gauss-Newton Solver
   {

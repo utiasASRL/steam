@@ -6,8 +6,6 @@
 
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 
-#include <glog/logging.h>
-
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +35,9 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate() const {
 Eigen::VectorXd VectorSpaceErrorEval::evaluate(std::vector<Jacobian>* jacs) const {
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
 
   // Construct Jacobian

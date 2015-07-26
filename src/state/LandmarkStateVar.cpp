@@ -6,8 +6,6 @@
 
 #include <steam/state/LandmarkStateVar.hpp>
 
-#include <glog/logging.h>
-
 namespace steam {
 namespace se3 {
 
@@ -33,7 +31,12 @@ LandmarkStateVar::LandmarkStateVar(const Eigen::Vector3d& v_ref,
 /// \brief Update the landmark state from the 3-dimensional perturbation
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool LandmarkStateVar::update(const Eigen::VectorXd& perturbation) {
-  CHECK(perturbation.size() == this->getPerturbDim());
+
+  if (perturbation.size() != this->getPerturbDim()) {
+    throw std::runtime_error("During attempt to update a state variable, the provided "
+                             "perturbation (VectorXd) was not the correct size.");
+  }
+
   this->value_.head<3>() = this->value_.head<3>() + perturbation; // todo: speed this up ? http://eigen.tuxfamily.org/dox/TopicWritingEfficientProductExpression.html
   return true;
 }

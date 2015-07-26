@@ -7,7 +7,6 @@
 #include <steam/evaluator/TransformEvaluators.hpp>
 
 #include <lgmath.hpp>
-#include <glog/logging.h>
 
 namespace steam {
 namespace se3 {
@@ -47,7 +46,9 @@ lgmath::se3::Transformation TransformStateEvaluator::evaluate() const {
 lgmath::se3::Transformation TransformStateEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
 
   // Check and initialize jacobian array
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear();
   if(!pose_->isLocked()) {
     jacs->resize(1);
@@ -90,7 +91,9 @@ lgmath::se3::Transformation FixedTransformEvaluator::evaluate() const {
 /// \brief Evaluate the transformation matrix and return empty Jacobian vector
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation FixedTransformEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
-  CHECK_NOTNULL(jacs);
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
   jacs->clear(); // no jacobian.. this is a fixed pose
   return pose_;
 }
