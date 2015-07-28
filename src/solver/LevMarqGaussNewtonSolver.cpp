@@ -39,7 +39,7 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   double buildTime = 0;
   double solveTime = 0;
   double updateTime = 0;
-  double actualToPredictedRatio;
+  double actualToPredictedRatio = 0;
   unsigned int numTrDecreases = 0;
 
   // Initialize new cost with old cost incase of failure
@@ -69,7 +69,7 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     timer.reset();
 
     // If decomposition was successful, calculate step quality
-    double proposedCost;
+    double proposedCost = 0;
     if (decompSuccess) {
       proposedCost = this->getProblem().proposeUpdate(levMarqStep);
       double actualReduc = this->getPrevCost() - proposedCost;   // a reduction in cost is positive

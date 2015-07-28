@@ -130,7 +130,16 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewtonForLM(double diagonalCoef
   }
 
   // Solve system
-  Eigen::VectorXd step = this->solveGaussNewton();
+  Eigen::VectorXd levMarqStep;
+  try {
+    levMarqStep = this->solveGaussNewton();
+  } catch (const decomp_failure& e) {
+    // Revert diagonal of the 'hessian' matrix
+    for (int i = 0; i < gaussNewtonLHS.outerSize(); i++) {
+      gaussNewtonLHS.coeffRef(i,i) /= (1.0 + diagonalCoeff);
+    }
+    throw e;
+  }
 
   // Revert diagonal of the 'hessian' matrix
   // when a newer version of eigen is available, the below line should work:
@@ -139,7 +148,7 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewtonForLM(double diagonalCoef
     gaussNewtonLHS.coeffRef(i,i) /= (1.0 + diagonalCoeff);
   }
 
-  return step;
+  return levMarqStep;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
