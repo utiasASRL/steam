@@ -73,7 +73,7 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
     // ** If a jacobian exists, we must add to it rather than creating a new entry
     unsigned int k = 0;
     for (; k < jacs1size; k++) {
-      if ((*jacs)[k].key.equals(jacs2[j].key)) {
+      if (jacs->at(k).key.equals(jacs2[j].key)) {
         break;
       }
     }
@@ -81,13 +81,13 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
     // Add jacobian information
     if (k < jacs1size) {
       // Add to existing entry
-      (*jacs)[k].jac += pose1.adjoint() * jacs2[j].jac;
+      jacs->at(k).jac += pose1.adjoint() * jacs2[j].jac;
     } else {
       // Create new entry
       jacs->push_back(Jacobian());
-      size_t i = jacs->size() - 1;
-      (*jacs)[i].key = jacs2[j].key;
-      (*jacs)[i].jac = pose1.adjoint() * jacs2[j].jac;
+      Jacobian& jacref = jacs->back();
+      jacref.key = jacs2[j].key;
+      jacref.jac = pose1.adjoint() * jacs2[j].jac;
     }
   }
 
@@ -142,8 +142,9 @@ lgmath::se3::Transformation InverseTransformEvaluator::evaluate(std::vector<Jaco
 
   // Jacobians
   for (unsigned int j = 0; j < jacsCopy.size(); j++) {
-    (*jacs)[j].key = jacsCopy[j].key;
-    (*jacs)[j].jac = -poseInverse.adjoint() * jacsCopy[j].jac;
+    Jacobian& jacref = jacs->at(j);
+    jacref.key = jacsCopy[j].key;
+    jacref.jac = -poseInverse.adjoint() * jacsCopy[j].jac;
   }
 
   return poseInverse;
@@ -197,8 +198,9 @@ Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate(std::vector<Jacobian>* jacs)
 
   // Jacobians
   for (unsigned int j = 0; j < jacsCopy.size(); j++) {
-    (*jacs)[j].key = jacsCopy[j].key;
-    (*jacs)[j].jac = lgmath::se3::vec2jacinv(vec) * jacsCopy[j].jac;
+    Jacobian& jacref = jacs->at(j);
+    jacref.key = jacsCopy[j].key;
+    jacref.jac = lgmath::se3::vec2jacinv(vec) * jacsCopy[j].jac;
   }
 
   return vec;
@@ -264,17 +266,17 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate(std::vector<Jacobian>* jacs) 
   // 4 x 6 Pose Jacobians
   for (unsigned int j = 0; j < poseJacs.size(); j++) {
     jacs->push_back(Jacobian());
-    size_t i = jacs->size() - 1;
-    (*jacs)[i].key = poseJacs[j].key;
-    (*jacs)[i].jac = lgmath::se3::point2fs(point_in_c.head<3>()) * poseJacs[j].jac;
+    Jacobian& jacref = jacs->back();
+    jacref.key = poseJacs[j].key;
+    jacref.jac = lgmath::se3::point2fs(point_in_c.head<3>()) * poseJacs[j].jac;
   }
 
   // 4 x 3 Landmark Jacobian
   if(!landmark_->isLocked()) {
     jacs->push_back(Jacobian());
-    size_t i = jacs->size() - 1;
-    (*jacs)[i].key = landmark_->getKey();
-    (*jacs)[i].jac = pose.matrix() * Eigen::Matrix<double,4,3>::Identity();
+    Jacobian& jacref = jacs->back();
+    jacref.key = landmark_->getKey();
+    jacref.jac = pose.matrix() * Eigen::Matrix<double,4,3>::Identity();
   }
 
   // Return error

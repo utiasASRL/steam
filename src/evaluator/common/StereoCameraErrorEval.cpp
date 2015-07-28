@@ -57,8 +57,9 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate(std::vector<Jacobian>* jacs) con
 
   // Calculate all full Jacobians
   for (unsigned int j = 0; j < jacsTemp.size(); j++) {
-    (*jacs)[j].key = jacsTemp[j].key;
-    (*jacs)[j].jac = -cameraJac * jacsTemp[j].jac;
+    Jacobian& jacref = jacs->at(j);
+    jacref.key = jacsTemp[j].key;
+    jacref.jac = -cameraJac * jacsTemp[j].jac;
   }
 
   // Return error (between measurement and point estimate projected in camera frame)

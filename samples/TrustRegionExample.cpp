@@ -75,10 +75,11 @@ public:
     // If state not locked, add Jacobian
     if(!stateVec_->isLocked()) {
       jacs->push_back(steam::Jacobian());
-      (*jacs)[0].key = stateVec_->getKey();
-      (*jacs)[0].jac = Eigen::MatrixXd(2,1);
-      (*jacs)[0].jac(0,0) = 1.0;
-      (*jacs)[0].jac(1,0) = -4.0*x + 1.0;
+      steam::Jacobian& jacref = jacs->back();
+      jacref.key = stateVec_->getKey();
+      jacref.jac = Eigen::MatrixXd(2,1);
+      jacref.jac(0,0) = 1.0;
+      jacref.jac(1,0) = -4.0*x + 1.0;
     }
 
     // Construct error and return

@@ -16,28 +16,28 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-TransformStateEvaluator::TransformStateEvaluator(const se3::TransformStateVar::ConstPtr& pose) : pose_(pose) {
+TransformStateEvaluator::TransformStateEvaluator(const se3::TransformStateVar::ConstPtr& transform) : transform_(transform) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-TransformStateEvaluator::Ptr TransformStateEvaluator::MakeShared(const se3::TransformStateVar::ConstPtr& pose) {
-  return TransformStateEvaluator::Ptr(new TransformStateEvaluator(pose));
+TransformStateEvaluator::Ptr TransformStateEvaluator::MakeShared(const se3::TransformStateVar::ConstPtr& transform) {
+  return TransformStateEvaluator::Ptr(new TransformStateEvaluator(transform));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool TransformStateEvaluator::isActive() const {
-  return !pose_->isLocked();
+  return !transform_->isLocked();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation TransformStateEvaluator::evaluate() const {
-  return pose_->getValue();
+  return transform_->getValue();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,12 +50,13 @@ lgmath::se3::Transformation TransformStateEvaluator::evaluate(std::vector<Jacobi
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
   jacs->clear();
-  if(!pose_->isLocked()) {
+  if(!transform_->isLocked()) {
     jacs->resize(1);
-    (*jacs)[0].key = pose_->getKey();
-    (*jacs)[0].jac = Eigen::Matrix<double,6,6>::Identity();
+    Jacobian& jacref = jacs->back();
+    jacref.key = transform_->getKey();
+    jacref.jac = Eigen::Matrix<double,6,6>::Identity();
   }
-  return pose_->getValue();
+  return transform_->getValue();
 }
 
 // Fixed value
@@ -63,14 +64,14 @@ lgmath::se3::Transformation TransformStateEvaluator::evaluate(std::vector<Jacobi
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-FixedTransformEvaluator::FixedTransformEvaluator(const lgmath::se3::Transformation& pose) : pose_(pose) {
+FixedTransformEvaluator::FixedTransformEvaluator(const lgmath::se3::Transformation& transform) : transform_(transform) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-FixedTransformEvaluator::Ptr FixedTransformEvaluator::MakeShared(const lgmath::se3::Transformation& pose) {
-  return FixedTransformEvaluator::Ptr(new FixedTransformEvaluator(pose));
+FixedTransformEvaluator::Ptr FixedTransformEvaluator::MakeShared(const lgmath::se3::Transformation& transform) {
+  return FixedTransformEvaluator::Ptr(new FixedTransformEvaluator(transform));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,7 +85,7 @@ bool FixedTransformEvaluator::isActive() const {
 /// \brief Evaluate the transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation FixedTransformEvaluator::evaluate() const {
-  return pose_;
+  return transform_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,8 +95,8 @@ lgmath::se3::Transformation FixedTransformEvaluator::evaluate(std::vector<Jacobi
   if (jacs == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
-  jacs->clear(); // no jacobian.. this is a fixed pose
-  return pose_;
+  jacs->clear(); // no jacobian.. this is a fixed transform
+  return transform_;
 }
 
 
