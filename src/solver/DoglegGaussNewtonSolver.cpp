@@ -64,8 +64,6 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   } catch (const decomp_failure& e) {
     haveGnStep = false;
     trustRegionSize = std::min(trustRegionSize, gradDescentNorm);
-    std::cout << "[STEAM WARN] ill-condition lead to decomp failure, "
-                 "Dogleg reverting to GD." << std::endl;
   }
   double gaussNewtonNorm = gaussNewtonStep.norm();
 
