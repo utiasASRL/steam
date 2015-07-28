@@ -56,31 +56,49 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
     // Solve system
     timer.reset();
-    Eigen::VectorXd levMarqStep = this->solveGaussNewtonForLM(diagCoeff);
+    bool decompSuccess = true;
+    Eigen::VectorXd levMarqStep;
+    try {
+      levMarqStep = this->solveGaussNewtonForLM(diagCoeff);
+    } catch (const decomp_failure& e) {
+      decompSuccess = false;
+    }
     solveTime += timer.milliseconds();
 
     // Test new cost
     timer.reset();
-    double proposedCost = this->getProblem().proposeUpdate(levMarqStep);
-    double actualReduc = this->getPrevCost() - proposedCost;   // a reduction in cost is positive
-    double predictedReduc = this->predictedReduction(levMarqStep); // a reduction in cost is positive
-    actualToPredictedRatio = actualReduc/predictedReduc;
+
+    // If decomposition was successful, calculate step quality
+    double proposedCost;
+    if (decompSuccess) {
+      proposedCost = this->getProblem().proposeUpdate(levMarqStep);
+      double actualReduc = this->getPrevCost() - proposedCost;   // a reduction in cost is positive
+      double predictedReduc = this->predictedReduction(levMarqStep); // a reduction in cost is positive
+      actualToPredictedRatio = actualReduc/predictedReduc;
+    }
 
     // Check ratio of predicted reduction to actual reduction achieved
-    if (actualToPredictedRatio > params_.ratioThreshold) {
+    if (actualToPredictedRatio > params_.ratioThreshold && decompSuccess) {
+
       // Good enough ratio to accept proposed state
       this->getProblem().acceptProposedState();
       *newCost = proposedCost;
       diagCoeff = std::max(diagCoeff*params_.shrinkCoeff, 1e-7); // move towards gauss newton
+
+      // Timing
+      updateTime += timer.milliseconds();
       break;
     } else {
-      // Cost did not reduce enough, or possibly increased,
-      // reject proposed state and reduce the size of the trust region
+
+      // Cost did not reduce enough, possibly increased, or decomposition failed.
+      // Reject proposed state and reduce the size of the trust region
       this->getProblem().rejectProposedState(); // Restore old state vector
-      diagCoeff = std::min(diagCoeff*params_.growCoeff, 1e7); // move towards gradient descent
+      diagCoeff = std::min(diagCoeff*params_.growCoeff, 1e7); // Move towards gradient descent
       numTrDecreases++; // Count number of shrinks for logging
+
+      // Timing
+      updateTime += timer.milliseconds();
     }
-    updateTime += timer.milliseconds();
   }
 
   // Print report line if verbose option enabled
