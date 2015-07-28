@@ -66,10 +66,10 @@ double HuberLossFunc::weight(double whitened_error_norm) const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 double DcsLossFunc::cost(double whitened_error_norm) const {
   double e2 = whitened_error_norm*whitened_error_norm;
-  if (e2 <= k_) {
+  if (e2 <= k2_) {
     return 0.5*e2;
   } else {
-    return 2.0*k_*e2/(k_+e2) - 0.5*k_;
+    return 2.0*k2_*e2/(k2_+e2) - 0.5*k2_;
   }
 }
 
@@ -78,11 +78,11 @@ double DcsLossFunc::cost(double whitened_error_norm) const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 double DcsLossFunc::weight(double whitened_error_norm) const {
   double e2 = whitened_error_norm*whitened_error_norm;
-  if (e2 <= k_) {
+  if (e2 <= k2_) {
     return 1.0;
   } else {
-    double kpe2 = k_+e2;
-    return 4.0*k_*k_/(kpe2*kpe2);
+    double k2e2 = k2_ + e2;
+    return 4.0*k2_*k2_/(k2e2*k2e2);
   }
 }
 
