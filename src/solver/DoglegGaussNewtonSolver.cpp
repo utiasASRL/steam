@@ -51,9 +51,17 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
   // Solve system
   timer.reset();
+
+  Eigen::VectorXd gradDescentStep = this->getCauchyPoint();
+
   // todo: could check if gradient descent before solving...
   Eigen::VectorXd gaussNewtonStep = this->solveGaussNewton();
-  Eigen::VectorXd gradDescentStep = this->getCauchyPoint();
+//  try {
+//    gaussNewtonStep = this->solveGaussNewton();
+//  } catch (const decomp_failure& e) {
+
+//  }
+
   if (gaussNewtonStep.rows() != gradDescentStep.rows()) {
     throw std::logic_error("Gauss-Newton and gradient descent dimensions did not match.");
   }

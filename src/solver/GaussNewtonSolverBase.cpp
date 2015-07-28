@@ -106,11 +106,11 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewton() const {
   // Perform a Cholesky factorization of A (takes the bulk of the time)
   solver.compute(gaussNewtonLHS);
   if (solver.info() != Eigen::Success) {
-    throw solver_failure("During steam solve, Eigen LLT decomposition failed. "
-                         "Likely, matrix is not positive semi-definite.");
+    throw decomp_failure("During steam solve, Eigen LLT decomposition failed. The matrix was "
+                         "poorly conditioned, or possibly not positive semi-definite.");
   }
 
-  // todo, also check for determinant?
+  // todo, also check for condition number? (not just determinant)
 
   // Do the backward pass, using the Cholesky factorization (fast)
   return solver.solve(gaussNewtonRHS);
