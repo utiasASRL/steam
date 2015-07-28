@@ -16,31 +16,31 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-ComposeTransformEvaluator::ComposeTransformEvaluator(const TransformEvaluator::ConstPtr& pose1,
-                                                     const TransformEvaluator::ConstPtr& pose2)
-  : pose1_(pose1), pose2_(pose2) {
+ComposeTransformEvaluator::ComposeTransformEvaluator(const TransformEvaluator::ConstPtr& transform1,
+                                                     const TransformEvaluator::ConstPtr& transform2)
+  : transform1_(transform1), transform2_(transform2) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-ComposeTransformEvaluator::Ptr ComposeTransformEvaluator::MakeShared(const TransformEvaluator::ConstPtr& pose1,
-                                                                     const TransformEvaluator::ConstPtr& pose2) {
-  return ComposeTransformEvaluator::Ptr(new ComposeTransformEvaluator(pose1, pose2));
+ComposeTransformEvaluator::Ptr ComposeTransformEvaluator::MakeShared(const TransformEvaluator::ConstPtr& transform1,
+                                                                     const TransformEvaluator::ConstPtr& transform2) {
+  return ComposeTransformEvaluator::Ptr(new ComposeTransformEvaluator(transform1, transform2));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool ComposeTransformEvaluator::isActive() const {
-  return pose1_->isActive() || pose2_->isActive();
+  return transform1_->isActive() || transform2_->isActive();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the resultant transformation matrix (pose1*pose2)
+/// \brief Evaluate the resultant transformation matrix (transform1*transform2)
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation ComposeTransformEvaluator::evaluate() const {
-  return pose1_->evaluate()*pose2_->evaluate();
+  return transform1_->evaluate()*transform2_->evaluate();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,10 +50,10 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
 
   // Evaluate
   std::vector<Jacobian> jacs1;
-  lgmath::se3::Transformation pose1 = pose1_->evaluate(&jacs1);
+  lgmath::se3::Transformation transform1 = transform1_->evaluate(&jacs1);
 
   std::vector<Jacobian> jacs2;
-  lgmath::se3::Transformation pose2 = pose2_->evaluate(&jacs2);
+  lgmath::se3::Transformation transform2 = transform2_->evaluate(&jacs2);
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -81,18 +81,18 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
     // Add jacobian information
     if (k < jacs1size) {
       // Add to existing entry
-      jacs->at(k).jac += pose1.adjoint() * jacs2[j].jac;
+      jacs->at(k).jac += transform1.adjoint() * jacs2[j].jac;
     } else {
       // Create new entry
       jacs->push_back(Jacobian());
       Jacobian& jacref = jacs->back();
       jacref.key = jacs2[j].key;
-      jacref.jac = pose1.adjoint() * jacs2[j].jac;
+      jacref.jac = transform1.adjoint() * jacs2[j].jac;
     }
   }
 
   // Return composition
-  return pose1*pose2;
+  return transform1*transform2;
 }
 
 /// Inverse
@@ -100,28 +100,28 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-InverseTransformEvaluator::InverseTransformEvaluator(const TransformEvaluator::ConstPtr& pose) : pose_(pose) {
+InverseTransformEvaluator::InverseTransformEvaluator(const TransformEvaluator::ConstPtr& transform) : transform_(transform) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-InverseTransformEvaluator::Ptr InverseTransformEvaluator::MakeShared(const TransformEvaluator::ConstPtr& pose) {
-  return InverseTransformEvaluator::Ptr(new InverseTransformEvaluator(pose));
+InverseTransformEvaluator::Ptr InverseTransformEvaluator::MakeShared(const TransformEvaluator::ConstPtr& transform) {
+  return InverseTransformEvaluator::Ptr(new InverseTransformEvaluator(transform));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool InverseTransformEvaluator::isActive() const {
-  return pose_->isActive();
+  return transform_->isActive();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the resultant transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation InverseTransformEvaluator::evaluate() const {
-  return pose_->evaluate().inverse();
+  return transform_->evaluate().inverse();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ lgmath::se3::Transformation InverseTransformEvaluator::evaluate(std::vector<Jaco
 
   // Evaluate
   std::vector<Jacobian> jacsCopy;
-  lgmath::se3::Transformation poseInverse = pose_->evaluate(&jacsCopy).inverse();
+  lgmath::se3::Transformation transformInverse = transform_->evaluate(&jacsCopy).inverse();
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -144,10 +144,10 @@ lgmath::se3::Transformation InverseTransformEvaluator::evaluate(std::vector<Jaco
   for (unsigned int j = 0; j < jacsCopy.size(); j++) {
     Jacobian& jacref = jacs->at(j);
     jacref.key = jacsCopy[j].key;
-    jacref.jac = -poseInverse.adjoint() * jacsCopy[j].jac;
+    jacref.jac = -transformInverse.adjoint() * jacsCopy[j].jac;
   }
 
-  return poseInverse;
+  return transformInverse;
 }
 
 
@@ -156,28 +156,28 @@ lgmath::se3::Transformation InverseTransformEvaluator::evaluate(std::vector<Jaco
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-LogMapEvaluator::LogMapEvaluator(const TransformEvaluator::ConstPtr& pose) : pose_(pose) {
+LogMapEvaluator::LogMapEvaluator(const TransformEvaluator::ConstPtr& transform) : transform_(transform) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-LogMapEvaluator::Ptr LogMapEvaluator::MakeShared(const TransformEvaluator::ConstPtr& pose) {
-  return LogMapEvaluator::Ptr(new LogMapEvaluator(pose));
+LogMapEvaluator::Ptr LogMapEvaluator::MakeShared(const TransformEvaluator::ConstPtr& transform) {
+  return LogMapEvaluator::Ptr(new LogMapEvaluator(transform));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool LogMapEvaluator::isActive() const {
-  return pose_->isActive();
+  return transform_->isActive();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate() const {
-  return pose_->evaluate().vec();
+  return transform_->evaluate().vec();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -187,7 +187,7 @@ Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate(std::vector<Jacobian>* jacs)
 
   // Evaluate
   std::vector<Jacobian> jacsCopy;
-  Eigen::Matrix<double,6,1> vec = pose_->evaluate(&jacsCopy).vec();
+  Eigen::Matrix<double,6,1> vec = transform_->evaluate(&jacsCopy).vec();
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -211,38 +211,38 @@ Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate(std::vector<Jacobian>* jacs)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-ComposeLandmarkEvaluator::ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& pose,
+ComposeLandmarkEvaluator::ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& transform,
                                                    const se3::LandmarkStateVar::ConstPtr& landmark)
   : landmark_(landmark) {
 
   // Check if landmark has a reference frame and create pose evaluator
   if(landmark_->hasReferenceFrame()) {
-    pose_ = ComposeTransformEvaluator::MakeShared(pose, InverseTransformEvaluator::MakeShared(landmark_->getReferenceFrame()));
+    transform_ = ComposeTransformEvaluator::MakeShared(transform, InverseTransformEvaluator::MakeShared(landmark_->getReferenceFrame()));
   } else {
-    pose_ = pose;
+    transform_ = transform;
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-ComposeLandmarkEvaluator::Ptr ComposeLandmarkEvaluator::MakeShared(const TransformEvaluator::ConstPtr& pose,
+ComposeLandmarkEvaluator::Ptr ComposeLandmarkEvaluator::MakeShared(const TransformEvaluator::ConstPtr& transform,
                                                                    const se3::LandmarkStateVar::ConstPtr& landmark) {
-  return ComposeLandmarkEvaluator::Ptr(new ComposeLandmarkEvaluator(pose, landmark));
+  return ComposeLandmarkEvaluator::Ptr(new ComposeLandmarkEvaluator(transform, landmark));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool ComposeLandmarkEvaluator::isActive() const {
-  return pose_->isActive() || !landmark_->isLocked();
+  return transform_->isActive() || !landmark_->isLocked();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the point transformed by the transform evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Vector4d ComposeLandmarkEvaluator::evaluate() const {
-  return pose_->evaluate()*landmark_->getValue();
+  return transform_->evaluate()*landmark_->getValue();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,24 +251,24 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate() const {
 Eigen::Vector4d ComposeLandmarkEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
 
   // Evaluate
-  std::vector<Jacobian> poseJacs;
-  lgmath::se3::Transformation pose = pose_->evaluate(&poseJacs);
+  std::vector<Jacobian> transformJacs;
+  lgmath::se3::Transformation transform = transform_->evaluate(&transformJacs);
 
-  Eigen::Vector4d point_in_c = pose * landmark_->getValue();
+  Eigen::Vector4d point_in_c = transform * landmark_->getValue();
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
   jacs->clear();
-  jacs->reserve(poseJacs.size() + 1);
+  jacs->reserve(transformJacs.size() + 1);
 
-  // 4 x 6 Pose Jacobians
-  for (unsigned int j = 0; j < poseJacs.size(); j++) {
+  // 4 x 6 Transformation Jacobians
+  for (unsigned int j = 0; j < transformJacs.size(); j++) {
     jacs->push_back(Jacobian());
     Jacobian& jacref = jacs->back();
-    jacref.key = poseJacs[j].key;
-    jacref.jac = lgmath::se3::point2fs(point_in_c.head<3>()) * poseJacs[j].jac;
+    jacref.key = transformJacs[j].key;
+    jacref.jac = lgmath::se3::point2fs(point_in_c.head<3>()) * transformJacs[j].jac;
   }
 
   // 4 x 3 Landmark Jacobian
@@ -276,7 +276,7 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate(std::vector<Jacobian>* jacs) 
     jacs->push_back(Jacobian());
     Jacobian& jacref = jacs->back();
     jacref.key = landmark_->getKey();
-    jacref.jac = pose.matrix() * Eigen::Matrix<double,4,3>::Identity();
+    jacref.jac = transform.matrix() * Eigen::Matrix<double,4,3>::Identity();
   }
 
   // Return error
