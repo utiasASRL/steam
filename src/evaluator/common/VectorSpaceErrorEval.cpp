@@ -43,9 +43,10 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate(std::vector<Jacobian>* jacs) cons
   // Construct Jacobian
   if(!stateVec_->isLocked()) {
     jacs->resize(1);
-    (*jacs)[0].key = stateVec_->getKey();
+    Jacobian& jacref = jacs->back();
+    jacref.key = stateVec_->getKey();
     const unsigned int dim = stateVec_->getPerturbDim();
-    (*jacs)[0].jac = -Eigen::MatrixXd::Identity(dim,dim);
+    jacref.jac = -Eigen::MatrixXd::Identity(dim,dim);
   }
 
   // Return error
