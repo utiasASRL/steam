@@ -92,7 +92,10 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
       // Cost did not reduce enough, possibly increased, or decomposition failed.
       // Reject proposed state and reduce the size of the trust region
-      this->getProblem().rejectProposedState(); // Restore old state vector
+      if (decompSuccess) {
+        // Restore old state vector
+        this->getProblem().rejectProposedState();
+      }
       diagCoeff = std::min(diagCoeff*params_.growCoeff, 1e7); // Move towards gradient descent
       numTrDecreases++; // Count number of shrinks for logging
 
