@@ -164,7 +164,7 @@ const Eigen::MatrixXd& BlockSparseMatrix::read(unsigned int r, unsigned int c) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Convert to Eigen sparse matrix format
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen() const {
+Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity) const {
 
   // Allocate sparse matrix and reserve memory for estimates number of non-zero (nnz) entries
   Eigen::SparseMatrix<double> mat(scalarRowDim_, scalarColDim_);
@@ -180,7 +180,7 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen() const {
         for (unsigned int i = 0; i < blkRowSizes_[r]; i++) {
           // Check if value is non-zero (there may some extra sparsity to exploit inside 'dense' block matrices
           double v_ij = it->second.data(i,j);
-          if (fabs(v_ij) > 0.0) {
+          if (fabs(v_ij) > 0.0 || !getSubBlockSparsity) {
             mat.insert(cumBlkRowSizes_[r] + i, cumBlkColSizes_[c] + j) = v_ij;
           }
         }

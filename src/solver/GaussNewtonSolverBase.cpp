@@ -16,7 +16,8 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-GaussNewtonSolverBase::GaussNewtonSolverBase(OptimizationProblem* problem) : SolverBase(problem) {
+GaussNewtonSolverBase::GaussNewtonSolverBase(OptimizationProblem* problem) :
+  SolverBase(problem), patternInitialized_(false) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,33 +90,43 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
     }
   }
 
-  // Convert to Eigen Type
-  gaussNewtonLHS = A_.toEigen();
+  // Convert to Eigen Type - with the block-sparsity pattern
+  // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
+  gaussNewtonLHS = A_.toEigen(false);
   gaussNewtonRHS = b_.toEigen();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Solve the Gauss-Newton system of equations: A*x = b
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewton() const {
+Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewton() {
 
-  // Setup Sparse LLT solver
-  // Uses approximate-minimal-degree (AMD) reordering
-  Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> solver;
+  // Check if the pattern has been initialized
+  if (!patternInitialized_) {
 
-  // Perform a Cholesky factorization of A (takes the bulk of the time)
-  solver.compute(gaussNewtonLHS);
-  if (solver.info() != Eigen::Success) {
-    throw decomp_failure("During steam solve, Eigen LLT decomposition failed.
+    // The first time we are solving the problem we need to analyze the sparsity pattern
+    // ** Note we use approximate-minimal-degree (AMD) reordering.
+    //    Also, this step does not actually use the numerical values in gaussNewtonLHS
+    solver_.analyzePattern(gaussNewtonLHS);
+    patternInitialized_ = true;
+  }
+
+  // Perform a Cholesky factorization of the left hand side
+  solver_.factorize(gaussNewtonLHS);
+
+  // Check if the factorization succeeded
+  if (solver_.info() != Eigen::Success) {
+    throw decomp_failure("During steam solve, Eigen LLT decomposition failed."
                          "It is possible that the matrix was ill-conditioned, in which case "
                          "adding a prior may help. On the other hand, it is also possible that "
                          "the problem you've constructed is not positive semi-definite.");
   }
 
-  // todo, also check for condition number? (not just determinant)
+  // todo - it would be nice to check the condition number (not just the determinant) of the
+  // solved system... need to find a fast way to do this
 
   // Do the backward pass, using the Cholesky factorization (fast)
-  return solver.solve(gaussNewtonRHS);
+  return solver_.solve(gaussNewtonRHS);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
