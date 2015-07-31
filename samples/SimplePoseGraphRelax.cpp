@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     // 'Forward' in x with a small angular velocity
     Eigen::Matrix<double,6,1> measVec;
     double v_x = -1.0;
-    double omega_z = 0.0; //0.01;
+    double omega_z = 0.01;
     measVec << v_x, 0.0, 0.0, 0.0, 0.0, omega_z;
 
     // Create simulated relative measurement
