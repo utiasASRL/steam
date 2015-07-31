@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/StateVector.hpp>
-#include <steam/sparse/BlockVector.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 #include <iostream>
 

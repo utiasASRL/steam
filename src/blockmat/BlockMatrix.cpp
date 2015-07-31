@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/sparse/BlockMatrix.hpp>
+#include <steam/blockmat/BlockMatrix.hpp>
 
 #include <stdexcept>
 #include <iostream>

@@ -14,6 +14,11 @@
 #include <steam/LossFunctions.hpp>
 #include <steam/NoiseModel.hpp>
 
+// blkmat
+#include <steam/blockmat/BlockMatrix.hpp>
+#include <steam/blockmat/BlockVector.hpp>
+#include <steam/blockmat/BlockSparseMatrix.hpp>
+
 // common
 #include <steam/common/Time.hpp>
 

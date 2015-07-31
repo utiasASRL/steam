@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#include <steam/sparse/BlockSparseMatrix.hpp>
-#include <steam/sparse/BlockVector.hpp>
+#include <steam/blockmat/BlockSparseMatrix.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 /// Sample Test

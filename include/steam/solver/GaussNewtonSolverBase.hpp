@@ -15,9 +15,9 @@
 #include <steam/StateVector.hpp>
 #include <steam/CostTerm.hpp>
 
-#include <steam/sparse/BlockSparseMatrix.hpp>
-#include <steam/sparse/BlockMatrix.hpp>
-#include <steam/sparse/BlockVector.hpp>
+#include <steam/blockmat/BlockSparseMatrix.hpp>
+#include <steam/blockmat/BlockMatrix.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 namespace steam {
 

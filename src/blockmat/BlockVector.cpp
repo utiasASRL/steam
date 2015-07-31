@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/sparse/BlockVector.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 #include <stdexcept>
 

@@ -13,7 +13,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include <steam/sparse/BlockMatrixBase.hpp>
+#include <steam/blockmat/BlockMatrixBase.hpp>
 
 namespace steam {
 

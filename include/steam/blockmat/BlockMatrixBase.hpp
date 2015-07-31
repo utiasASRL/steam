@@ -11,7 +11,7 @@
 
 #include <Eigen/Core>
 
-#include <steam/sparse/BlockMatrixHelpers.hpp>
+#include <steam/blockmat/BlockMatrixHelpers.hpp>
 
 namespace steam {
 
