@@ -44,6 +44,19 @@ Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& r,
   //  hessianSolver_.solve(gradientVector_);
   //}
 
+//  std::vector<unsigned int> sqSizes = this->getProblem().getStateVector().getStateBlockSizes();
+//  unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
+
+//  for (unsigned int j = 0; j < blkColSizes_[c]; j++) {
+//    for (unsigned int i = 0; i < blkRowSizes_[r]; i++) {
+//      // Check if value is non-zero (there may some extra sparsity to exploit inside 'dense' block matrices
+//      double v_ij = it->second.data(i,j);
+//      if (fabs(v_ij) > 0.0 || !getSubBlockSparsity) {
+//        mat.insert(cumBlkRowSizes_[r] + i, cumBlkColSizes_[c] + j) = v_ij;
+//      }
+//    }
+//  }
+
   return covariance;
 }
 
@@ -152,8 +165,11 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewtonForLM(double diagonalCoef
   Eigen::VectorXd levMarqStep;
   try {
 
-    // Solve for the LM step
-    levMarqStep = this->solveGaussNewton();
+    // Perform a Cholesky factorization of the approximate Hessian matrix
+    this->factorizeHessian();
+
+    // Solve for the LM step using the Cholesky factorization (fast)
+    levMarqStep = hessianSolver_.solve(gradientVector_);
 
     // Set false because the augmented system is not the information matrix
     factorizedInformationSuccesfully_ = false;
