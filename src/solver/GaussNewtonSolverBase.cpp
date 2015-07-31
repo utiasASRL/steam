@@ -23,8 +23,8 @@ GaussNewtonSolverBase::GaussNewtonSolverBase(OptimizationProblem* problem) :
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Query covariance
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& r,
-                                                       const steam::StateKey& c) {
+Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& rowKey,
+                                                       const steam::StateKey& colKey) {
 
   // Check if the Hessian has been factorized (without augmentation, i.e. the Information matrix)
   if (!factorizedInformationSuccesfully_) {
@@ -32,30 +32,40 @@ Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& r,
     this->factorizeHessian();
   }
 
-  // Look up block size of state variables
+  // Creating indexing
+  BlockMatrixIndexing indexing(this->getProblem().getStateVector().getStateBlockSizes());
+  const BlockDimIndexing& blkRowIndexing = indexing.rowIndexing();
+  const BlockDimIndexing& blkColIndexing = indexing.colIndexing();
 
-  // Calculate sparse indices of state variables
+  // Look up block indexes
+  unsigned int r = this->getProblem().getStateVector().getStateBlockIndex(rowKey);
+  unsigned int c = this->getProblem().getStateVector().getStateBlockIndex(colKey);
+
+  // Look up block size of state variables
+  unsigned int rowSize = blkRowIndexing.blkSizeAt(r);
+  unsigned int colSize = blkColIndexing.blkSizeAt(c);
 
   // Use solver to solve for covariance
-  Eigen::MatrixXd covariance;
+  Eigen::MatrixXd covariance(rowSize, colSize);
 
-  // Do the backward pass, using the Cholesky factorization (fast)
-  //for () {
-  //  hessianSolver_.solve(gradientVector_);
-  //}
+  // For each column
+  Eigen::VectorXd projection(rowSize);
+  projection.setZero();
+  for (unsigned int j = 0; j < blkColIndexing.blkSizeAt(c); j++) {
 
-//  std::vector<unsigned int> sqSizes = this->getProblem().getStateVector().getStateBlockSizes();
-//  unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
+    unsigned int scalarRow = blkRowIndexing.cumSumAt(r);
+    unsigned int scalarCol = blkColIndexing.cumSumAt(c) + j;
 
-//  for (unsigned int j = 0; j < blkColSizes_[c]; j++) {
-//    for (unsigned int i = 0; i < blkRowSizes_[r]; i++) {
-//      // Check if value is non-zero (there may some extra sparsity to exploit inside 'dense' block matrices
-//      double v_ij = it->second.data(i,j);
-//      if (fabs(v_ij) > 0.0 || !getSubBlockSparsity) {
-//        mat.insert(cumBlkRowSizes_[r] + i, cumBlkColSizes_[c] + j) = v_ij;
-//      }
-//    }
-//  }
+    // Set projection
+    projection(scalarCol) = 1.0;
+
+    // Do the backward pass, using the Cholesky factorization (fast)
+    covariance.block(0,j,rowSize,1) =
+        hessianSolver_.solve(projection).block(scalarRow,0,rowSize,1);
+
+    // Reset projection
+    projection(scalarCol) = 0.0;
+  }
 
   return covariance;
 }

@@ -45,7 +45,7 @@ class GaussNewtonSolverBase : public SolverBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Query covariance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::MatrixXd queryCovariance(const steam::StateKey& r, const steam::StateKey& c);
+  Eigen::MatrixXd queryCovariance(const steam::StateKey& rowKey, const steam::StateKey& colKey);
 
  protected:
 
