@@ -17,7 +17,34 @@ namespace steam {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 GaussNewtonSolverBase::GaussNewtonSolverBase(OptimizationProblem* problem) :
-  SolverBase(problem), patternInitialized_(false) {
+  SolverBase(problem), patternInitialized_(false), factorizedInformationSuccesfully_(false) {
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Query covariance
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& r,
+                                                       const steam::StateKey& c) {
+
+  // Check if the Hessian has been factorized (without augmentation, i.e. the Information matrix)
+  if (!factorizedInformationSuccesfully_) {
+    // Perform a Cholesky factorization of the approximate Hessian matrix
+    this->factorizeHessian();
+  }
+
+  // Look up block size of state variables
+
+  // Calculate sparse indices of state variables
+
+  // Use solver to solve for covariance
+  Eigen::MatrixXd covariance;
+
+  // Do the backward pass, using the Cholesky factorization (fast)
+  //for () {
+  //  hessianSolver_.solve(gradientVector_);
+  //}
+
+  return covariance;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,8 +119,8 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
-  gaussNewtonLHS = A_.toEigen(false);
-  gaussNewtonRHS = b_.toEigen();
+  approximateHessian_ = A_.toEigen(false);
+  gradientVector_ = b_.toEigen();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,32 +128,11 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewton() {
 
-  // Check if the pattern has been initialized
-  if (!patternInitialized_) {
-
-    // The first time we are solving the problem we need to analyze the sparsity pattern
-    // ** Note we use approximate-minimal-degree (AMD) reordering.
-    //    Also, this step does not actually use the numerical values in gaussNewtonLHS
-    solver_.analyzePattern(gaussNewtonLHS);
-    patternInitialized_ = true;
-  }
-
-  // Perform a Cholesky factorization of the left hand side
-  solver_.factorize(gaussNewtonLHS);
-
-  // Check if the factorization succeeded
-  if (solver_.info() != Eigen::Success) {
-    throw decomp_failure("During steam solve, Eigen LLT decomposition failed."
-                         "It is possible that the matrix was ill-conditioned, in which case "
-                         "adding a prior may help. On the other hand, it is also possible that "
-                         "the problem you've constructed is not positive semi-definite.");
-  }
-
-  // todo - it would be nice to check the condition number (not just the determinant) of the
-  // solved system... need to find a fast way to do this
+  // Perform a Cholesky factorization of the approximate Hessian matrix
+  this->factorizeHessian();
 
   // Do the backward pass, using the Cholesky factorization (fast)
-  return solver_.solve(gaussNewtonRHS);
+  return hessianSolver_.solve(gradientVector_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,27 +144,36 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewtonForLM(double diagonalCoef
   // Augment diagonal of the 'hessian' matrix
   // when a newer version of eigen is available, the below line should work:
   //   gaussNewtonLHS_A.diagonal() *= (1.0 + diagonalCoeff);
-  for (int i = 0; i < gaussNewtonLHS.outerSize(); i++) {
-    gaussNewtonLHS.coeffRef(i,i) *= (1.0 + diagonalCoeff);
+  for (int i = 0; i < approximateHessian_.outerSize(); i++) {
+    approximateHessian_.coeffRef(i,i) *= (1.0 + diagonalCoeff);
   }
 
   // Solve system
   Eigen::VectorXd levMarqStep;
   try {
+
+    // Solve for the LM step
     levMarqStep = this->solveGaussNewton();
-  } catch (const decomp_failure& e) {
+
+    // Set false because the augmented system is not the information matrix
+    factorizedInformationSuccesfully_ = false;
+
+  } catch (const decomp_failure& ex) {
+
     // Revert diagonal of the 'hessian' matrix
-    for (int i = 0; i < gaussNewtonLHS.outerSize(); i++) {
-      gaussNewtonLHS.coeffRef(i,i) /= (1.0 + diagonalCoeff);
+    for (int i = 0; i < approximateHessian_.outerSize(); i++) {
+      approximateHessian_.coeffRef(i,i) /= (1.0 + diagonalCoeff);
     }
-    throw e;
+
+    // Throw up again
+    throw ex;
   }
 
   // Revert diagonal of the 'hessian' matrix
   // when a newer version of eigen is available, the below line should work:
   //   gaussNewtonLHS_A.diagonal() /= (1.0 + diagonalCoeff);
-  for (int i = 0; i < gaussNewtonLHS.outerSize(); i++) {
-    gaussNewtonLHS.coeffRef(i,i) /= (1.0 + diagonalCoeff);
+  for (int i = 0; i < approximateHessian_.outerSize(); i++) {
+    approximateHessian_.coeffRef(i,i) /= (1.0 + diagonalCoeff);
   }
 
   return levMarqStep;
@@ -169,9 +184,10 @@ Eigen::VectorXd GaussNewtonSolverBase::solveGaussNewtonForLM(double diagonalCoef
 ///        The cauchy point is the optimal step length in the gradient descent direction.
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd GaussNewtonSolverBase::getCauchyPoint() const {
-  double num = gaussNewtonRHS.squaredNorm();
-  double den = gaussNewtonRHS.transpose() * (gaussNewtonLHS.selfadjointView<Eigen::Upper>() * gaussNewtonRHS);
-  return (num/den)*gaussNewtonRHS;
+  double num = gradientVector_.squaredNorm();
+  double den = gradientVector_.transpose() *
+               (approximateHessian_.selfadjointView<Eigen::Upper>() * gradientVector_);
+  return (num/den)*gradientVector_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,9 +195,42 @@ Eigen::VectorXd GaussNewtonSolverBase::getCauchyPoint() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 double GaussNewtonSolverBase::predictedReduction(const Eigen::VectorXd& step) const {
   // b^T * s - 0.5 * s^T * A * s
-  double bts = gaussNewtonRHS.transpose() * step;
-  double stAs = step.transpose() * (gaussNewtonLHS.selfadjointView<Eigen::Upper>() * step);
+  double bts = gradientVector_.transpose() * step;
+  double stAs = step.transpose() * (approximateHessian_.selfadjointView<Eigen::Upper>() * step);
   return bts - 0.5 * stAs;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Perform the LLT decomposition on the approx. Hessian matrix
+//////////////////////////////////////////////////////////////////////////////////////////////
+void GaussNewtonSolverBase::factorizeHessian() {
+
+  // Check if the pattern has been initialized
+  if (!patternInitialized_) {
+
+    // The first time we are solving the problem we need to analyze the sparsity pattern
+    // ** Note we use approximate-minimal-degree (AMD) reordering.
+    //    Also, this step does not actually use the numerical values in gaussNewtonLHS
+    hessianSolver_.analyzePattern(approximateHessian_);
+    patternInitialized_ = true;
+  }
+
+  // Perform a Cholesky factorization of the approximate Hessian matrix
+  factorizedInformationSuccesfully_ = false;
+  hessianSolver_.factorize(approximateHessian_);
+
+  // Check if the factorization succeeded
+  if (hessianSolver_.info() != Eigen::Success) {
+    throw decomp_failure("During steam solve, Eigen LLT decomposition failed."
+                         "It is possible that the matrix was ill-conditioned, in which case "
+                         "adding a prior may help. On the other hand, it is also possible that "
+                         "the problem you've constructed is not positive semi-definite.");
+  } else {
+    factorizedInformationSuccesfully_ = true;
+  }
+
+  // todo - it would be nice to check the condition number (not just the determinant) of the
+  // solved system... need to find a fast way to do this
 }
 
 } // steam
