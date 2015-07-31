@@ -21,13 +21,42 @@ GaussNewtonSolverBase::GaussNewtonSolverBase(OptimizationProblem* problem) :
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Query covariance
+/// \brief Query the covariance related to a single state variable
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& key) {
+
+  return queryCovariance(key, key);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Query the covariance relating two state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& rowKey,
                                                        const steam::StateKey& colKey) {
 
+  std::vector<steam::StateKey> rkeys; rkeys.push_back(rowKey);
+  std::vector<steam::StateKey> ckeys; ckeys.push_back(colKey);
+  BlockSparseMatrix m = queryCovarianceBlock(rkeys, ckeys);
+  return m.read(0,0);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Query a block of covariances
+//////////////////////////////////////////////////////////////////////////////////////////////
+BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam::StateKey>& keys) {
+
+  return queryCovarianceBlock(keys, keys);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Query a block of covariances
+//////////////////////////////////////////////////////////////////////////////////////////////
+BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam::StateKey>& rowKeys,
+                                                              const std::vector<steam::StateKey>& colKeys) {
+
   // Check if the Hessian has been factorized (without augmentation, i.e. the Information matrix)
   if (!factorizedInformationSuccesfully_) {
+
     // Perform a Cholesky factorization of the approximate Hessian matrix
     this->factorizeHessian();
   }
@@ -37,37 +66,72 @@ Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& ro
   const BlockDimIndexing& blkRowIndexing = indexing.rowIndexing();
   const BlockDimIndexing& blkColIndexing = indexing.colIndexing();
 
+  // Fixed sizes
+  unsigned int numRowKeys = rowKeys.size();
+  unsigned int numColKeys = colKeys.size();
+
   // Look up block indexes
-  unsigned int r = this->getProblem().getStateVector().getStateBlockIndex(rowKey);
-  unsigned int c = this->getProblem().getStateVector().getStateBlockIndex(colKey);
-
-  // Look up block size of state variables
-  unsigned int rowSize = blkRowIndexing.blkSizeAt(r);
-  unsigned int colSize = blkColIndexing.blkSizeAt(c);
-
-  // Use solver to solve for covariance
-  Eigen::MatrixXd covariance(rowSize, colSize);
-
-  // For each column
-  Eigen::VectorXd projection(rowSize);
-  projection.setZero();
-  for (unsigned int j = 0; j < blkColIndexing.blkSizeAt(c); j++) {
-
-    unsigned int scalarRow = blkRowIndexing.cumSumAt(r);
-    unsigned int scalarCol = blkColIndexing.cumSumAt(c) + j;
-
-    // Set projection
-    projection(scalarCol) = 1.0;
-
-    // Do the backward pass, using the Cholesky factorization (fast)
-    covariance.block(0,j,rowSize,1) =
-        hessianSolver_.solve(projection).block(scalarRow,0,rowSize,1);
-
-    // Reset projection
-    projection(scalarCol) = 0.0;
+  std::vector<unsigned int> blkRowIndices; blkRowIndices.resize(numRowKeys);
+  for (unsigned int i = 0; i < numRowKeys; i++) {
+    blkRowIndices[i] = this->getProblem().getStateVector().getStateBlockIndex(rowKeys[i]);
+  }
+  std::vector<unsigned int> blkColIndices; blkColIndices.resize(numColKeys);
+  for (unsigned int i = 0; i < numColKeys; i++) {
+    blkColIndices[i] = this->getProblem().getStateVector().getStateBlockIndex(colKeys[i]);
   }
 
-  return covariance;
+  // Look up block size of state variables
+  std::vector<unsigned int> blkRowSizes; blkRowSizes.resize(numRowKeys);
+  for (unsigned int i = 0; i < numRowKeys; i++) {
+    blkRowSizes[i] = blkRowIndexing.blkSizeAt(blkRowIndices[i]);
+  }
+  std::vector<unsigned int> blkColSizes; blkColSizes.resize(numColKeys);
+  for (unsigned int i = 0; i < numColKeys; i++) {
+    blkColSizes[i] = blkColIndexing.blkSizeAt(blkColIndices[i]);
+  }
+
+  // Create result container
+  BlockSparseMatrix result(blkRowSizes, blkColSizes);
+
+  // For each column key
+  for (unsigned int c = 0; c < numColKeys; c++) {
+
+    // Setup covariances
+    std::vector<Eigen::MatrixXd> covariances; covariances.resize(numRowKeys);
+    for (unsigned int r = 0; r < numRowKeys; r++) {
+      covariances[r] = Eigen::MatrixXd::Zero(blkRowSizes[r], blkColSizes[c]);
+    }
+
+    // For each scalar column
+    Eigen::VectorXd projection(blkRowIndexing.scalarSize()); projection.setZero();
+    for (unsigned int j = 0; j < blkColSizes[c]; j++) {
+
+      // Get scalar index
+      unsigned int scalarColIndex = blkColIndexing.cumSumAt(blkColIndices[c]) + j;
+
+      // Solve for scalar column of covariance matrix
+      projection(scalarColIndex) = 1.0;
+      Eigen::VectorXd x = hessianSolver_.solve(projection);
+      projection(scalarColIndex) = 0.0;
+
+      // For each block row
+      for (unsigned int r = 0; r < numRowKeys; r++) {
+
+        // Get scalar index into solution vector
+        unsigned int scalarRowIndex = blkRowIndexing.cumSumAt(blkRowIndices[r]);
+
+        // Do the backward pass, using the Cholesky factorization (fast)
+        covariances[r].block(0, j, blkRowSizes[r], 1) = x.block(scalarRowIndex, 0, blkRowSizes[r], 1);
+      }
+    }
+
+    for (unsigned int r = 0; r < numRowKeys; r++) {
+      result.add(r, c, covariances[r]);
+    }
+
+  }
+
+  return result;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     // 'Forward' in x with a small angular velocity
     Eigen::Matrix<double,6,1> measVec;
     double v_x = -1.0;
-    double omega_z = 0.01;
+    double omega_z = 0.0; //0.01;
     measVec << v_x, 0.0, 0.0, 0.0, 0.0, omega_z;
 
     // Create simulated relative measurement
@@ -131,6 +131,27 @@ int main(int argc, char **argv) {
 
   // Optimize
   solver.optimize();
+
+  Eigen::MatrixXd cov11 = solver.queryCovariance(poses[3]->getKey(), poses[3]->getKey());
+  Eigen::MatrixXd cov13 = solver.queryCovariance(poses[3]->getKey(), poses[5]->getKey());
+  Eigen::MatrixXd cov31 = solver.queryCovariance(poses[5]->getKey(), poses[3]->getKey());
+  Eigen::MatrixXd cov33 = solver.queryCovariance(poses[5]->getKey(), poses[5]->getKey());
+
+  std::cout << "11" << std::endl << cov11 << std::endl;
+  std::cout << "13" << std::endl<< cov13 << std::endl;
+  std::cout << "31" << std::endl<< cov31 << std::endl;
+  std::cout << "33" << std::endl<< cov33 << std::endl;
+
+  std::vector<steam::StateKey> keys;
+  keys.push_back(poses[3]->getKey());
+  keys.push_back(poses[5]->getKey());
+
+  steam::BlockSparseMatrix cov = solver.queryCovarianceBlock(keys);
+
+  std::cout << "11" << std::endl<< cov.read(0,0) << std::endl;
+  std::cout << "13" << std::endl<< cov.read(0,1) << std::endl;
+  std::cout << "31" << std::endl<< cov.read(1,0) << std::endl;
+  std::cout << "33" << std::endl<< cov.read(1,1) << std::endl;
 
   return 0;
 }
