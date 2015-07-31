@@ -29,6 +29,7 @@ add_executable(steam_unit_tests
   ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/sample_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/time_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/pattern_test.cpp
 )
 target_link_libraries(steam_unit_tests steam ${DEPEND_LIBS})
 

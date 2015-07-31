@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/StateVector.hpp>
-#include <steam/sparse/BlockVector.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 #include <iostream>
 
@@ -207,7 +207,7 @@ void StateVector::update(const Eigen::VectorXd& perturbation) {
     }
 
     // Update state
-    it->second.state->update(blkPerturb.getBlkVector(it->second.localBlockIndex));
+    it->second.state->update(blkPerturb.at(it->second.localBlockIndex));
   }
 }
 
