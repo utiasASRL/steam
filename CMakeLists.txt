@@ -11,7 +11,7 @@ add_definitions(-DNUMBER_OF_OPENMP_THREADS=8)
 ### Misc
 ################################################################################
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mssse3 -mfpmath=sse -msse -msse2 -mmmx -msse3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -mno-avx")
 
 # if it does not exist, add a cmake directory
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
