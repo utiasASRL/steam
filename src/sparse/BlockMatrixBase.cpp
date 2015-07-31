@@ -14,12 +14,7 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor, matrix size must still be set before using
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockMatrixBase::BlockMatrixBase(bool square, bool symmetric)
-  : square_(square), symmetric_(symmetric) {
-
-  if (!square_ && symmetric_) {
-    throw std::invalid_argument("Tried to construct a symmetric matrix that is not square.");
-  }
+BlockMatrixBase::BlockMatrixBase() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,7 +22,7 @@ BlockMatrixBase::BlockMatrixBase(bool square, bool symmetric)
 //////////////////////////////////////////////////////////////////////////////////////////////
 BlockMatrixBase::BlockMatrixBase(const std::vector<unsigned int>& blkRowSizes,
                                  const std::vector<unsigned int>& blkColSizes)
-  : square_(false), symmetric_(false) {
+  : symmetric_(false) {
 
   if (blkColSizes.size() <= 0) {
     throw std::invalid_argument("Tried to initialize a block matrix with no column size.");
@@ -41,10 +36,10 @@ BlockMatrixBase::BlockMatrixBase(const std::vector<unsigned int>& blkRowSizes,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Square matrix constructor, symmetry is still optional
+/// \brief Block-size-symmetric matrix constructor, pure scalar symmetry is still optional
 //////////////////////////////////////////////////////////////////////////////////////////////
 BlockMatrixBase::BlockMatrixBase(const std::vector<unsigned int>& blkSqSizes, bool symmetric)
-  : square_(true), symmetric_(symmetric) {
+  : symmetric_(symmetric) {
 
   if (blkSqSizes.size() <= 0) {
     throw std::invalid_argument("Tried to initialize a block matrix with no row size.");
@@ -62,14 +57,7 @@ const BlockMatrixIndexing& BlockMatrixBase::getIndexing() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get if square
-//////////////////////////////////////////////////////////////////////////////////////////////
-bool BlockMatrixBase::isSquare() const {
-  return square_;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get if symmetric
+/// \brief Get if matrix is symmetric on a scalar level
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool BlockMatrixBase::isSymmetric() const {
   return symmetric_;

@@ -14,7 +14,7 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor, matrix size must still be set before using
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockMatrix::BlockMatrix(bool square, bool symmetric) : BlockMatrixBase(square, symmetric) {
+BlockMatrix::BlockMatrix() : BlockMatrixBase() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,29 +25,38 @@ BlockMatrix::BlockMatrix(const std::vector<unsigned int>& blkRowSizes,
   : BlockMatrixBase(blkRowSizes, blkColSizes) {
 
   // Setup data structures
-  cols_.clear();
-  cols_.resize(this->getIndexing().colIndexing().numEntries());
+  data_.clear();
+  data_.resize(this->getIndexing().rowIndexing().numEntries());
+  for (unsigned int r = 0; r < data_.size(); r++) {
+    data_[r].resize(this->getIndexing().colIndexing().numEntries());
+  }
+  this->zero();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Square matrix constructor, symmetry is still optional
+/// \brief Block-size-symmetric matrix constructor, pure scalar symmetry is still optional
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockMatrix::BlockMatrix(const std::vector<unsigned int>& blkSqSizes, bool symmetric)
-  : BlockMatrixBase(blkSqSizes, symmetric) {
+BlockMatrix::BlockMatrix(const std::vector<unsigned int>& blkSizes, bool symmetric)
+  : BlockMatrixBase(blkSizes, symmetric) {
 
   // Setup data structures
-  cols_.clear();
-  cols_.resize(this->getIndexing().colIndexing().numEntries());
+  data_.clear();
+  data_.resize(this->getIndexing().rowIndexing().numEntries());
+  for (unsigned int r = 0; r < data_.size(); r++) {
+    data_[r].resize(this->getIndexing().colIndexing().numEntries());
+  }
+  this->zero();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Keep the existing entries and sizes, but set them to zero
 //////////////////////////////////////////////////////////////////////////////////////////////
 void BlockMatrix::zero() {
-  for (unsigned int c = 0; c < this->getIndexing().colIndexing().numEntries(); c++) {
-    for(std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.begin();
-        it != cols_[c].rows.end(); ++it) {
-      it->second.data.setZero();
+
+  for (unsigned int r = 0; r < data_.size(); r++) {
+    for (unsigned int c = 0; c < data_[r].size(); c++) {
+      data_[r][c] = Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
+                                          this->getIndexing().colIndexing().blkSizeAt(c));
     }
   }
 }
@@ -86,15 +95,8 @@ void BlockMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixXd& m) 
     throw std::invalid_argument(ss.str());
   }
 
-  // Find if row entry exists
-  std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
-
-  // Check if found, and create new entry, or add to existing one
-  if (it == cols_[c].rows.end()) {
-    cols_[c].rows[r].data = m;
-  } else {
-    it->second.data += m;
-  }
+  // Add to entry
+  data_[r][c] += m;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,16 +119,8 @@ Eigen::MatrixXd& BlockMatrix::at(unsigned int r, unsigned int c) {
                  "block-sparse matrix: cannot return reference." << std::endl;
   }
 
-  // Find if row entry exists
-  std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
-
-  // If it does not exist, throw exception
-  if (it == cols_[c].rows.end()) {
-    throw std::invalid_argument("Tried to read entry that did not exist");
-  }
-
   // Return reference to data
-  return it->second.data;
+  return data_[r][c];
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,34 +139,14 @@ Eigen::MatrixXd BlockMatrix::copyAt(unsigned int r, unsigned int c) const {
   if (this->isSymmetric() && r > c) {
 
     // Accessing lower triangle of symmetric matrix
-
-    // Find if row entry exists
-    std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.find(r);
-
-    // If it does not exist, throw exception
-    if (it == cols_[c].rows.end()) {
-      return Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
-                                   this->getIndexing().colIndexing().blkSizeAt(c));
-    }
-
-    // Return reference to data
-    return it->second.data.transpose();
+    // Return matrix
+    return data_[c][r].transpose();
 
   } else {
 
     // Not symmetric OR accessing upper-triangle
-
-    // Find if row entry exists
-    std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.find(r);
-
-    // If it does not exist, throw exception
-    if (it == cols_[c].rows.end()) {
-      return Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
-                                   this->getIndexing().colIndexing().blkSizeAt(c));
-    }
-
-    // Return reference to data
-    return it->second.data;
+    // Return matrix
+    return data_[r][c];
   }
 }
 

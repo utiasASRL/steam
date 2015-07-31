@@ -98,10 +98,10 @@ BlockMatrixIndexing::BlockMatrixIndexing() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Constructor for square matrix
+/// \brief Constructor for a block-size-symmetric matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockMatrixIndexing::BlockMatrixIndexing(const std::vector<unsigned int>& blkSqSizes)
-  : blkRowIndexing_(blkSqSizes), square_(true) {
+BlockMatrixIndexing::BlockMatrixIndexing(const std::vector<unsigned int>& blkSizes)
+  : blkRowIndexing_(blkSizes), blkSizeSymmetric_(true) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,7 +124,7 @@ const BlockDimIndexing& BlockMatrixIndexing::rowIndexing() const {
 /// \brief Get block-column indexing
 //////////////////////////////////////////////////////////////////////////////////////////////
 const BlockDimIndexing& BlockMatrixIndexing::colIndexing() const {
-  if (!square_) {
+  if (!blkSizeSymmetric_) {
     return blkColIndexing_;
   } else {
     return blkRowIndexing_;

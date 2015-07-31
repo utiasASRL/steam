@@ -14,15 +14,14 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor, matrix size must still be set before using
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix::BlockSparseMatrix(bool square, bool symmetric)
-  : BlockMatrixBase(square, symmetric) {
+BlockSparseMatrix::BlockSparseMatrix() : BlockMatrixBase() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Rectangular matrix constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkRowSizes,
-                         const std::vector<unsigned int>& blkColSizes)
+                                     const std::vector<unsigned int>& blkColSizes)
   : BlockMatrixBase(blkRowSizes, blkColSizes) {
 
   // Setup data structures
@@ -31,10 +30,10 @@ BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkRowSize
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Square matrix constructor, symmetry is still optional
+/// \brief Block-size-symmetric matrix constructor, pure scalar symmetry is still optional
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkSqSizes, bool symmetric)
-  : BlockMatrixBase(blkSqSizes, symmetric) {
+BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkSizes, bool symmetric)
+  : BlockMatrixBase(blkSizes, symmetric) {
 
   // Setup data structures
   cols_.clear();
@@ -157,10 +156,10 @@ Eigen::MatrixXd BlockSparseMatrix::copyAt(unsigned int r, unsigned int c) const 
     // Accessing lower triangle of symmetric matrix
 
     // Find if row entry exists
-    std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.find(r);
+    std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[r].rows.find(c);
 
     // If it does not exist, throw exception
-    if (it == cols_[c].rows.end()) {
+    if (it == cols_[r].rows.end()) {
       return Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
                                    this->getIndexing().colIndexing().blkSizeAt(c));
     }

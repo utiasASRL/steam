@@ -132,27 +132,6 @@ int main(int argc, char **argv) {
   // Optimize
   solver.optimize();
 
-  Eigen::MatrixXd cov11 = solver.queryCovariance(poses[3]->getKey(), poses[3]->getKey());
-  Eigen::MatrixXd cov13 = solver.queryCovariance(poses[3]->getKey(), poses[5]->getKey());
-  Eigen::MatrixXd cov31 = solver.queryCovariance(poses[5]->getKey(), poses[3]->getKey());
-  Eigen::MatrixXd cov33 = solver.queryCovariance(poses[5]->getKey(), poses[5]->getKey());
-
-  std::cout << "11" << std::endl << cov11 << std::endl;
-  std::cout << "13" << std::endl<< cov13 << std::endl;
-  std::cout << "31" << std::endl<< cov31 << std::endl;
-  std::cout << "33" << std::endl<< cov33 << std::endl;
-
-  std::vector<steam::StateKey> keys;
-  keys.push_back(poses[3]->getKey());
-  keys.push_back(poses[5]->getKey());
-
-  steam::BlockMatrix cov = solver.queryCovarianceBlock(keys);
-
-  std::cout << "11" << std::endl<< cov.at(0,0) << std::endl;
-  std::cout << "13" << std::endl<< cov.at(0,1) << std::endl;
-  std::cout << "31" << std::endl<< cov.at(1,0) << std::endl;
-  std::cout << "33" << std::endl<< cov.at(1,1) << std::endl;
-
   return 0;
 }
 

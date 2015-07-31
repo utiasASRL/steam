@@ -96,12 +96,6 @@ BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam:
   // For each column key
   for (unsigned int c = 0; c < numColKeys; c++) {
 
-    // Setup covariances
-    std::vector<Eigen::MatrixXd> covariances; covariances.resize(numRowKeys);
-    for (unsigned int r = 0; r < numRowKeys; r++) {
-      covariances[r] = Eigen::MatrixXd::Zero(blkRowSizes[r], blkColSizes[c]);
-    }
-
     // For each scalar column
     Eigen::VectorXd projection(blkRowIndexing.scalarSize()); projection.setZero();
     for (unsigned int j = 0; j < blkColSizes[c]; j++) {
@@ -121,12 +115,8 @@ BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam:
         unsigned int scalarRowIndex = blkRowIndexing.cumSumAt(blkRowIndices[r]);
 
         // Do the backward pass, using the Cholesky factorization (fast)
-        covariances[r].block(0, j, blkRowSizes[r], 1) = x.block(scalarRowIndex, 0, blkRowSizes[r], 1);
+        result.at(r,c).block(0, j, blkRowSizes[r], 1) = x.block(scalarRowIndex, 0, blkRowSizes[r], 1);
       }
-    }
-
-    for (unsigned int r = 0; r < numRowKeys; r++) {
-      result.add(r, c, covariances[r]);
     }
   }
 
