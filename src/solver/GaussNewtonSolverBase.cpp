@@ -36,14 +36,14 @@ Eigen::MatrixXd GaussNewtonSolverBase::queryCovariance(const steam::StateKey& ro
 
   std::vector<steam::StateKey> rkeys; rkeys.push_back(rowKey);
   std::vector<steam::StateKey> ckeys; ckeys.push_back(colKey);
-  BlockSparseMatrix m = queryCovarianceBlock(rkeys, ckeys);
-  return m.read(0,0);
+  BlockMatrix m = queryCovarianceBlock(rkeys, ckeys);
+  return m.at(0,0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Query a block of covariances
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam::StateKey>& keys) {
+BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam::StateKey>& keys) {
 
   return queryCovarianceBlock(keys, keys);
 }
@@ -51,8 +51,8 @@ BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Query a block of covariances
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam::StateKey>& rowKeys,
-                                                              const std::vector<steam::StateKey>& colKeys) {
+BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam::StateKey>& rowKeys,
+                                                        const std::vector<steam::StateKey>& colKeys) {
 
   // Check if the Hessian has been factorized (without augmentation, i.e. the Information matrix)
   if (!factorizedInformationSuccesfully_) {
@@ -91,7 +91,7 @@ BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<
   }
 
   // Create result container
-  BlockSparseMatrix result(blkRowSizes, blkColSizes);
+  BlockMatrix result(blkRowSizes, blkColSizes);
 
   // For each column key
   for (unsigned int c = 0; c < numColKeys; c++) {
@@ -128,7 +128,6 @@ BlockSparseMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<
     for (unsigned int r = 0; r < numRowKeys; r++) {
       result.add(r, c, covariances[r]);
     }
-
   }
 
   return result;

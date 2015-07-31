@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file BlockSparseMatrix.cpp
+/// \file BlockMatrix.cpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/sparse/BlockSparseMatrix.hpp>
+#include <steam/sparse/BlockMatrix.hpp>
 
 #include <stdexcept>
 #include <iostream>
@@ -14,14 +14,13 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor, matrix size must still be set before using
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix::BlockSparseMatrix(bool square, bool symmetric)
-  : BlockMatrixBase(square, symmetric) {
+BlockMatrix::BlockMatrix(bool square, bool symmetric) : BlockMatrixBase(square, symmetric) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Rectangular matrix constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkRowSizes,
+BlockMatrix::BlockMatrix(const std::vector<unsigned int>& blkRowSizes,
                          const std::vector<unsigned int>& blkColSizes)
   : BlockMatrixBase(blkRowSizes, blkColSizes) {
 
@@ -33,7 +32,7 @@ BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkRowSize
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Square matrix constructor, symmetry is still optional
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkSqSizes, bool symmetric)
+BlockMatrix::BlockMatrix(const std::vector<unsigned int>& blkSqSizes, bool symmetric)
   : BlockMatrixBase(blkSqSizes, symmetric) {
 
   // Setup data structures
@@ -42,18 +41,9 @@ BlockSparseMatrix::BlockSparseMatrix(const std::vector<unsigned int>& blkSqSizes
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Clear sparse entries, maintain size
-//////////////////////////////////////////////////////////////////////////////////////////////
-void BlockSparseMatrix::clear() {
-  for (unsigned int c = 0; c < this->getIndexing().colIndexing().numEntries(); c++) {
-    cols_[c].rows.clear();
-  }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Keep the existing entries and sizes, but set them to zero
 //////////////////////////////////////////////////////////////////////////////////////////////
-void BlockSparseMatrix::zero() {
+void BlockMatrix::zero() {
   for (unsigned int c = 0; c < this->getIndexing().colIndexing().numEntries(); c++) {
     for(std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.begin();
         it != cols_[c].rows.end(); ++it) {
@@ -65,7 +55,7 @@ void BlockSparseMatrix::zero() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Adds the matrix to the block entry at index (r,c), block dim must match
 //////////////////////////////////////////////////////////////////////////////////////////////
-void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixXd& m) {
+void BlockMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixXd& m) {
 
   // Get references to indexing objects
   const BlockDimIndexing& blkRowIndexing = this->getIndexing().rowIndexing();
@@ -112,7 +102,7 @@ void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixX
 ///        *Note this throws an exception if matrix is symmetric and you request a lower
 ///         triangular entry. For read operations, use copyAt(r,c).
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd& BlockSparseMatrix::at(unsigned int r, unsigned int c) {
+Eigen::MatrixXd& BlockMatrix::at(unsigned int r, unsigned int c) {
 
   // Check that indexing is valid
   if (r >= this->getIndexing().rowIndexing().numEntries() ||
@@ -142,7 +132,7 @@ Eigen::MatrixXd& BlockSparseMatrix::at(unsigned int r, unsigned int c) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns a copy of the entry at index (r,c)
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd BlockSparseMatrix::copyAt(unsigned int r, unsigned int c) const {
+Eigen::MatrixXd BlockMatrix::copyAt(unsigned int r, unsigned int c) const {
 
   // Check that indexing is valid
   if (r >= this->getIndexing().rowIndexing().numEntries() ||
@@ -184,81 +174,6 @@ Eigen::MatrixXd BlockSparseMatrix::copyAt(unsigned int r, unsigned int c) const 
     // Return reference to data
     return it->second.data;
   }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Convert to Eigen sparse matrix format
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity) const {
-
-  // Get references to indexing objects
-  const BlockDimIndexing& blkRowIndexing = this->getIndexing().rowIndexing();
-  const BlockDimIndexing& blkColIndexing = this->getIndexing().colIndexing();
-
-  // Allocate sparse matrix and reserve memory for estimates number of non-zero (nnz) entries
-  Eigen::SparseMatrix<double> mat(blkRowIndexing.scalarSize(), blkColIndexing.scalarSize());
-  mat.reserve(this->getNnzPerCol());
-
-  // Iterate over block-sparse columns and rows
-  for (unsigned int c = 0; c < blkColIndexing.numEntries(); c++) {
-    for(std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.begin(); it != cols_[c].rows.end(); ++it) {
-
-      // Get row index of block entry
-      unsigned int r = it->first;
-
-      // Iterate over internal matrix dimensions
-      // Eigen matrix storage is column-major, outer iterator should be over column first for speed
-      for (unsigned int j = 0; j < blkColIndexing.blkSizeAt(c); j++) {
-        for (unsigned int i = 0; i < blkRowIndexing.blkSizeAt(r); i++) {
-
-          // Get scalar element
-          double v_ij = it->second.data(i,j);
-
-          // Add entry to sparse matrix
-          // ** The case where we do not add the element is when sub-block sparsity is enabled
-          //    and an element is exactly zero
-          if (fabs(v_ij) > 0.0 || !getSubBlockSparsity) {
-            mat.insert(blkRowIndexing.cumSumAt(r) + i, blkColIndexing.cumSumAt(c) + j) = v_ij;
-          }
-        }
-      }
-    }
-  }
-
-  // (optional) Compress into compact format
-  mat.makeCompressed();
-  return mat;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Gets the number of non-zero entries per scalar-column
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXi BlockSparseMatrix::getNnzPerCol() const {
-
-  // Get references to indexing objects
-  const BlockDimIndexing& blkColIndexing = this->getIndexing().colIndexing();
-
-  // Allocate vector of ints
-  Eigen::VectorXi result = Eigen::VectorXi(blkColIndexing.scalarSize());
-
-  // Iterate over columns and determine number of non-zero entries
-  for (unsigned int c = 0; c < blkColIndexing.numEntries(); c++) {
-
-    // Sum
-    unsigned int nnz = 0;
-
-    // Iterate over sparse row entries of column 'c'
-    for(std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.begin();
-        it != cols_[c].rows.end(); ++it) {
-      nnz += it->second.data.rows();
-    }
-
-    // Add to result
-    result.block(blkColIndexing.cumSumAt(c), 0, blkColIndexing.blkSizeAt(c), 1) =
-        Eigen::VectorXi::Constant(blkColIndexing.blkSizeAt(c), nnz);
-  }
-
-  return result;
 }
 
 } // steam

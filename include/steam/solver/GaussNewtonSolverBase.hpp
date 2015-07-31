@@ -16,6 +16,7 @@
 #include <steam/CostTerm.hpp>
 
 #include <steam/sparse/BlockSparseMatrix.hpp>
+#include <steam/sparse/BlockMatrix.hpp>
 #include <steam/sparse/BlockVector.hpp>
 
 namespace steam {
@@ -55,13 +56,13 @@ class GaussNewtonSolverBase : public SolverBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Query a block of covariances
   //////////////////////////////////////////////////////////////////////////////////////////////
-  BlockSparseMatrix queryCovarianceBlock(const std::vector<steam::StateKey>& keys);
+  BlockMatrix queryCovarianceBlock(const std::vector<steam::StateKey>& keys);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Query a block of covariances
   //////////////////////////////////////////////////////////////////////////////////////////////
-  BlockSparseMatrix queryCovarianceBlock(const std::vector<steam::StateKey>& rowKeys,
-                                         const std::vector<steam::StateKey>& colKeys);
+  BlockMatrix queryCovarianceBlock(const std::vector<steam::StateKey>& rowKeys,
+                                   const std::vector<steam::StateKey>& colKeys);
 
  protected:
 

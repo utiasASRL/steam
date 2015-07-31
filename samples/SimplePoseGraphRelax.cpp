@@ -146,12 +146,12 @@ int main(int argc, char **argv) {
   keys.push_back(poses[3]->getKey());
   keys.push_back(poses[5]->getKey());
 
-  steam::BlockSparseMatrix cov = solver.queryCovarianceBlock(keys);
+  steam::BlockMatrix cov = solver.queryCovarianceBlock(keys);
 
-  std::cout << "11" << std::endl<< cov.read(0,0) << std::endl;
-  std::cout << "13" << std::endl<< cov.read(0,1) << std::endl;
-  std::cout << "31" << std::endl<< cov.read(1,0) << std::endl;
-  std::cout << "33" << std::endl<< cov.read(1,1) << std::endl;
+  std::cout << "11" << std::endl<< cov.at(0,0) << std::endl;
+  std::cout << "13" << std::endl<< cov.at(0,1) << std::endl;
+  std::cout << "31" << std::endl<< cov.at(1,0) << std::endl;
+  std::cout << "33" << std::endl<< cov.at(1,1) << std::endl;
 
   return 0;
 }
