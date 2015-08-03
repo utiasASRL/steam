@@ -81,7 +81,7 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jaco
     // Add jacobian information
     if (k < jacs1size) {
       // Add to existing entry
-      jacs->at(k).jac += transform1.adjoint() * jacs2[j].jac;
+      jacs->at(k).jac += transform1.adjoint() * jacs2[j].jac; // todo .noalias() +=
     } else {
       // Create new entry
       jacs->push_back(Jacobian());
@@ -197,10 +197,11 @@ Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate(std::vector<Jacobian>* jacs)
   jacs->resize(jacsCopy.size());
 
   // Jacobians
+  Eigen::Matrix<double,6,6> jacInv = lgmath::se3::vec2jacinv(vec);
   for (unsigned int j = 0; j < jacsCopy.size(); j++) {
     Jacobian& jacref = jacs->at(j);
     jacref.key = jacsCopy[j].key;
-    jacref.jac = lgmath::se3::vec2jacinv(vec) * jacsCopy[j].jac;
+    jacref.jac = jacInv * jacsCopy[j].jac;
   }
 
   return vec;
@@ -277,6 +278,7 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate(std::vector<Jacobian>* jacs) 
     Jacobian& jacref = jacs->back();
     jacref.key = landmark_->getKey();
     jacref.jac = transform.matrix() * Eigen::Matrix<double,4,3>::Identity();
+    // todo... jac = transform.matrix().block<4,3>(0,0);
   }
 
   // Return error
