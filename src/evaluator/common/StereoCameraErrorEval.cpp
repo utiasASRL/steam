@@ -86,10 +86,11 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> StereoCameraErrorEval::ev
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(1));
 
     // Add Jacobian
-    jacobianNode->add(-cameraJac, point_in_c.second);
+    //jacobianNode->add(-cameraJac, point_in_c.second);
+    jacobianNode->add(point_in_c.second) = -cameraJac;
   }
 
   // Return error

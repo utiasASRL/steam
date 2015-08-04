@@ -132,7 +132,7 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evalua
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(4));
 
     // Knot 1 transform
     if(!knot1_->T_k0->isLocked()) {
@@ -147,7 +147,8 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evalua
       jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
 
       // Add Jacobian
-      jacobianNode->add(jacobian, leafNode);
+      //jacobianNode->add(jacobian, leafNode);
+      jacobianNode->add(leafNode) = jacobian;
     }
 
     // Knot 1 velocity
@@ -162,7 +163,8 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evalua
       jacobian.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
 
       // Add Jacobian
-      jacobianNode->add(jacobian, leafNode);
+      //jacobianNode->add(jacobian, leafNode);
+      jacobianNode->add(leafNode) = jacobian;
     }
 
     // Knot 2 transform
@@ -177,7 +179,8 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evalua
       jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
       // Add Jacobian
-      jacobianNode->add(jacobian, leafNode);
+      //jacobianNode->add(jacobian, leafNode);
+      jacobianNode->add(leafNode) = jacobian;
     }
 
     // Knot 2 velocity
@@ -192,7 +195,8 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evalua
       jacobian.block<6,6>(6,0) = J_21_inv;
 
       // Add Jacobian
-      jacobianNode->add(jacobian, leafNode);
+      //jacobianNode->add(jacobian, leafNode);
+      jacobianNode->add(leafNode) = jacobian;
     }
   }
 

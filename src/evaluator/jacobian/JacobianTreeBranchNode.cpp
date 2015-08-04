@@ -13,20 +13,40 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-JacobianTreeBranchNode::JacobianTreeBranchNode() {
+JacobianTreeBranchNode::JacobianTreeBranchNode(unsigned int reserveNum) {
+  children_.reserve(reserveNum);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a child node to the branch
 //////////////////////////////////////////////////////////////////////////////////////////////
-void JacobianTreeBranchNode::add(const Eigen::MatrixXd& lhsJacobian,
-                                 const JacobianTreeNode::ConstPtr& child) {
+//void JacobianTreeBranchNode::add(const Eigen::MatrixXd& lhsJacobian,
+//                                 const JacobianTreeNode::ConstPtr& child) {
+
+//  // Check for nullptr
+//  if (child) {
+
+//    // Add Jacobian edge to list of children
+//    children_.push_back(JacobianEdge_t(lhsJacobian, child));
+//  } else {
+
+//    // Provided pointer was null
+//    throw std::invalid_argument("Tried to add nullptr to JacobianTreeBranchNode");
+//  }
+//}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a child node to the branch
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd& JacobianTreeBranchNode::add(const JacobianTreeNode::ConstPtr& child) {
 
   // Check for nullptr
   if (child) {
 
     // Add Jacobian edge to list of children
-    children_.push_back(JacobianEdge_t(lhsJacobian, child));
+    children_.push_back(JacobianEdge_t());
+    children_.back().second = child;
+    return children_.back().first;
   } else {
 
     // Provided pointer was null

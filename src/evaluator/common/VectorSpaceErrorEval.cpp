@@ -68,14 +68,15 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> VectorSpaceErrorEval::eva
   if (!stateVec_->isLocked()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(1));
 
     // Make leaf node for Landmark
     JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(stateVec_));
 
     // Add Jacobian
     const unsigned int dim = stateVec_->getPerturbDim();
-    jacobianNode->add(-Eigen::MatrixXd::Identity(dim,dim), leafNode);
+//    jacobianNode->add(-Eigen::MatrixXd::Identity(dim,dim), leafNode);
+    jacobianNode->add(leafNode) = -Eigen::MatrixXd::Identity(dim,dim);
   }
 
   // Return error

@@ -113,7 +113,8 @@ public:
       Eigen::MatrixXd jacobian(2,1);
       jacobian(0,0) = 1.0;
       jacobian(1,0) = -4.0*x + 1.0;
-      jacobianNode->add(jacobian, leafNode);
+      //jacobianNode->add(jacobian, leafNode);
+      jacobianNode->add(leafNode) = jacobian;
     }
 
     // Construct error and return

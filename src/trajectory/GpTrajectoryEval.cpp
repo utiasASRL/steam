@@ -168,7 +168,7 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> GpTrajectoryE
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(4));
 
     // Pose Jacobians
     if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
@@ -184,7 +184,8 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> GpTrajectoryE
         JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot1_->T_k0));
 
         // Add Jacobian
-        jacobianNode->add(-w*T_21.adjoint() + T_i1.adjoint(), leafNode);
+        //jacobianNode->add(-w*T_21.adjoint() + T_i1.adjoint(), leafNode);
+        jacobianNode->add(leafNode) = -w*T_21.adjoint() + T_i1.adjoint();
       }
 
       // 6 x 6 Pose Jacobian 2
@@ -194,7 +195,8 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> GpTrajectoryE
         JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->T_k0));
 
         // Add Jacobian
-        jacobianNode->add(w, leafNode);
+        //jacobianNode->add(w, leafNode);
+        jacobianNode->add(leafNode) = w;
       }
     }
 
@@ -205,7 +207,8 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> GpTrajectoryE
       JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot1_->varpi));
 
       // Add Jacobian
-      jacobianNode->add(lambda12_*J_i1, leafNode);
+      //jacobianNode->add(lambda12_*J_i1, leafNode);
+      jacobianNode->add(leafNode) = lambda12_*J_i1;
     }
 
     // 6 x 6 Velocity Jacobian 2
@@ -215,7 +218,8 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> GpTrajectoryE
       JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->varpi));
 
       // Add Jacobian
-      jacobianNode->add(psi12_*J_i1*J_21_inv, leafNode);
+      //jacobianNode->add(psi12_*J_i1*J_21_inv, leafNode);
+      jacobianNode->add(leafNode) = psi12_*J_i1*J_21_inv;
     }
   }
 

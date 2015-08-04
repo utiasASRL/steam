@@ -114,7 +114,7 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> ComposeTransf
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(2));
 
     // Check if transform1 is active
     if (transform1_->isActive()) {
@@ -125,7 +125,9 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> ComposeTransf
       }
 
       // Add Jacobian
-      jacobianNode->add(Eigen::Matrix<double,6,6>::Identity(), transform1.second);
+      //jacobianNode->add(Eigen::Matrix<double,6,6>::Identity(), transform1.second);
+      //jacobianNode->add(transform1.second) = Eigen::Matrix<double,6,6>::Identity();
+      jacobianNode->add(transform1.second) = Eigen::MatrixXd::Identity(6,6);
     }
 
     // Check if transform2 is active
@@ -137,7 +139,8 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> ComposeTransf
       }
 
       // Add Jacobian
-      jacobianNode->add(transform1.first.adjoint(), transform2.second);
+      //jacobianNode->add(transform1.first.adjoint(), transform2.second);
+      jacobianNode->add(transform2.second) = transform1.first.adjoint();
     }
   }
 
@@ -216,7 +219,7 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> InverseTransf
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(1));
 
     // Check for nullptr
     if (!transform.second) {
@@ -224,7 +227,8 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> InverseTransf
     }
 
     // Add Jacobian
-    jacobianNode->add(-transformInverse.adjoint(), transform.second);
+    //jacobianNode->add(-transformInverse.adjoint(), transform.second);
+    jacobianNode->add(transform.second) = -transformInverse.adjoint();
   }
 
   // Return
@@ -303,7 +307,7 @@ std::pair<Eigen::Matrix<double,6,1>, JacobianTreeNode::ConstPtr> LogMapEvaluator
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(1));
 
     // Check for nullptr
     if (!transform.second) {
@@ -311,7 +315,8 @@ std::pair<Eigen::Matrix<double,6,1>, JacobianTreeNode::ConstPtr> LogMapEvaluator
     }
 
     // Add Jacobian
-    jacobianNode->add(lgmath::se3::vec2jacinv(vec), transform.second);
+    //jacobianNode->add(lgmath::se3::vec2jacinv(vec), transform.second);
+    jacobianNode->add(transform.second) = lgmath::se3::vec2jacinv(vec);
   }
 
   // Return
@@ -413,7 +418,7 @@ std::pair<Eigen::Vector4d, JacobianTreeNode::ConstPtr> ComposeLandmarkEvaluator:
   if (this->isActive()) {
 
     // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(2));
 
     // Check if transform is active
     if (transform_->isActive()) {
@@ -424,7 +429,8 @@ std::pair<Eigen::Vector4d, JacobianTreeNode::ConstPtr> ComposeLandmarkEvaluator:
       }
 
       // Add Jacobian
-      jacobianNode->add(lgmath::se3::point2fs(point_in_c.head<3>()), transform.second);
+      //jacobianNode->add(lgmath::se3::point2fs(point_in_c.head<3>()), transform.second);
+      jacobianNode->add(transform.second) = lgmath::se3::point2fs(point_in_c.head<3>());
     }
 
     // Check if state is locked
@@ -434,7 +440,8 @@ std::pair<Eigen::Vector4d, JacobianTreeNode::ConstPtr> ComposeLandmarkEvaluator:
       JacobianTreeLeafNode::Ptr landmarkNode(new JacobianTreeLeafNode(landmark_));
 
       // Add Jacobian
-      jacobianNode->add(transform.first.matrix() * Eigen::Matrix<double,4,3>::Identity(), landmarkNode);
+      //jacobianNode->add(transform.first.matrix() * Eigen::Matrix<double,4,3>::Identity(), landmarkNode);
+      jacobianNode->add(landmarkNode) = transform.first.matrix() * Eigen::Matrix<double,4,3>::Identity();
       // todo... jac = transform.first.matrix().block<4,3>(0,0);
     }
 
