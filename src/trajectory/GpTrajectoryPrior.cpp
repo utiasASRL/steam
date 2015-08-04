@@ -167,7 +167,6 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evalua
 
     // Knot 2 transform
     if(!knot2_->T_k0->isLocked()) {
-      Eigen::Matrix<double,6,6> Jinv_12 = J_21_inv*T_21.adjoint();
 
       // Make leaf node for Landmark
       JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->T_k0));

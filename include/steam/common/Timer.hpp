@@ -70,29 +70,6 @@ class Timer
 
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Time class
-//////////////////////////////////////////////////////////////////////////////////////////////
-struct Time {
-
-
-  Time(boost::int64_t nsecs) : nsecs_(nsecs) {}
-  //Time(boost::int32_t secs, boost::int32_t nsecs);
-  //Time(double secs);
-
-  // may lose precision going to double if in unix epochs...
-  // in most cases it is okay since we subtract two values and then get a shorter duration.
-  double seconds() { // TODO -- test this for precision...
-    return double(nsecs_)*1e-9;
-  }
-
-  // int64 gives nanosecond precision since epoch (+/- ~9.2e18)...
-  // which covers the ~1.5e9 seconds since epoch and 1e9 nsecs
-  boost::int64_t nsecs_;
-
-  //todo overload minus op
-};
-
 } // steam
 
 #endif // STEAM_TIMER_HPP
