@@ -32,6 +32,10 @@
 #include <steam/evaluator/common/TransformErrorEval.hpp>
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 
+// evaluator - jacobian
+#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
+#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
+
 // solver
 #include <steam/solver/VanillaGaussNewtonSolver.hpp>
 #include <steam/solver/LineSearchGaussNewtonSolver.hpp>

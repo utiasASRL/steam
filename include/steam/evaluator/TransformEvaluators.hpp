@@ -11,7 +11,6 @@
 
 #include <steam/evaluator/EvaluatorBase.hpp>
 #include <steam/state/LieGroupStateVar.hpp>
-#include <steam/Jacobian.hpp>
 
 namespace steam {
 namespace se3 {
@@ -71,6 +70,11 @@ class TransformStateEvaluator : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the transformation matrix and Jacobian (identity)
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> evaluateJacobians() const;
+
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,6 +119,11 @@ class FixedTransformEvaluator : public TransformEvaluator
   /// \brief Evaluate the transformation matrix and return empty Jacobian vector
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the transformation matrix and return empty Jacobian vector
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> evaluateJacobians() const;
 
  private:
 

@@ -6,6 +6,8 @@
 
 #include <steam/evaluator/TransformEvaluators.hpp>
 
+#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
+
 #include <lgmath.hpp>
 
 namespace steam {
@@ -59,6 +61,24 @@ lgmath::se3::Transformation TransformStateEvaluator::evaluate(std::vector<Jacobi
   return transform_->getValue();
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix and Jacobian (identity)
+//////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> TransformStateEvaluator::evaluateJacobians() const {
+
+  // Check if state is locked
+  if (transform_->isLocked()) {
+
+    // State is locked, return nullptr in place of leaf node
+    return std::make_pair(transform_->getValue(), JacobianTreeLeafNode::Ptr());
+  } else {
+
+    // State is unlocked, return a new leaf node
+    return std::make_pair(transform_->getValue(),
+                          JacobianTreeLeafNode::Ptr(new JacobianTreeLeafNode(transform_)));
+  }
+}
+
 // Fixed value
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,6 +119,14 @@ lgmath::se3::Transformation FixedTransformEvaluator::evaluate(std::vector<Jacobi
   return transform_;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix and return empty Jacobian vector
+//////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> FixedTransformEvaluator::evaluateJacobians() const {
+
+  // Return nullptr in place of leaf node
+  return std::make_pair(transform_, JacobianTreeLeafNode::Ptr());
+}
 
 } // se3
 } // steam

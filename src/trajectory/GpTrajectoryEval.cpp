@@ -6,6 +6,9 @@
 
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 
+#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
+#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
+
 #include <lgmath.hpp>
 
 namespace steam {
@@ -139,6 +142,85 @@ lgmath::se3::Transformation GpTrajectoryEval::evaluate(std::vector<Jacobian>* ja
   // Return `global' interpolated transform
   return T_i1*knot1_->T_k0->getValue();
 
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix and Jacobians
+//////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> GpTrajectoryEval::evaluateJacobians() const {
+
+  // Init Jacobian node (null)
+  JacobianTreeBranchNode::Ptr jacobianNode;
+
+  // Get relative matrix info
+  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+
+  // Interpolated relative transform
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+  lgmath::se3::Transformation T_i1(xi_i1);
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+
+  // Check if evaluator is active
+  if (this->isActive()) {
+
+    // Make Jacobian node
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+
+    // Pose Jacobians
+    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+
+      // Precompute matrix
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
+
+      // 6 x 6 Pose Jacobian 1
+      if(!knot1_->T_k0->isLocked()) {
+
+        // Make leaf node for Landmark
+        JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot1_->T_k0));
+
+        // Add Jacobian
+        jacobianNode->add(-w*T_21.adjoint() + T_i1.adjoint(), leafNode);
+      }
+
+      // 6 x 6 Pose Jacobian 2
+      if(!knot2_->T_k0->isLocked()) {
+
+        // Make leaf node for Landmark
+        JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->T_k0));
+
+        // Add Jacobian
+        jacobianNode->add(w, leafNode);
+      }
+    }
+
+    // 6 x 6 Velocity Jacobian 1
+    if(!knot1_->varpi->isLocked()) {
+
+      // Make leaf node for Landmark
+      JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot1_->varpi));
+
+      // Add Jacobian
+      jacobianNode->add(lambda12_*J_i1, leafNode);
+    }
+
+    // 6 x 6 Velocity Jacobian 2
+    if(!knot2_->varpi->isLocked()) {
+
+      // Make leaf node for Landmark
+      JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->varpi));
+
+      // Add Jacobian
+      jacobianNode->add(psi12_*J_i1*J_21_inv, leafNode);
+    }
+  }
+
+  // Return `global' interpolated transform
+  return std::make_pair(T_i1*knot1_->T_k0->getValue(), jacobianNode);
 }
 
 } // se3

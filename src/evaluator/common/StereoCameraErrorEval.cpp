@@ -7,6 +7,8 @@
 #include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 
 #include <steam/evaluator/TransformEvalOperations.hpp>
+#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
+#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
 
 namespace steam {
 
@@ -64,6 +66,34 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate(std::vector<Jacobian>* jacs) con
 
   // Return error (between measurement and point estimate projected in camera frame)
   return meas_ - cameraModel(point_in_c);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
+//////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> StereoCameraErrorEval::evaluateJacobians() const {
+
+  // Evaluate
+  std::pair<Eigen::Vector4d, JacobianTreeNode::ConstPtr> point_in_c = eval_->evaluateJacobians();
+
+  // Get Jacobian for the camera model
+  Eigen::Matrix4d cameraJac = cameraModelJacobian(point_in_c.first);
+
+  // Init Jacobian node (null)
+  JacobianTreeBranchNode::Ptr jacobianNode;
+
+  // Check if evaluator is active
+  if (this->isActive()) {
+
+    // Make Jacobian node
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+
+    // Add Jacobian
+    jacobianNode->add(-cameraJac, point_in_c.second);
+  }
+
+  // Return error
+  return std::make_pair(meas_ - cameraModel(point_in_c.first), jacobianNode);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -63,4 +63,14 @@ Eigen::VectorXd TransformErrorEval::evaluate(std::vector<Jacobian>* jacs) const 
   return errorEvaluator_->evaluate(jacs);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the 6-d measurement error and Jacobians
+//////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> TransformErrorEval::evaluateJacobians() const {
+
+  //return errorEvaluator_->evaluateJacobians();
+  std::pair<Eigen::Matrix<double,6,1>, JacobianTreeNode::ConstPtr> error = errorEvaluator_->evaluateJacobians();
+  return std::make_pair(error.first, error.second);
+}
+
 } // steam

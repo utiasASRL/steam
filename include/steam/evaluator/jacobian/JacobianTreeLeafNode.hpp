@@ -1,58 +1,53 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file EvaluatorBase.hpp
+/// \file JacobianTreeLeafNode.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_EVALUATOR_BASE_HPP
-#define STEAM_EVALUATOR_BASE_HPP
+#ifndef STEAM_JACOBIAN_TREE_LEAF_NODE_HPP
+#define STEAM_JACOBIAN_TREE_LEAF_NODE_HPP
 
-#include <Eigen/Core>
-
-#include <steam/StateVector.hpp>
+#include <vector>
+#include <Eigen/Dense>
 #include <steam/evaluator/jacobian/JacobianTreeNode.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Base class that defines the general 'evaluator' interface
+/// \brief Simple structure to hold Jacobian information
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename EvalType>
-class EvaluatorBase
+class JacobianTreeLeafNode : public JacobianTreeNode
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<EvaluatorBase<EvalType> > Ptr;
-  typedef boost::shared_ptr<const EvaluatorBase<EvalType> > ConstPtr;
+  typedef boost::shared_ptr<JacobianTreeLeafNode > Ptr;
+  typedef boost::shared_ptr<const JacobianTreeLeafNode > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  EvaluatorBase() {}
+  JacobianTreeLeafNode(const StateVariableBase::ConstPtr& state);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Returns whether or not an evaluator contains unlocked state variables
+  /// \brief Traverse the Jacobian tree and calculate the Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual bool isActive() const = 0;
+  virtual void append(std::vector<Jacobian>* outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation'
+  /// \brief Traverse the Jacobian tree and calculate the Jacobians, pre-multiplied by lhs
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalType evaluate() const = 0;
+  virtual void append(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* outJacobians) const;
+
+ private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation', with Jacobians
+  /// \brief Reference to associated state variable
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalType evaluate(std::vector<Jacobian>* jacs) const = 0;
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation', with Jacobian tree
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual std::pair<EvalType, JacobianTreeNode::ConstPtr> evaluateJacobians() const = 0;
+  StateVariableBase::ConstPtr state_;
 
 };
 
 } // steam
 
-#endif // STEAM_EVALUATOR_BASE_HPP
+#endif // STEAM_JACOBIAN_TREE_LEAF_NODE_HPP

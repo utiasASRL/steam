@@ -6,6 +6,9 @@
 
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 
+#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
+#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
+
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,6 +54,32 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate(std::vector<Jacobian>* jacs) cons
 
   // Return error
   return measurement_ - stateVec_->getValue();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the measurement error and relevant Jacobians
+//////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> VectorSpaceErrorEval::evaluateJacobians() const {
+
+  // Init Jacobian node (null)
+  JacobianTreeBranchNode::Ptr jacobianNode;
+
+  // Check if evaluator is active
+  if (!stateVec_->isLocked()) {
+
+    // Make Jacobian node
+    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode());
+
+    // Make leaf node for Landmark
+    JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(stateVec_));
+
+    // Add Jacobian
+    const unsigned int dim = stateVec_->getPerturbDim();
+    jacobianNode->add(-Eigen::MatrixXd::Identity(dim,dim), leafNode);
+  }
+
+  // Return error
+  return std::make_pair(measurement_ - stateVec_->getValue(), jacobianNode);
 }
 
 } // steam
