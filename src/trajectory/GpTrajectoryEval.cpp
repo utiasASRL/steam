@@ -6,9 +6,6 @@
 
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 
-#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
-#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
-
 #include <lgmath.hpp>
 
 namespace steam {

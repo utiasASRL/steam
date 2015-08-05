@@ -40,7 +40,7 @@ class BlockAutomaticEvaluator : public EvaluatorBase<EvalType>
   virtual EvalType evaluate() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation', with Jacobians
+  /// \brief General evaluation and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalType evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
 

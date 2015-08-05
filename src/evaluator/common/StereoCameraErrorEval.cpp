@@ -7,8 +7,6 @@
 #include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 
 #include <steam/evaluator/TransformEvalOperations.hpp>
-#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
-#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
 
 namespace steam {
 
@@ -64,41 +62,6 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate(const Eigen::MatrixXd& lhs, std:
   // Return evaluation
   return meas_ - cameraModel(point_in_c);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-///// \brief Evaluate the 4-d measurement error (ul vl ur vr) and sub-tree of evaluations
-////////////////////////////////////////////////////////////////////////////////////////////////
-//EvalTreeNode<Eigen::VectorXd>* StereoCameraErrorEval::evaluateTree() const {
-
-//  // Evaluate sub-trees
-//  EvalTreeNode<Eigen::Vector4d>* point_in_c = eval_->evaluateTree();
-
-//  // Make new root node
-//  EvalTreeNode<Eigen::VectorXd>* root =
-//      new EvalTreeNode<Eigen::VectorXd>(meas_ - cameraModel(point_in_c->getValue()));
-
-//  // Add children
-//  root->addChild(point_in_c);
-
-//  // Return new root node
-//  return root;
-//}
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-///// \brief Evaluate the Jacobian tree
-////////////////////////////////////////////////////////////////////////////////////////////////
-//void StereoCameraErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
-//                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
-//                                  std::vector<Jacobian>* outJacobians) const {
-
-//  EvalTreeNode<Eigen::Vector4d>* point_in_c =
-//      static_cast<EvalTreeNode<Eigen::Vector4d>*>(evaluationTree->childAt(0));
-
-//  // Check if transform1 is active
-//  if (eval_->isActive()) {
-//    eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c->getValue()), point_in_c, outJacobians);
-//  }
-//}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Camera model
