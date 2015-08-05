@@ -121,13 +121,14 @@ int main(int argc, char **argv) {
   ///
   /// Setup Solver and Optimize
   ///
+  typedef steam::VanillaGaussNewtonSolver SolverType;
 
   // Initialize parameters (enable verbose mode)
-  steam::VanillaGaussNewtonSolver::Params params;
+  SolverType::Params params;
   params.verbose = true;
 
   // Make solver
-  steam::VanillaGaussNewtonSolver solver(&problem, params);
+  SolverType solver(&problem, params);
 
   // Optimize
   solver.optimize();
