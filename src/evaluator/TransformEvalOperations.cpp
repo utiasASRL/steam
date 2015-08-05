@@ -309,9 +309,8 @@ void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
       throw std::runtime_error("appendJacobians had dimension mismatch.");
     }
 
-    // Add Jacobian
-    outJacobians->push_back(Jacobian(landmark_->getKey(), lhs * t1->getValue().matrix() * Eigen::Matrix<double,4,3>::Identity()));
-    // todo... jac = transform.first.matrix().block<4,3>(0,0);
+    // Add Jacobian -- transform.matrix() * Eigen::Matrix<double,4,3>::Identity()
+    outJacobians->push_back(Jacobian(landmark_->getKey(), lhs * t1->getValue().matrix().block<4,3>(0,0)));
   }
 }
 

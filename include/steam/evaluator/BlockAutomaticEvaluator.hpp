@@ -15,14 +15,14 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Base class that defines the general 'evaluator' interface
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename EvalType>
-class BlockAutomaticEvaluator : public EvaluatorBase<EvalType>
+template <typename TYPE>
+class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<BlockAutomaticEvaluator<EvalType> > Ptr;
-  typedef boost::shared_ptr<const BlockAutomaticEvaluator<EvalType> > ConstPtr;
+  typedef boost::shared_ptr<BlockAutomaticEvaluator<TYPE> > Ptr;
+  typedef boost::shared_ptr<const BlockAutomaticEvaluator<TYPE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
@@ -37,23 +37,23 @@ class BlockAutomaticEvaluator : public EvaluatorBase<EvalType>
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general 'evaluation'
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalType evaluate() const = 0;
+  virtual TYPE evaluate() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief General evaluation and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalType evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
+  virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general 'evaluation', with Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalTreeNode<EvalType>* evaluateTree() const = 0;
+  virtual EvalTreeNode<TYPE>* evaluateTree() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general evaluation of the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
-                               EvalTreeNode<EvalType>* evaluationTree,
+                               EvalTreeNode<TYPE>* evaluationTree,
                                std::vector<Jacobian>* outJacobians) const = 0;
 
 };

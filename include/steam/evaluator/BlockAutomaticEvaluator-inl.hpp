@@ -11,15 +11,15 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename EvalType>
-BlockAutomaticEvaluator<EvalType>::BlockAutomaticEvaluator() {
+template<typename TYPE>
+BlockAutomaticEvaluator<TYPE>::BlockAutomaticEvaluator() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief General evaluation and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename EvalType>
-EvalType BlockAutomaticEvaluator<EvalType>::evaluate(const Eigen::MatrixXd& lhs,
+template<typename TYPE>
+TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
                                                      std::vector<Jacobian>* jacs) const {
 
   // Check and initialize jacobian array
@@ -29,13 +29,13 @@ EvalType BlockAutomaticEvaluator<EvalType>::evaluate(const Eigen::MatrixXd& lhs,
   jacs->clear();
 
   // Get evaluation tree
-  EvalTreeNode<EvalType>* tree = this->evaluateTree();
+  EvalTreeNode<TYPE>* tree = this->evaluateTree();
 
   // Get Jacobians
   this->appendJacobians(lhs, tree, jacs);
 
   // Get evaluation from tree
-  EvalType eval = tree->getValue();
+  TYPE eval = tree->getValue();
 
   // Cleanup tree memory
   delete tree;

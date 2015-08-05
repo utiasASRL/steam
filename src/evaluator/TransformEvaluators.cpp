@@ -109,6 +109,7 @@ EvalTreeNode<lgmath::se3::Transformation>* FixedTransformEvaluator::evaluateTree
 void FixedTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                               std::vector<Jacobian>* outJacobians) const {
+  // Do nothing
   return;
 }
 
