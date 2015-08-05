@@ -33,62 +33,27 @@ double CostTerm::evaluate() const
 ///              error = sqrt(weight)*sqrt(cov^-1)*rawError
 ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
 //////////////////////////////////////////////////////////////////////////////////////////////
-//Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJacobians) const {
-
-//  // Get raw error and Jacobians
-//  std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> rawError = errorFunction_->evaluateJacobians();
-
-//  // Get whitened error vector
-//  Eigen::VectorXd whiteError = noiseModel_->whitenError(rawError.first);
-
-//  // Get weight from loss function
-//  double sqrt_w = sqrt(lossFunc_->weight(whiteError.norm()));
-
-//  // Check and initialize jacobian array
-//  if (outJacobians == NULL) {
-//    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
-//  }
-//  outJacobians->clear();
-
-//  // Get Jacobians
-//  rawError.second->append(sqrt_w * noiseModel_->getSqrtInformation(), outJacobians);
-
-//  // Weight the error and return
-//  return sqrt_w * whiteError;
-//}
-
 Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJacobians) const {
 
   // Get raw error and Jacobians
-  std::vector<Jacobian> rawJacs;
-  Eigen::VectorXd rawError = errorFunction_->evaluate(&rawJacs);
+  EvalTreeNode<Eigen::VectorXd>* rawError = errorFunction_->evaluateTree();
+
+  // Get whitened error vector
+  Eigen::VectorXd whiteError = noiseModel_->whitenError(rawError->getValue());
+
+  // Get weight from loss function
+  double sqrt_w = sqrt(lossFunc_->weight(whiteError.norm()));
 
   // Check and initialize jacobian array
   if (outJacobians == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
   outJacobians->clear();
-  outJacobians->resize(rawJacs.size());
 
-  // Get whitened error vector
-  Eigen::VectorXd whiteError = noiseModel_->whitenError(rawError);
+  // Get Jacobians
+  errorFunction_->appendJacobians(sqrt_w * noiseModel_->getSqrtInformation(), rawError, outJacobians);
 
-  // Get weight from loss function
-  double sqrt_w = sqrt(lossFunc_->weight(whiteError.norm()));
-
-  // Whiten and weight the Jacobians
-  for (unsigned int j = 0; j < rawJacs.size(); j++) {
-
-    // Check for dimension mismatch
-    if (noiseModel_->getSqrtInformation().cols() != rawJacs[j].jac.rows()) {
-      throw std::runtime_error("Dimension mismatch");
-    }
-
-    // Whiten jacobian and weight by loss function
-    Jacobian& jacref = outJacobians->at(j);
-    jacref.key = rawJacs[j].key;
-    jacref.jac = sqrt_w * noiseModel_->getSqrtInformation() * rawJacs[j].jac;
-  }
+  delete rawError;
 
   // Weight the error and return
   return sqrt_w * whiteError;

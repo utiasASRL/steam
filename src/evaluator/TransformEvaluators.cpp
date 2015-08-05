@@ -74,8 +74,37 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> TransformStat
   } else {
 
     // State is unlocked, return a new leaf node
+    //return std::make_pair(transform_->getValue(),
+    //                      JacobianTreeLeafNode::Ptr(new JacobianTreeLeafNode(transform_)));
     return std::make_pair(transform_->getValue(),
-                          JacobianTreeLeafNode::Ptr(new JacobianTreeLeafNode(transform_)));
+                          boost::make_shared<JacobianTreeLeafNode>(transform_));
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+EvalTreeNode<lgmath::se3::Transformation>* TransformStateEvaluator::evaluateTree() const {
+  return new EvalTreeNode<lgmath::se3::Transformation>(transform_->getValue());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void TransformStateEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                             std::vector<Jacobian>* outJacobians) const {
+
+  // Check if state is locked
+  if (!transform_->isLocked()) {
+
+    // Check that dimensions match
+    if (lhs.cols() != transform_->getPerturbDim()) {
+      throw std::runtime_error("appendJacobians had dimension mismatch.");
+    }
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian(transform_->getKey(), lhs));
   }
 }
 
@@ -126,6 +155,22 @@ std::pair<lgmath::se3::Transformation, JacobianTreeNode::ConstPtr> FixedTransfor
 
   // Return nullptr in place of leaf node
   return std::make_pair(transform_, JacobianTreeLeafNode::Ptr());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+EvalTreeNode<lgmath::se3::Transformation>* FixedTransformEvaluator::evaluateTree() const {
+  return new EvalTreeNode<lgmath::se3::Transformation>(transform_);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void FixedTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                             std::vector<Jacobian>* outJacobians) const {
+  return;
 }
 
 } // se3

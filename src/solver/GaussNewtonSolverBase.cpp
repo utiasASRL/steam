@@ -137,8 +137,8 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
   BlockVector b_(sqSizes);
 
   // Timing
-  double evalTime = 0;
-  double evalJacTime = 0;
+  //double evalTime = 0;
+  //double evalJacTime = 0;
 
   // For each cost term
   #pragma omp parallel for num_threads(NUMBER_OF_OPENMP_THREADS)
@@ -147,10 +147,10 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
     // Compute the weighted and whitened errors and jacobians
     // err = sqrt(w)*sqrt(R^-1)*rawError
     // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
-    steam::Timer evalJacTimer;
+    //steam::Timer evalJacTimer;
     std::vector<Jacobian> jacobians;
     Eigen::VectorXd error = this->getProblem().getCostTerms().at(c)->evalWeightedAndWhitened(&jacobians);
-    evalJacTime += evalJacTimer.milliseconds();
+    //evalJacTime += evalJacTimer.milliseconds();
 
 //    steam::Timer evalTimer;
 //    double error2 = this->getProblem().getCostTerms().at(c)->evaluate();
@@ -204,7 +204,7 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
   }
 
   //std::cout << "eval time: " << evalTime << std::endl;
-  std::cout << "evaljac time: " << evalJacTime << std::endl;
+  //std::cout << "evaljac time: " << evalJacTime << std::endl;
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration

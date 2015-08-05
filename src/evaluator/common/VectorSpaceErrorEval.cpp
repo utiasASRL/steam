@@ -83,4 +83,31 @@ std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> VectorSpaceErrorEval::eva
   return std::make_pair(measurement_ - stateVec_->getValue(), jacobianNode);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the measurement error and sub-tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+EvalTreeNode<Eigen::VectorXd>* VectorSpaceErrorEval::evaluateTree() const {
+  return new EvalTreeNode<Eigen::VectorXd>(measurement_ - stateVec_->getValue());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void VectorSpaceErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
+                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
+                                  std::vector<Jacobian>* outJacobians) const {
+
+  // Check if state is locked
+  if (!stateVec_->isLocked()) {
+
+    // Check that dimensions match
+    if (lhs.cols() != stateVec_->getPerturbDim()) {
+      throw std::runtime_error("appendJacobians had dimension mismatch.");
+    }
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian(stateVec_->getKey(), -lhs));
+  }
+}
+
 } // steam

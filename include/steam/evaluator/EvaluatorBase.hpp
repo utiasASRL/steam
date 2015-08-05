@@ -11,6 +11,7 @@
 
 #include <steam/StateVector.hpp>
 #include <steam/evaluator/jacobian/JacobianTreeNode.hpp>
+#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
 
 namespace steam {
 
@@ -50,6 +51,20 @@ class EvaluatorBase
   /// \brief Interface for the general 'evaluation', with Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual std::pair<EvalType, JacobianTreeNode::ConstPtr> evaluateJacobians() const = 0;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Interface for the general 'evaluation', with Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual EvalTreeNode<EvalType>* evaluateTree() const = 0;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Interface for the general evaluation of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<EvalType>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const = 0;
+  //if (isActive()) {appendJacobians(lhs*f, outJacobians);}
+
 
 };
 
