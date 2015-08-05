@@ -9,10 +9,8 @@
 
 #include <Eigen/Core>
 
-#include <steam/evaluator/EvaluatorBase.hpp>
 #include <steam/evaluator/TransformEvaluators.hpp>
 #include <steam/state/LandmarkStateVar.hpp>
-#include <steam/Jacobian.hpp>
 
 namespace steam {
 namespace se3 {
@@ -49,9 +47,16 @@ public:
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the resultant transformation matrix, and Jacobians w.r.t. state variables
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
@@ -99,9 +104,16 @@ public:
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the resultant transformation matrix, and Jacobians w.r.t. state variables
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
@@ -144,9 +156,17 @@ public:
   virtual Eigen::Matrix<double,6,1> evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the 6x1 vector belonging to the se(3) algebra and relevant Jacobians
+  /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra and
+  ///        sub-tree of evaluations
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Matrix<double,6,1> evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
@@ -189,9 +209,17 @@ public:
   virtual Eigen::Vector4d evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the point transformed by the transform evaluator and relevant Jacobians
+  /// \brief Evaluate the point transformed by the transform evaluator and
+  ///        sub-tree of evaluations
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Vector4d evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<Eigen::Vector4d>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 

@@ -44,55 +44,54 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the resultant transformation matrix, and Jacobians w.r.t. state variables
+/// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-lgmath::se3::Transformation ComposeTransformEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
+EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTree() const {
 
-  // Evaluate
-  std::vector<Jacobian> jacs1;
-  lgmath::se3::Transformation transform1 = transform1_->evaluate(&jacs1);
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 = transform1_->evaluateTree();
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 = transform2_->evaluateTree();
 
-  std::vector<Jacobian> jacs2;
-  lgmath::se3::Transformation transform2 = transform2_->evaluate(&jacs2);
+  // Make new root node
+  EvalTreeNode<lgmath::se3::Transformation>* root =
+      new EvalTreeNode<lgmath::se3::Transformation>(transform1->getValue()*transform2->getValue());
 
-  // Check and initialize jacobian array
-  if (jacs == NULL) {
-    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
-  }
-  jacs->clear();
-  jacs->reserve(jacs1.size() + jacs2.size());
+  // Add children
+  root->addChild(transform1);
+  root->addChild(transform2);
 
-  // Jacobians 1
-  jacs->insert(jacs->end(), jacs1.begin(), jacs1.end());
-  unsigned int jacs1size = jacs->size();
+  // Return new root node
+  return root;
+}
 
-  // Jacobians 2
-  for (unsigned int j = 0; j < jacs2.size(); j++) {
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                                  EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                  std::vector<Jacobian>* outJacobians) const {
 
-    // Check if a jacobian w.r.t this state variable exists in 'other' half of transform evaluators
-    // ** If a jacobian exists, we must add to it rather than creating a new entry
-    unsigned int k = 0;
-    for (; k < jacs1size; k++) {
-      if (jacs->at(k).key.equals(jacs2[j].key)) {
-        break;
-      }
-    }
+  EvalTreeNode<lgmath::se3::Transformation>* t1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
 
-    // Add jacobian information
-    if (k < jacs1size) {
-      // Add to existing entry
-      jacs->at(k).jac += transform1.adjoint() * jacs2[j].jac;
-    } else {
-      // Create new entry
-      jacs->push_back(Jacobian());
-      Jacobian& jacref = jacs->back();
-      jacref.key = jacs2[j].key;
-      jacref.jac = transform1.adjoint() * jacs2[j].jac;
-    }
+  // Check if transform1 is active
+  if (transform1_->isActive()) {
+    transform1_->appendJacobians(lhs, t1, outJacobians);
   }
 
-  // Return composition
-  return transform1*transform2;
+  unsigned int hintIndex = outJacobians->size();
+
+  // Check if transform2 is active
+  if (transform2_->isActive()) {
+
+    EvalTreeNode<lgmath::se3::Transformation>* t2 =
+        static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
+
+    transform2_->appendJacobians(lhs*t1->getValue().adjoint(), t2, outJacobians);
+  }
+
+  // Merge
+  Jacobian::merge(outJacobians, hintIndex);
 }
 
 /// Inverse
@@ -125,31 +124,38 @@ lgmath::se3::Transformation InverseTransformEvaluator::evaluate() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the resultant transformation matrix, and Jacobians w.r.t. state variables
+/// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-lgmath::se3::Transformation InverseTransformEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
+EvalTreeNode<lgmath::se3::Transformation>* InverseTransformEvaluator::evaluateTree() const {
 
-  // Evaluate
-  std::vector<Jacobian> jacsCopy;
-  lgmath::se3::Transformation transformInverse = transform_->evaluate(&jacsCopy).inverse();
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
-  // Check and initialize jacobian array
-  if (jacs == NULL) {
-    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
-  }
-  jacs->clear();
-  jacs->resize(jacsCopy.size());
+  // Make new root node
+  EvalTreeNode<lgmath::se3::Transformation>* root =
+      new EvalTreeNode<lgmath::se3::Transformation>(transform->getValue().inverse());
 
-  // Jacobians
-  for (unsigned int j = 0; j < jacsCopy.size(); j++) {
-    Jacobian& jacref = jacs->at(j);
-    jacref.key = jacsCopy[j].key;
-    jacref.jac = -transformInverse.adjoint() * jacsCopy[j].jac;
-  }
+  // Add children
+  root->addChild(transform);
 
-  return transformInverse;
+  // Return new root node
+  return root;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void InverseTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                                  EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                  std::vector<Jacobian>* outJacobians) const {
+
+  // Check if transform1 is active
+  if (transform_->isActive()) {
+    transform_->appendJacobians(-lhs*evaluationTree->getValue().adjoint(),
+                                static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0)),
+                                outJacobians);
+  }
+}
 
 /// Log map
 
@@ -181,29 +187,38 @@ Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the 6x1 vector belonging to the se(3) algebra and relevant Jacobians
+/// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra and
+///        sub-tree of evaluations
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
+EvalTreeNode<Eigen::Matrix<double,6,1> >* LogMapEvaluator::evaluateTree() const {
 
-  // Evaluate
-  std::vector<Jacobian> jacsCopy;
-  Eigen::Matrix<double,6,1> vec = transform_->evaluate(&jacsCopy).vec();
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
-  // Check and initialize jacobian array
-  if (jacs == NULL) {
-    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  // Make new root node
+  EvalTreeNode<Eigen::Matrix<double,6,1> >* root =
+      new EvalTreeNode<Eigen::Matrix<double,6,1> >(transform->getValue().vec());
+
+  // Add children
+  root->addChild(transform);
+
+  // Return new root node
+  return root;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void LogMapEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                                  EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                                  std::vector<Jacobian>* outJacobians) const {
+
+  // Check if transform1 is active
+  if (transform_->isActive()) {
+    transform_->appendJacobians(lhs * lgmath::se3::vec2jacinv(evaluationTree->getValue()),
+                                static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0)),
+                                outJacobians);
   }
-  jacs->clear();
-  jacs->resize(jacsCopy.size());
-
-  // Jacobians
-  for (unsigned int j = 0; j < jacsCopy.size(); j++) {
-    Jacobian& jacref = jacs->at(j);
-    jacref.key = jacsCopy[j].key;
-    jacref.jac = lgmath::se3::vec2jacinv(vec) * jacsCopy[j].jac;
-  }
-
-  return vec;
 }
 
 /// Landmark
@@ -246,41 +261,57 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the point transformed by the transform evaluator and relevant Jacobians
+/// \brief Evaluate the point transformed by the transform evaluator and
+///        sub-tree of evaluations
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector4d ComposeLandmarkEvaluator::evaluate(std::vector<Jacobian>* jacs) const {
+EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
 
-  // Evaluate
-  std::vector<Jacobian> transformJacs;
-  lgmath::se3::Transformation transform = transform_->evaluate(&transformJacs);
+  // Evaluate transform sub-tree
+  EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
-  Eigen::Vector4d point_in_c = transform * landmark_->getValue();
+  // Make new leaf node for landmark state variable
+  EvalTreeNode<Eigen::Vector4d>* landmarkLeaf =
+      new EvalTreeNode<Eigen::Vector4d>(landmark_->getValue());
 
-  // Check and initialize jacobian array
-  if (jacs == NULL) {
-    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  // Make new root node
+  EvalTreeNode<Eigen::Vector4d>* root =
+      new EvalTreeNode<Eigen::Vector4d>(transform->getValue()*landmarkLeaf->getValue());
+
+  // Add children
+  root->addChild(transform);
+  root->addChild(landmarkLeaf);
+
+  // Return new root node
+  return root;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                                  EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                                  std::vector<Jacobian>* outJacobians) const {
+
+  EvalTreeNode<lgmath::se3::Transformation>* t1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+
+  // Check if transform1 is active
+  if (transform_->isActive()) {
+    transform_->appendJacobians(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
+                                t1, outJacobians);
   }
-  jacs->clear();
-  jacs->reserve(transformJacs.size() + 1);
 
-  // 4 x 6 Transformation Jacobians
-  for (unsigned int j = 0; j < transformJacs.size(); j++) {
-    jacs->push_back(Jacobian());
-    Jacobian& jacref = jacs->back();
-    jacref.key = transformJacs[j].key;
-    jacref.jac = lgmath::se3::point2fs(point_in_c.head<3>()) * transformJacs[j].jac;
+  // Check if state is locked
+  if (!landmark_->isLocked()) {
+
+    // Check that dimensions match
+    if (lhs.cols() != 4) {
+      throw std::runtime_error("appendJacobians had dimension mismatch.");
+    }
+
+    // Add Jacobian -- transform.matrix() * Eigen::Matrix<double,4,3>::Identity()
+    outJacobians->push_back(Jacobian(landmark_->getKey(), lhs * t1->getValue().matrix().block<4,3>(0,0)));
   }
-
-  // 4 x 3 Landmark Jacobian
-  if(!landmark_->isLocked()) {
-    jacs->push_back(Jacobian());
-    Jacobian& jacref = jacs->back();
-    jacref.key = landmark_->getKey();
-    jacref.jac = transform.matrix() * Eigen::Matrix<double,4,3>::Identity();
-  }
-
-  // Return error
-  return point_in_c;
 }
 
 } // se3

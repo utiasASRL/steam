@@ -136,62 +136,69 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
 
+  // In order to avoid resizing dynamic matrices, we keep a map of matrices
+  // for the various different block sizes
+  typedef std::pair<unsigned int, unsigned int> MatrixKey;
+
   // For each cost term
-  #pragma omp parallel for num_threads(NUMBER_OF_OPENMP_THREADS)
-  for (unsigned int c = 0 ; c < this->getProblem().getCostTerms().size(); c++) {
+  #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
+  {
+    std::map<MatrixKey, Eigen::MatrixXd> matrixMap;
+    #pragma omp for
+    for (unsigned int c = 0 ; c < this->getProblem().getCostTerms().size(); c++) {
 
-    // Compute the weighted and whitened errors and jacobians
-    // err = sqrt(w)*sqrt(R^-1)*rawError
-    // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
-    std::vector<Jacobian> jacobians;
-    Eigen::VectorXd error = this->getProblem().getCostTerms().at(c)->evalWeightedAndWhitened(&jacobians);
+      // Compute the weighted and whitened errors and jacobians
+      // err = sqrt(w)*sqrt(R^-1)*rawError
+      // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
+      std::vector<Jacobian> jacobians;
+      Eigen::VectorXd error = this->getProblem().getCostTerms().at(c)->evalWeightedAndWhitened(&jacobians);
 
-    // For each jacobian
-    for (unsigned int i = 0; i < jacobians.size(); i++) {
-
-      // Get the key and state range affected
-      unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
-
-      // Intermediate variable saves time for multiple uses of transpose
-      Eigen::MatrixXd j1Transpose = jacobians[i].jac.transpose();
-
-      // Calculate terms needed to update the right-hand-side
-      Eigen::MatrixXd b_add = -j1Transpose*error;
-
-      // Update the right-hand side (thread critical)
-      #pragma omp critical(b_update)
-      {
-        b_.add(blkIdx1, b_add);
-      }
-
-      // For each jacobian (in upper half)
-      for (unsigned int j = i; j < jacobians.size(); j++) {
+      // For each jacobian
+      for (unsigned int i = 0; i < jacobians.size(); i++) {
 
         // Get the key and state range affected
-        unsigned int blkIdx2 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[j].key);
+        unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
 
-        // Calculate terms needed to update the Gauss-Newton left-hand side
-        unsigned int row;
-        unsigned int col;
-        Eigen::MatrixXd a_add;
-        if (blkIdx1 <= blkIdx2) {
-          row = blkIdx1;
-          col = blkIdx2;
-          a_add = j1Transpose*jacobians[j].jac;
-        } else {
-          row = blkIdx2;
-          col = blkIdx1;
-          a_add = jacobians[j].jac.transpose()*jacobians[i].jac;
+        // Calculate terms needed to update the right-hand-side
+        Eigen::VectorXd b_add = -jacobians[i].jac.transpose()*error;
+
+        // Update the right-hand side (thread critical)
+        #pragma omp critical(b_update)
+        {
+          b_.add(blkIdx1, b_add);
         }
 
-        // Update the left-hand side (thread critical)
-        #pragma omp critical(a_update)
-        {
-          A_.add(row, col, a_add);
+        // For each jacobian (in upper half)
+        for (unsigned int j = i; j < jacobians.size(); j++) {
+
+          // Get the key and state range affected
+          unsigned int blkIdx2 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[j].key);
+
+          // Calculate terms needed to update the Gauss-Newton left-hand side
+          unsigned int row;
+          unsigned int col;
+          MatrixKey key;
+          if (blkIdx1 <= blkIdx2) {
+            row = blkIdx1;
+            col = blkIdx2;
+            key = std::make_pair(jacobians[i].jac.cols(), jacobians[j].jac.cols());
+            matrixMap[key] = jacobians[i].jac.transpose()*jacobians[j].jac;
+          } else {
+            row = blkIdx2;
+            col = blkIdx1;
+            key = std::make_pair(jacobians[j].jac.cols(), jacobians[i].jac.cols());
+            matrixMap[key] = jacobians[j].jac.transpose()*jacobians[i].jac;
+          }
+
+          // Update the left-hand side (thread critical)
+          #pragma omp critical(a_update)
+          {
+            A_.add(row, col, matrixMap[key]);
+          }
         }
       }
     }
-  }
+  } // end parallel
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration

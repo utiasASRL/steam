@@ -9,9 +9,8 @@
 
 #include <Eigen/Core>
 
-#include <steam/evaluator/EvaluatorBase.hpp>
+#include <steam/evaluator/BlockAutomaticEvaluator.hpp>
 #include <steam/state/LieGroupStateVar.hpp>
-#include <steam/Jacobian.hpp>
 
 namespace steam {
 namespace se3 {
@@ -21,17 +20,17 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluator for a transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef EvaluatorBase<lgmath::se3::Transformation> TransformEvaluator;
+typedef BlockAutomaticEvaluator<lgmath::se3::Transformation> TransformEvaluator;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluator for a 6D vector
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef EvaluatorBase<Eigen::Matrix<double,6,1> > Vector6dEvaluator;
+typedef BlockAutomaticEvaluator<Eigen::Matrix<double,6,1> > Vector6dEvaluator;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluator for a 4D vector
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef EvaluatorBase<Eigen::Vector4d> Vector4dEvaluator;
+typedef BlockAutomaticEvaluator<Eigen::Vector4d> Vector4dEvaluator;
 
 // Transformation evaluators
 
@@ -67,9 +66,16 @@ class TransformStateEvaluator : public TransformEvaluator
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the transformation matrix and Jacobian (identity)
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
  private:
 
@@ -112,9 +118,16 @@ class FixedTransformEvaluator : public TransformEvaluator
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the transformation matrix and return empty Jacobian vector
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
  private:
 
