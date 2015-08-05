@@ -28,7 +28,7 @@ message(STATUS "Build configuration: ${CMAKE_BUILD_TYPE}")
 ### Library Version
 ################################################################################
 set(MAJOR_VERSION 0)
-set(MINOR_VERSION 1)
+set(MINOR_VERSION 2)
 set(PATCH_VERSION 0)
 set(PROJECT_VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION})
 
