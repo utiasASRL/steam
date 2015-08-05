@@ -44,23 +44,30 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // Initialize new cost with old cost incase of failure
   *newCost = this->getPrevCost();
 
+  // The 'left-hand-side' of the Gauss-Newton problem, generally known as the
+  // approximate Hessian matrix (note we only store the upper-triangular elements)
+  Eigen::SparseMatrix<double> approximateHessian;
+
+  // The 'right-hand-side' of the Gauss-Newton problem, generally known as the gradient vector
+  Eigen::VectorXd gradientVector;
+
   // Construct system of equations
   timer.reset();
-  this->buildGaussNewtonTerms();
+  this->buildGaussNewtonTerms(&approximateHessian, &gradientVector);
   buildTime = timer.milliseconds();
 
   // Solve system
   timer.reset();
 
   // Get gradient descent step
-  Eigen::VectorXd gradDescentStep = this->getCauchyPoint();
+  Eigen::VectorXd gradDescentStep = this->getCauchyPoint(approximateHessian, gradientVector);
   double gradDescentNorm = gradDescentStep.norm();
 
   // Get Gauss-Newton step
   Eigen::VectorXd gaussNewtonStep;
   bool haveGnStep = true;
   try {
-    gaussNewtonStep = this->solveGaussNewton();
+    gaussNewtonStep = this->solveGaussNewton(approximateHessian, gradientVector);
   } catch (const decomp_failure& e) {
     haveGnStep = false;
     trustRegionSize = std::min(trustRegionSize, gradDescentNorm);
@@ -126,10 +133,10 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
       doglegSegment = "Interp GN&GD";
     }
 
-    // Test new cost
+    // Calculate the predicted reduction; note that a positive value denotes a reduction in cost
     double proposedCost = this->getProblem().proposeUpdate(dogLegStep);
-    double actualReduc = this->getPrevCost() - proposedCost;   // a reduction in cost is positive
-    double predictedReduc = this->predictedReduction(dogLegStep); // a reduction in cost is positive
+    double actualReduc = this->getPrevCost() - proposedCost;
+    double predictedReduc = this->predictedReduction(approximateHessian, gradientVector, dogLegStep);
     actualToPredictedRatio = actualReduc/predictedReduc;
 
     // Check ratio of predicted reduction to actual reduction achieved

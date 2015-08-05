@@ -35,14 +35,21 @@ bool VanillaGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   double solveTime = 0;
   double updateTime = 0;
 
+  // The 'left-hand-side' of the Gauss-Newton problem, generally known as the
+  // approximate Hessian matrix (note we only store the upper-triangular elements)
+  Eigen::SparseMatrix<double> approximateHessian;
+
+  // The 'right-hand-side' of the Gauss-Newton problem, generally known as the gradient vector
+  Eigen::VectorXd gradientVector;
+
   // Construct system of equations
   timer.reset();
-  this->buildGaussNewtonTerms();
+  this->buildGaussNewtonTerms(&approximateHessian, &gradientVector);
   buildTime = timer.milliseconds();
 
   // Solve system
   timer.reset();
-  Eigen::VectorXd perturbation = this->solveGaussNewton();
+  Eigen::VectorXd perturbation = this->solveGaussNewton(approximateHessian, gradientVector);
   solveTime = timer.milliseconds();
 
   // Apply update
