@@ -59,52 +59,60 @@ Eigen::VectorXd TransformErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 6-d measurement error and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd TransformErrorEval::evaluate(std::vector<Jacobian>* jacs) const {
-  return errorEvaluator_->evaluate(jacs);
-}
+Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the 6-d measurement error and Jacobians
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> TransformErrorEval::evaluateJacobians() const {
-
-  //return errorEvaluator_->evaluateJacobians();
-  std::pair<Eigen::Matrix<double,6,1>, JacobianTreeNode::ConstPtr> error = errorEvaluator_->evaluateJacobians();
-  return std::make_pair(error.first, error.second);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the 6-d measurement error and sub-tree of evaluations
-//////////////////////////////////////////////////////////////////////////////////////////////
-EvalTreeNode<Eigen::VectorXd>* TransformErrorEval::evaluateTree() const {
-
-  // Evaluate sub-trees
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* error = errorEvaluator_->evaluateTree();
-
-  // Make new root node
-  EvalTreeNode<Eigen::VectorXd>* root =
-      new EvalTreeNode<Eigen::VectorXd>(error->getValue());
-
-  // Add children
-  root->addChild(error);
-
-  // Return new root node
-  return root;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void TransformErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
-                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
-
-  // Check if transform1 is active
-  if (errorEvaluator_->isActive()) {
-    errorEvaluator_->appendJacobians(lhs,
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(0)),
-      outJacobians);
+  // Check and initialize jacobian array
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
+  jacs->clear();
+
+  // Get evaluation tree
+  EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree = errorEvaluator_->evaluateTree();
+  errorEvaluator_->appendJacobians(lhs, evaluationTree, jacs);
+
+  // Get evaluation from tree
+  Eigen::VectorXd eval = evaluationTree->getValue();
+
+  // Cleanup tree memory
+  delete evaluationTree;
+
+  // Return evaluation
+  return eval;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the 6-d measurement error and sub-tree of evaluations
+////////////////////////////////////////////////////////////////////////////////////////////////
+//EvalTreeNode<Eigen::VectorXd>* TransformErrorEval::evaluateTree() const {
+
+//  // Evaluate sub-trees
+//  EvalTreeNode<Eigen::Matrix<double,6,1> >* error = errorEvaluator_->evaluateTree();
+
+//  // Make new root node
+//  EvalTreeNode<Eigen::VectorXd>* root =
+//      new EvalTreeNode<Eigen::VectorXd>(error->getValue());
+
+//  // Add children
+//  root->addChild(error);
+
+//  // Return new root node
+//  return root;
+//}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the Jacobian tree
+////////////////////////////////////////////////////////////////////////////////////////////////
+//void TransformErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
+//                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
+//                                  std::vector<Jacobian>* outJacobians) const {
+
+//  // Check if transform1 is active
+//  if (errorEvaluator_->isActive()) {
+//    errorEvaluator_->appendJacobians(lhs,
+//      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(0)),
+//      outJacobians);
+//  }
+//}
 
 } // steam

@@ -1,16 +1,14 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file EvaluatorBase.hpp
+/// \file BlockAutomaticEvaluator.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_EVALUATOR_BASE_HPP
-#define STEAM_EVALUATOR_BASE_HPP
+#ifndef STEAM_BLOCK_AUTOMATIC_EVALUATOR_HPP
+#define STEAM_BLOCK_AUTOMATIC_EVALUATOR_HPP
 
-#include <Eigen/Core>
-
-#include <steam/StateVector.hpp>
-#include <steam/evaluator/jacobian/Jacobian.hpp>
+#include <steam/evaluator/EvaluatorBase.hpp>
+#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
 
 namespace steam {
 
@@ -18,18 +16,18 @@ namespace steam {
 /// \brief Base class that defines the general 'evaluator' interface
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename EvalType>
-class EvaluatorBase
+class BlockAutomaticEvaluator : public EvaluatorBase<EvalType>
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<EvaluatorBase<EvalType> > Ptr;
-  typedef boost::shared_ptr<const EvaluatorBase<EvalType> > ConstPtr;
+  typedef boost::shared_ptr<BlockAutomaticEvaluator<EvalType> > Ptr;
+  typedef boost::shared_ptr<const BlockAutomaticEvaluator<EvalType> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  EvaluatorBase() {}
+  BlockAutomaticEvaluator();
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -44,9 +42,24 @@ class EvaluatorBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general 'evaluation', with Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalType evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const = 0;
+  virtual EvalType evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Interface for the general 'evaluation', with Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual EvalTreeNode<EvalType>* evaluateTree() const = 0;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Interface for the general evaluation of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<EvalType>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const = 0;
+
 };
 
 } // steam
 
-#endif // STEAM_EVALUATOR_BASE_HPP
+#include <steam/evaluator/BlockAutomaticEvaluator-inl.hpp>
+
+#endif // STEAM_BLOCK_AUTOMATIC_EVALUATOR_HPP

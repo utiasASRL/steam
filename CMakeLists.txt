@@ -6,6 +6,7 @@ project(steam)
 
 # define number of threads to be used by OpenMP
 add_definitions(-DNUMBER_OF_OPENMP_THREADS=8)
+#add_definitions(-DNUMBER_OF_OPENMP_THREADS=1)
 
 ################################################################################
 ### Misc

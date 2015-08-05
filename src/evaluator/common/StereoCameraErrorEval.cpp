@@ -41,97 +41,64 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd StereoCameraErrorEval::evaluate(std::vector<Jacobian>* jacs) const {
-
-  // Get Jacobians involved in point transformation
-  std::vector<Jacobian> jacsTemp;
-  Eigen::Vector4d point_in_c = eval_->evaluate(&jacsTemp);
-
-  // Get Jacobian for the camera model
-  Eigen::Matrix4d cameraJac = cameraModelJacobian(point_in_c);
+Eigen::VectorXd StereoCameraErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
   jacs->clear();
-  jacs->resize(jacsTemp.size());
 
-  // Calculate all full Jacobians
-  for (unsigned int j = 0; j < jacsTemp.size(); j++) {
-    Jacobian& jacref = jacs->at(j);
-    jacref.key = jacsTemp[j].key;
-    jacref.jac = -cameraJac * jacsTemp[j].jac;
-  }
+  // Get evaluation tree
+  EvalTreeNode<Eigen::Vector4d>* evaluationTree = eval_->evaluateTree();
 
-  // Return error (between measurement and point estimate projected in camera frame)
+  // Get evaluation from tree
+  Eigen::Vector4d point_in_c = evaluationTree->getValue();
+
+  // Get Jacobians
+  eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c), evaluationTree, jacs);
+
+  // Cleanup tree memory
+  delete evaluationTree;
+
+  // Return evaluation
   return meas_ - cameraModel(point_in_c);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> StereoCameraErrorEval::evaluateJacobians() const {
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the 4-d measurement error (ul vl ur vr) and sub-tree of evaluations
+////////////////////////////////////////////////////////////////////////////////////////////////
+//EvalTreeNode<Eigen::VectorXd>* StereoCameraErrorEval::evaluateTree() const {
 
-  // Evaluate
-  std::pair<Eigen::Vector4d, JacobianTreeNode::ConstPtr> point_in_c = eval_->evaluateJacobians();
+//  // Evaluate sub-trees
+//  EvalTreeNode<Eigen::Vector4d>* point_in_c = eval_->evaluateTree();
 
-  // Get Jacobian for the camera model
-  Eigen::Matrix4d cameraJac = cameraModelJacobian(point_in_c.first);
+//  // Make new root node
+//  EvalTreeNode<Eigen::VectorXd>* root =
+//      new EvalTreeNode<Eigen::VectorXd>(meas_ - cameraModel(point_in_c->getValue()));
 
-  // Init Jacobian node (null)
-  JacobianTreeBranchNode::Ptr jacobianNode;
+//  // Add children
+//  root->addChild(point_in_c);
 
-  // Check if evaluator is active
-  if (this->isActive()) {
+//  // Return new root node
+//  return root;
+//}
 
-    // Make Jacobian node
-    //jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(1));
-    jacobianNode = boost::make_shared<JacobianTreeBranchNode>(1);
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the Jacobian tree
+////////////////////////////////////////////////////////////////////////////////////////////////
+//void StereoCameraErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
+//                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
+//                                  std::vector<Jacobian>* outJacobians) const {
 
-    // Add Jacobian
-    //jacobianNode->add(-cameraJac, point_in_c.second);
-    jacobianNode->add(point_in_c.second) = -cameraJac;
-  }
+//  EvalTreeNode<Eigen::Vector4d>* point_in_c =
+//      static_cast<EvalTreeNode<Eigen::Vector4d>*>(evaluationTree->childAt(0));
 
-  // Return error
-  return std::make_pair(meas_ - cameraModel(point_in_c.first), jacobianNode);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the 4-d measurement error (ul vl ur vr) and sub-tree of evaluations
-//////////////////////////////////////////////////////////////////////////////////////////////
-EvalTreeNode<Eigen::VectorXd>* StereoCameraErrorEval::evaluateTree() const {
-
-  // Evaluate sub-trees
-  EvalTreeNode<Eigen::Vector4d>* point_in_c = eval_->evaluateTree();
-
-  // Make new root node
-  EvalTreeNode<Eigen::VectorXd>* root =
-      new EvalTreeNode<Eigen::VectorXd>(meas_ - cameraModel(point_in_c->getValue()));
-
-  // Add children
-  root->addChild(point_in_c);
-
-  // Return new root node
-  return root;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void StereoCameraErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
-                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
-
-  EvalTreeNode<Eigen::Vector4d>* point_in_c =
-      static_cast<EvalTreeNode<Eigen::Vector4d>*>(evaluationTree->childAt(0));
-
-  // Check if transform1 is active
-  if (eval_->isActive()) {
-    eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c->getValue()), point_in_c, outJacobians);
-  }
-}
+//  // Check if transform1 is active
+//  if (eval_->isActive()) {
+//    eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c->getValue()), point_in_c, outJacobians);
+//  }
+//}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Camera model

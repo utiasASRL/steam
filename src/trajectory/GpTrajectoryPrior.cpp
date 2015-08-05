@@ -54,7 +54,7 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the GP prior factor and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd GpTrajectoryPrior::evaluate(std::vector<Jacobian>* jacs) const {
+Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
 
   // Precompute values
   lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
@@ -69,42 +69,65 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(std::vector<Jacobian>* jacs) const {
   jacs->clear();
   jacs->reserve(4);
 
+  // Knot 1 transform
   if(!knot1_->T_k0->isLocked()) {
     Eigen::Matrix<double,6,6> Jinv_12 = J_21_inv*T_21.adjoint();
 
+    // Construct Jacobian Object
     jacs->push_back(Jacobian());
     Jacobian& jacref = jacs->back();
     jacref.key = knot1_->T_k0->getKey();
-    jacref.jac = Eigen::Matrix<double,12,6>();
-    jacref.jac.block<6,6>(0,0) = -Jinv_12;
-    jacref.jac.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
+
+    // Fill in matrix
+    Eigen::Matrix<double,12,6> jacobian;
+    jacobian.block<6,6>(0,0) = -Jinv_12;
+    jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
+    jacref.jac = lhs * jacobian;
   }
 
+  // Knot 1 velocity
   if(!knot1_->varpi->isLocked()) {
+
+    // Construct Jacobian Object
     jacs->push_back(Jacobian());
     Jacobian& jacref = jacs->back();
     jacref.key = knot1_->varpi->getKey();
-    jacref.jac = Eigen::Matrix<double,12,6>();
-    jacref.jac.block<6,6>(0,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
-    jacref.jac.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
+
+    // Fill in matrix
+    Eigen::Matrix<double,12,6> jacobian;
+    jacobian.block<6,6>(0,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
+    jacobian.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
+    jacref.jac = lhs * jacobian;
   }
 
+  // Knot 2 transform
   if(!knot2_->T_k0->isLocked()) {
+
+    // Construct Jacobian Object
     jacs->push_back(Jacobian());
     Jacobian& jacref = jacs->back();
     jacref.key = knot2_->T_k0->getKey();
-    jacref.jac = Eigen::Matrix<double,12,6>();
-    jacref.jac.block<6,6>(0,0) = J_21_inv;
-    jacref.jac.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
+
+    // Fill in matrix
+    Eigen::Matrix<double,12,6> jacobian;
+    jacobian.block<6,6>(0,0) = J_21_inv;
+    jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
+    jacref.jac = lhs * jacobian;
   }
 
+  // Knot 2 velocity
   if(!knot2_->varpi->isLocked()) {
+
+    // Construct Jacobian Object
     jacs->push_back(Jacobian());
     Jacobian& jacref = jacs->back();
     jacref.key = knot2_->varpi->getKey();
-    jacref.jac = Eigen::Matrix<double,12,6>();
-    jacref.jac.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Zero();
-    jacref.jac.block<6,6>(6,0) = J_21_inv;
+
+    // Fill in matrix
+    Eigen::Matrix<double,12,6> jacobian;
+    jacobian.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Zero();
+    jacobian.block<6,6>(6,0) = J_21_inv;
+    jacref.jac = lhs * jacobian;
   }
 
   // Return error
@@ -114,180 +137,88 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(std::vector<Jacobian>* jacs) const {
   return error;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the GP prior factor and Jacobians
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> GpTrajectoryPrior::evaluateJacobians() const {
 
-  // Init Jacobian node (null)
-  JacobianTreeBranchNode::Ptr jacobianNode;
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the GP prior factor
+////////////////////////////////////////////////////////////////////////////////////////////////
+//EvalTreeNode<Eigen::VectorXd>* GpTrajectoryPrior::evaluateTree() const {
 
-  // Precompute values
-  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
-  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
-  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  double deltaTime = (knot2_->time - knot1_->time).seconds();
+//  // Precompute values
+//  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
+//  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+//  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+//  double deltaTime = (knot2_->time - knot1_->time).seconds();
 
-  // Check if evaluator is active
-  if (this->isActive()) {
+//  // Return error
+//  Eigen::Matrix<double,12,1> error;
+//  error.head<6>() = xi_21 - deltaTime*knot1_->varpi->getValue();
+//  error.tail<6>() = J_21_inv * knot2_->varpi->getValue() - knot1_->varpi->getValue();
+//  return new EvalTreeNode<Eigen::VectorXd>(error);
+//}
 
-    // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(4));
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the Jacobian tree
+////////////////////////////////////////////////////////////////////////////////////////////////
+//void GpTrajectoryPrior::appendJacobians(const Eigen::MatrixXd& lhs,
+//                             EvalTreeNode<Eigen::VectorXd>* evaluationTree,
+//                             std::vector<Jacobian>* outJacobians) const {
 
-    // Knot 1 transform
-    if(!knot1_->T_k0->isLocked()) {
-      Eigen::Matrix<double,6,6> Jinv_12 = J_21_inv*T_21.adjoint();
+//  // Precompute values
+//  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();//
+//  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+//  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);//
+//  double deltaTime = (knot2_->time - knot1_->time).seconds();
 
-      // Make leaf node for Landmark
-      JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot1_->T_k0));
+//  // Knot 1 transform
+//  if(!knot1_->T_k0->isLocked()) {
 
-      // Construct Jacobian
-      Eigen::Matrix<double,12,6> jacobian;
-      jacobian.block<6,6>(0,0) = -Jinv_12;
-      jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
+//    Eigen::Matrix<double,6,6> Jinv_12 = J_21_inv*T_21.adjoint();
 
-      // Add Jacobian
-      //jacobianNode->add(jacobian, leafNode);
-      jacobianNode->add(leafNode) = jacobian;
-    }
+//    // Construct Jacobian
+//    Eigen::Matrix<double,12,6> jacobian;
+//    jacobian.block<6,6>(0,0) = -Jinv_12;
+//    jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
 
-    // Knot 1 velocity
-    if(!knot1_->varpi->isLocked()) {
+//    // Add Jacobian
+//    outJacobians->push_back(Jacobian(knot1_->T_k0->getKey(), lhs * jacobian));
+//  }
 
-      // Make leaf node for Landmark
-      JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot1_->varpi));
+//  // Knot 1 velocity
+//  if(!knot1_->varpi->isLocked()) {
 
-      // Construct Jacobian
-      Eigen::Matrix<double,12,6> jacobian;
-      jacobian.block<6,6>(0,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
-      jacobian.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
+//    // Construct Jacobian
+//    Eigen::Matrix<double,12,6> jacobian;
+//    jacobian.block<6,6>(0,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
+//    jacobian.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
 
-      // Add Jacobian
-      //jacobianNode->add(jacobian, leafNode);
-      jacobianNode->add(leafNode) = jacobian;
-    }
+//    // Add Jacobian
+//    outJacobians->push_back(Jacobian(knot1_->varpi->getKey(), lhs * jacobian));
+//  }
 
-    // Knot 2 transform
-    if(!knot2_->T_k0->isLocked()) {
+//  // Knot 2 transform
+//  if(!knot2_->T_k0->isLocked()) {
 
-      // Make leaf node for Landmark
-      JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->T_k0));
+//    // Construct Jacobian
+//    Eigen::Matrix<double,12,6> jacobian;
+//    jacobian.block<6,6>(0,0) = J_21_inv;
+//    jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // Construct Jacobian
-      Eigen::Matrix<double,12,6> jacobian;
-      jacobian.block<6,6>(0,0) = J_21_inv;
-      jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
+//    // Add Jacobian
+//    outJacobians->push_back(Jacobian(knot2_->T_k0->getKey(), lhs * jacobian));
+//  }
 
-      // Add Jacobian
-      //jacobianNode->add(jacobian, leafNode);
-      jacobianNode->add(leafNode) = jacobian;
-    }
+//  // Knot 2 velocity
+//  if(!knot2_->varpi->isLocked()) {
 
-    // Knot 2 velocity
-    if(!knot2_->varpi->isLocked()) {
+//    // Construct Jacobian
+//    Eigen::Matrix<double,12,6> jacobian;
+//    jacobian.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Zero();
+//    jacobian.block<6,6>(6,0) = J_21_inv;
 
-      // Make leaf node for Landmark
-      JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(knot2_->varpi));
-
-      // Construct Jacobian
-      Eigen::Matrix<double,12,6> jacobian;
-      jacobian.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Zero();
-      jacobian.block<6,6>(6,0) = J_21_inv;
-
-      // Add Jacobian
-      //jacobianNode->add(jacobian, leafNode);
-      jacobianNode->add(leafNode) = jacobian;
-    }
-  }
-
-  // Return error
-  Eigen::Matrix<double,12,1> error;
-  error.head<6>() = xi_21 - deltaTime*knot1_->varpi->getValue();
-  error.tail<6>() = J_21_inv * knot2_->varpi->getValue() - knot1_->varpi->getValue();
-  return std::make_pair(error, jacobianNode);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the GP prior factor
-//////////////////////////////////////////////////////////////////////////////////////////////
-EvalTreeNode<Eigen::VectorXd>* GpTrajectoryPrior::evaluateTree() const {
-
-  // Precompute values
-  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
-  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
-  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  double deltaTime = (knot2_->time - knot1_->time).seconds();
-
-  // Return error
-  Eigen::Matrix<double,12,1> error;
-  error.head<6>() = xi_21 - deltaTime*knot1_->varpi->getValue();
-  error.tail<6>() = J_21_inv * knot2_->varpi->getValue() - knot1_->varpi->getValue();
-  return new EvalTreeNode<Eigen::VectorXd>(error);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryPrior::appendJacobians(const Eigen::MatrixXd& lhs,
-                             EvalTreeNode<Eigen::VectorXd>* evaluationTree,
-                             std::vector<Jacobian>* outJacobians) const {
-
-  // Precompute values
-  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();//
-  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
-  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);//
-  double deltaTime = (knot2_->time - knot1_->time).seconds();
-
-  // Knot 1 transform
-  if(!knot1_->T_k0->isLocked()) {
-
-    Eigen::Matrix<double,6,6> Jinv_12 = J_21_inv*T_21.adjoint();
-
-    // Construct Jacobian
-    Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = -Jinv_12;
-    jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian(knot1_->T_k0->getKey(), lhs * jacobian));
-  }
-
-  // Knot 1 velocity
-  if(!knot1_->varpi->isLocked()) {
-
-    // Construct Jacobian
-    Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
-    jacobian.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian(knot1_->varpi->getKey(), lhs * jacobian));
-  }
-
-  // Knot 2 transform
-  if(!knot2_->T_k0->isLocked()) {
-
-    // Construct Jacobian
-    Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = J_21_inv;
-    jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian(knot2_->T_k0->getKey(), lhs * jacobian));
-  }
-
-  // Knot 2 velocity
-  if(!knot2_->varpi->isLocked()) {
-
-    // Construct Jacobian
-    Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Zero();
-    jacobian.block<6,6>(6,0) = J_21_inv;
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian(knot2_->varpi->getKey(), lhs * jacobian));
-  }
-}
+//    // Add Jacobian
+//    outJacobians->push_back(Jacobian(knot2_->varpi->getKey(), lhs * jacobian));
+//  }
+//}
 
 
 

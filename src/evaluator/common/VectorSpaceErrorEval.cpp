@@ -6,9 +6,6 @@
 
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 
-#include <steam/evaluator/jacobian/JacobianTreeBranchNode.hpp>
-#include <steam/evaluator/jacobian/JacobianTreeLeafNode.hpp>
-
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -35,7 +32,7 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the measurement error and relevant Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd VectorSpaceErrorEval::evaluate(std::vector<Jacobian>* jacs) const {
+Eigen::VectorXd VectorSpaceErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -43,71 +40,48 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate(std::vector<Jacobian>* jacs) cons
   }
   jacs->clear();
 
+  // Check that dimensions match
+  if (lhs.cols() != stateVec_->getPerturbDim()) {
+    throw std::runtime_error("evaluate had dimension mismatch.");
+  }
+
   // Construct Jacobian
   if(!stateVec_->isLocked()) {
     jacs->resize(1);
     Jacobian& jacref = jacs->back();
     jacref.key = stateVec_->getKey();
-    const unsigned int dim = stateVec_->getPerturbDim();
-    jacref.jac = -Eigen::MatrixXd::Identity(dim,dim);
+    jacref.jac = -lhs;
   }
 
   // Return error
   return measurement_ - stateVec_->getValue();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the measurement error and relevant Jacobians
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<Eigen::VectorXd, JacobianTreeNode::ConstPtr> VectorSpaceErrorEval::evaluateJacobians() const {
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the measurement error and sub-tree
+////////////////////////////////////////////////////////////////////////////////////////////////
+//EvalTreeNode<Eigen::VectorXd>* VectorSpaceErrorEval::evaluateTree() const {
+//  return new EvalTreeNode<Eigen::VectorXd>(measurement_ - stateVec_->getValue());
+//}
 
-  // Init Jacobian node (null)
-  JacobianTreeBranchNode::Ptr jacobianNode;
+////////////////////////////////////////////////////////////////////////////////////////////////
+///// \brief Evaluate the Jacobian tree
+////////////////////////////////////////////////////////////////////////////////////////////////
+//void VectorSpaceErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
+//                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
+//                                  std::vector<Jacobian>* outJacobians) const {
 
-  // Check if evaluator is active
-  if (!stateVec_->isLocked()) {
+//  // Check if state is locked
+//  if (!stateVec_->isLocked()) {
 
-    // Make Jacobian node
-    jacobianNode = JacobianTreeBranchNode::Ptr(new JacobianTreeBranchNode(1));
+//    // Check that dimensions match
+//    if (lhs.cols() != stateVec_->getPerturbDim()) {
+//      throw std::runtime_error("appendJacobians had dimension mismatch.");
+//    }
 
-    // Make leaf node for Landmark
-    JacobianTreeLeafNode::Ptr leafNode(new JacobianTreeLeafNode(stateVec_));
-
-    // Add Jacobian
-    const unsigned int dim = stateVec_->getPerturbDim();
-//    jacobianNode->add(-Eigen::MatrixXd::Identity(dim,dim), leafNode);
-    jacobianNode->add(leafNode) = -Eigen::MatrixXd::Identity(dim,dim);
-  }
-
-  // Return error
-  return std::make_pair(measurement_ - stateVec_->getValue(), jacobianNode);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the measurement error and sub-tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-EvalTreeNode<Eigen::VectorXd>* VectorSpaceErrorEval::evaluateTree() const {
-  return new EvalTreeNode<Eigen::VectorXd>(measurement_ - stateVec_->getValue());
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void VectorSpaceErrorEval::appendJacobians(const Eigen::MatrixXd& lhs,
-                                  EvalTreeNode<Eigen::VectorXd>* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
-
-  // Check if state is locked
-  if (!stateVec_->isLocked()) {
-
-    // Check that dimensions match
-    if (lhs.cols() != stateVec_->getPerturbDim()) {
-      throw std::runtime_error("appendJacobians had dimension mismatch.");
-    }
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian(stateVec_->getKey(), -lhs));
-  }
-}
+//    // Add Jacobian
+//    outJacobians->push_back(Jacobian(stateVec_->getKey(), -lhs));
+//  }
+//}
 
 } // steam

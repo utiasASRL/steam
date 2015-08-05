@@ -136,25 +136,19 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
 
-  // Timing
-  //double evalTime = 0;
-  //double evalJacTime = 0;
+  // Declare memory
+  Eigen::MatrixXd a_add; // make map<pair<int,int>, matrix>
 
   // For each cost term
-  #pragma omp parallel for num_threads(NUMBER_OF_OPENMP_THREADS)
+  //#pragma omp parallel for num_threads(NUMBER_OF_OPENMP_THREADS)
+  #pragma omp parallel for private(a_add) num_threads(NUMBER_OF_OPENMP_THREADS)
   for (unsigned int c = 0 ; c < this->getProblem().getCostTerms().size(); c++) {
 
     // Compute the weighted and whitened errors and jacobians
     // err = sqrt(w)*sqrt(R^-1)*rawError
     // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
-    //steam::Timer evalJacTimer;
     std::vector<Jacobian> jacobians;
     Eigen::VectorXd error = this->getProblem().getCostTerms().at(c)->evalWeightedAndWhitened(&jacobians);
-    //evalJacTime += evalJacTimer.milliseconds();
-
-//    steam::Timer evalTimer;
-//    double error2 = this->getProblem().getCostTerms().at(c)->evaluate();
-//    evalTime += evalTimer.milliseconds();
 
     // For each jacobian
     for (unsigned int i = 0; i < jacobians.size(); i++) {
@@ -162,11 +156,8 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
       // Get the key and state range affected
       unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
 
-      // Intermediate variable saves time for multiple uses of transpose
-      Eigen::MatrixXd j1Transpose = jacobians[i].jac.transpose();
-
       // Calculate terms needed to update the right-hand-side
-      Eigen::MatrixXd b_add = -j1Transpose*error;
+      Eigen::VectorXd b_add = -jacobians[i].jac.transpose()*error;
 
       // Update the right-hand side (thread critical)
       #pragma omp critical(b_update)
@@ -183,11 +174,10 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
         // Calculate terms needed to update the Gauss-Newton left-hand side
         unsigned int row;
         unsigned int col;
-        Eigen::MatrixXd a_add;
         if (blkIdx1 <= blkIdx2) {
           row = blkIdx1;
           col = blkIdx2;
-          a_add = j1Transpose*jacobians[j].jac;
+          a_add = jacobians[i].jac.transpose()*jacobians[j].jac;
         } else {
           row = blkIdx2;
           col = blkIdx1;
@@ -202,9 +192,6 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms() {
       }
     }
   }
-
-  //std::cout << "eval time: " << evalTime << std::endl;
-  //std::cout << "evaljac time: " << evalJacTime << std::endl;
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
