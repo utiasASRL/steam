@@ -13,7 +13,6 @@
 #include <steam/state/LieGroupStateVar.hpp>
 #include <steam/state/VectorSpaceStateVar.hpp>
 #include <steam/evaluator/TransformEvaluators.hpp>
-#include <steam/Jacobian.hpp>
 #include <steam/CostTerm.hpp>
 
 namespace steam {

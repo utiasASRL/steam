@@ -44,66 +44,104 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // Initialize new cost with old cost incase of failure
   *newCost = this->getPrevCost();
 
+  // The 'left-hand-side' of the Gauss-Newton problem, generally known as the
+  // approximate Hessian matrix (note we only store the upper-triangular elements)
+  Eigen::SparseMatrix<double> approximateHessian;
+
+  // The 'right-hand-side' of the Gauss-Newton problem, generally known as the gradient vector
+  Eigen::VectorXd gradientVector;
+
   // Construct system of equations
   timer.reset();
-  this->buildGaussNewtonTerms();
+  this->buildGaussNewtonTerms(&approximateHessian, &gradientVector);
   buildTime = timer.milliseconds();
 
   // Solve system
   timer.reset();
-  // todo: could check if gradient descent before solving...
-  Eigen::VectorXd gaussNewtonStep = this->solveGaussNewton();
-  Eigen::VectorXd gradDescentStep = this->getCauchyPoint();
-  if (gaussNewtonStep.rows() != gradDescentStep.rows()) {
-    throw std::logic_error("Gauss-Newton and gradient descent dimensions did not match.");
+
+  // Get gradient descent step
+  Eigen::VectorXd gradDescentStep = this->getCauchyPoint(approximateHessian, gradientVector);
+  double gradDescentNorm = gradDescentStep.norm();
+
+  // Get Gauss-Newton step
+  Eigen::VectorXd gaussNewtonStep;
+  bool haveGnStep = true;
+  try {
+    gaussNewtonStep = this->solveGaussNewton(approximateHessian, gradientVector);
+  } catch (const decomp_failure& e) {
+    haveGnStep = false;
+    trustRegionSize = std::min(trustRegionSize, gradDescentNorm);
   }
+  double gaussNewtonNorm = gaussNewtonStep.norm();
+
   solveTime = timer.milliseconds();
 
   // Apply update (w line search)
   timer.reset();
 
+  // Initialize trust region size (if first time)
   if (trustRegionSize == 0.0) {
-    trustRegionSize = gaussNewtonStep.norm();
+    if (haveGnStep) {
+      trustRegionSize = gaussNewtonNorm;
+    } else {
+      trustRegionSize = gradDescentNorm;
+    }
   }
 
   // Perform dogleg step
   unsigned int nBacktrack = 0;
   for (; nBacktrack < params_.maxShrinkSteps; nBacktrack++) {
 
-    // Calculate norms
-    double gradDescentNorm = gradDescentStep.norm();
-    double gaussNewtonNorm = gaussNewtonStep.norm();
-
     // Get step
     Eigen::VectorXd dogLegStep;
-    if (gaussNewtonNorm <= trustRegionSize) {
+    if (gaussNewtonNorm <= trustRegionSize && haveGnStep) {
+
       // Trust region larger than Gauss Newton step
       dogLegStep = gaussNewtonStep;
       doglegSegment = "Gauss Newton";
     } else if (gradDescentNorm >= trustRegionSize) {
+
       // Trust region smaller than Gradient Descent step (Cauchy point)
       dogLegStep = (trustRegionSize/gradDescentNorm)*gradDescentStep;
-      doglegSegment = "Grad Descent";
+
+      // For verbose
+      if (haveGnStep) {
+        doglegSegment = "Grad Descent";
+      } else {
+        doglegSegment = "Forced GD";
+      }
+
     } else {
+
       // Trust region lies between the GD and GN steps, use interpolation
+      if (gaussNewtonStep.rows() != gradDescentStep.rows() || !haveGnStep) {
+        throw std::logic_error("Gauss-Newton and gradient descent dimensions did not match.");
+      }
+
+      // Get interpolation direction
       Eigen::VectorXd gdToGnVector = gaussNewtonStep - gradDescentStep;
+
+      // Calculate interpolation constant
       double gdDotProdGdToGn = gradDescentStep.transpose()*gdToGnVector;
       double gdToGnSqrNorm = gdToGnVector.squaredNorm();
       double interpConst = (- gdDotProdGdToGn
                      + sqrt(gdDotProdGdToGn*gdDotProdGdToGn + (trustRegionSize*trustRegionSize
                      - gradDescentNorm*gradDescentNorm)*gdToGnSqrNorm) ) / gdToGnSqrNorm;
+
+      // Interpolate step
       dogLegStep = gradDescentStep + interpConst*gdToGnVector;
       doglegSegment = "Interp GN&GD";
     }
 
-    // Test new cost
+    // Calculate the predicted reduction; note that a positive value denotes a reduction in cost
     double proposedCost = this->getProblem().proposeUpdate(dogLegStep);
-    double actualReduc = this->getPrevCost() - proposedCost;   // a reduction in cost is positive
-    double predictedReduc = this->predictedReduction(dogLegStep); // a reduction in cost is positive
+    double actualReduc = this->getPrevCost() - proposedCost;
+    double predictedReduc = this->predictedReduction(approximateHessian, gradientVector, dogLegStep);
     actualToPredictedRatio = actualReduc/predictedReduc;
 
     // Check ratio of predicted reduction to actual reduction achieved
     if (actualToPredictedRatio > params_.ratioThresholdShrink) {
+
       // Good enough ratio to accept proposed state
       this->getProblem().acceptProposedState();
       *newCost = proposedCost;
@@ -115,6 +153,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
       }
       break;
     } else {
+
       // Cost did not reduce enough, or possibly increased,
       // reject proposed state and reduce the size of the trust region
       this->getProblem().rejectProposedState(); // Restore old state vector

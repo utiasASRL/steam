@@ -6,6 +6,8 @@
 
 #include <steam/CostTerm.hpp>
 
+#include <iostream>
+
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,25 +35,28 @@ double CostTerm::evaluate() const
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJacobians) const {
 
+  // Check and initialize jacobian array
+  if (outJacobians == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
+  outJacobians->clear();
+
   // Get raw error and Jacobians
-  Eigen::VectorXd whiteError = noiseModel_->whitenError(errorFunction_->evaluate(outJacobians));
+  Eigen::VectorXd rawError = errorFunction_->evaluate(noiseModel_->getSqrtInformation(), outJacobians);
+
+  // Get whitened error vector
+  Eigen::VectorXd whiteError = noiseModel_->whitenError(rawError);
 
   // Get weight from loss function
   double sqrt_w = sqrt(lossFunc_->weight(whiteError.norm()));
 
-  // Whiten and weight the Jacobians
+  // Weight the white jacobians
   for (unsigned int i = 0; i < outJacobians->size(); i++) {
-
-    if (noiseModel_->getSqrtInformation().cols() != (*outJacobians)[i].jac.rows()) {
-      throw std::runtime_error("Dimension mismatch");
-    }
-
-    (*outJacobians)[i].jac = sqrt_w*noiseModel_->getSqrtInformation()*(*outJacobians)[i].jac;
+    outJacobians->at(i).jac *= sqrt_w;
   }
 
   // Weight the error and return
-  whiteError *= sqrt_w;
-  return whiteError;
+  return sqrt_w * whiteError;
 }
 
 } // steam

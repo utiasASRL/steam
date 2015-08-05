@@ -12,7 +12,6 @@
 
 namespace steam {
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,6 +60,10 @@ void SolverBase::iterate() {
   if (!stepSuccess) {
     term_ = TERMINATE_STEP_UNSUCCESSFUL;
     solverConverged_ = true;
+    throw unsuccessful_step("The steam solver terminated due to being unable to produce a "
+                            "'successful' step. If this occurs, it is likely that your problem "
+                            "is very nonlinear and poorly initialized, or is using incorrect "
+                            "analytical Jacobians.");
   } else if (currIteration_ >= this->getSolverBaseParams().maxIterations) {
     term_ = TERMINATE_MAX_ITERATIONS;
     solverConverged_ = true;

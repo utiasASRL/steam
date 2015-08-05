@@ -10,6 +10,7 @@
 #include <Eigen/Core>
 
 #include <steam/trajectory/GpTrajectory.hpp>
+#include <steam/evaluator/TransformEvaluators.hpp>
 
 namespace steam {
 namespace se3 {
@@ -44,9 +45,16 @@ class GpTrajectoryEval : public TransformEvaluator
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the transformation matrix and Jacobians
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
  private:
 

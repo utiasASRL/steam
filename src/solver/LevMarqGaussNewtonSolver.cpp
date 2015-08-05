@@ -24,6 +24,54 @@ LevMarqGaussNewtonSolver::LevMarqGaussNewtonSolver(OptimizationProblem* problem,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Solve the Levenberg–Marquardt system of equations:
+///        A*x = b, A = (J^T*J + diagonalCoeff*diag(J^T*J))
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXd LevMarqGaussNewtonSolver::solveLevMarq(const Eigen::VectorXd& gradientVector,
+                                                       double diagonalCoeff) {
+
+  // Augment diagonal of the 'hessian' matrix
+  for (int i = 0; i < approximateHessian_.outerSize(); i++) {
+    approximateHessian_.coeffRef(i,i) *= (1.0 + diagonalCoeff);
+  }
+
+  // Solve system
+  Eigen::VectorXd levMarqStep;
+  try {
+
+    // Solve for the LM step using the Cholesky factorization (fast)
+    levMarqStep = this->solveGaussNewton(approximateHessian_, gradientVector, true);
+
+  } catch (const decomp_failure& ex) {
+
+    // Revert diagonal of the 'hessian' matrix
+    for (int i = 0; i < approximateHessian_.outerSize(); i++) {
+      approximateHessian_.coeffRef(i,i) /= (1.0 + diagonalCoeff);
+    }
+
+    // Throw up again
+    throw ex;
+  }
+
+  // Revert diagonal of the 'hessian' matrix
+  for (int i = 0; i < approximateHessian_.outerSize(); i++) {
+    approximateHessian_.coeffRef(i,i) /= (1.0 + diagonalCoeff);
+  }
+
+  return levMarqStep;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Perform a plain LLT decomposition on the approx. Hessian matrix in
+///        order to solve for the proper covariances (unmodified by the LM diagonal)
+//////////////////////////////////////////////////////////////////////////////////////////////
+void LevMarqGaussNewtonSolver::solveCovariances() {
+
+  // Factorize the unaugmented hessian (the covariance matrix)
+  this->factorizeHessian(approximateHessian_, false);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
@@ -39,15 +87,18 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   double buildTime = 0;
   double solveTime = 0;
   double updateTime = 0;
-  double actualToPredictedRatio;
+  double actualToPredictedRatio = 0;
   unsigned int numTrDecreases = 0;
 
   // Initialize new cost with old cost incase of failure
   *newCost = this->getPrevCost();
 
+  // The 'right-hand-side' of the Gauss-Newton problem, generally known as the gradient vector
+  Eigen::VectorXd gradientVector;
+
   // Construct system of equations
   timer.reset();
-  this->buildGaussNewtonTerms();
+  this->buildGaussNewtonTerms(&approximateHessian_, &gradientVector);
   buildTime = timer.milliseconds();
 
   // Perform LM Search
@@ -56,31 +107,56 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
     // Solve system
     timer.reset();
-    Eigen::VectorXd levMarqStep = this->solveGaussNewtonForLM(diagCoeff);
+    bool decompSuccess = true;
+    Eigen::VectorXd levMarqStep;
+    try {
+
+      // Solve system
+      levMarqStep = this->solveLevMarq(gradientVector, diagCoeff);
+    } catch (const decomp_failure& e) {
+      decompSuccess = false;
+    }
     solveTime += timer.milliseconds();
 
     // Test new cost
     timer.reset();
-    double proposedCost = this->getProblem().proposeUpdate(levMarqStep);
-    double actualReduc = this->getPrevCost() - proposedCost;   // a reduction in cost is positive
-    double predictedReduc = this->predictedReduction(levMarqStep); // a reduction in cost is positive
-    actualToPredictedRatio = actualReduc/predictedReduc;
+
+    // If decomposition was successful, calculate step quality
+    double proposedCost = 0;
+    if (decompSuccess) {
+
+      // Calculate the predicted reduction; note that a positive value denotes a reduction in cost
+      proposedCost = this->getProblem().proposeUpdate(levMarqStep);
+      double actualReduc = this->getPrevCost() - proposedCost;
+      double predictedReduc = this->predictedReduction(approximateHessian_, gradientVector, levMarqStep);
+      actualToPredictedRatio = actualReduc/predictedReduc;
+    }
 
     // Check ratio of predicted reduction to actual reduction achieved
-    if (actualToPredictedRatio > params_.ratioThreshold) {
+    if (actualToPredictedRatio > params_.ratioThreshold && decompSuccess) {
+
       // Good enough ratio to accept proposed state
       this->getProblem().acceptProposedState();
       *newCost = proposedCost;
       diagCoeff = std::max(diagCoeff*params_.shrinkCoeff, 1e-7); // move towards gauss newton
+
+      // Timing
+      updateTime += timer.milliseconds();
       break;
     } else {
-      // Cost did not reduce enough, or possibly increased,
-      // reject proposed state and reduce the size of the trust region
-      this->getProblem().rejectProposedState(); // Restore old state vector
-      diagCoeff = std::min(diagCoeff*params_.growCoeff, 1e7); // move towards gradient descent
+
+      // Cost did not reduce enough, possibly increased, or decomposition failed.
+      // Reject proposed state and reduce the size of the trust region
+      if (decompSuccess) {
+        // Restore old state vector
+        this->getProblem().rejectProposedState();
+      }
+      diagCoeff = std::min(diagCoeff*params_.growCoeff, 1e7); // Move towards gradient descent
       numTrDecreases++; // Count number of shrinks for logging
+
+      // Timing
+      updateTime += timer.milliseconds();
     }
-    updateTime += timer.milliseconds();
   }
 
   // Print report line if verbose option enabled

@@ -23,5 +23,5 @@ add_executable(SimpleBundleAdjustmentRelLand ${CMAKE_CURRENT_SOURCE_DIR}/SimpleB
 target_link_libraries(SimpleBundleAdjustmentRelLand steam ${DEPEND_LIBS})
 
 # bundle adjustment example with hardcoded GP factors
-add_executable(NaiveGPandBA ${CMAKE_CURRENT_SOURCE_DIR}/NaiveGPandBA.cpp)
-target_link_libraries(NaiveGPandBA steam ${DEPEND_LIBS})
+#add_executable(NaiveGPandBA ${CMAKE_CURRENT_SOURCE_DIR}/NaiveGPandBA.cpp)
+#target_link_libraries(NaiveGPandBA steam ${DEPEND_LIBS})

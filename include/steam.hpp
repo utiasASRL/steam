@@ -14,6 +14,11 @@
 #include <steam/LossFunctions.hpp>
 #include <steam/NoiseModel.hpp>
 
+// blkmat
+#include <steam/blockmat/BlockMatrix.hpp>
+#include <steam/blockmat/BlockVector.hpp>
+#include <steam/blockmat/BlockSparseMatrix.hpp>
+
 // common
 #include <steam/common/Time.hpp>
 
@@ -21,11 +26,15 @@
 #include <steam/evaluator/ErrorEvaluator.hpp>
 #include <steam/evaluator/TransformEvalOperations.hpp>
 #include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/BlockAutomaticEvaluator.hpp>
 
 // evaluator - common (sample functions)
 #include <steam/evaluator/common/StereoCameraErrorEval.hpp>
 #include <steam/evaluator/common/TransformErrorEval.hpp>
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+
+// evaluator - jacobian
+#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
 
 // solver
 #include <steam/solver/VanillaGaussNewtonSolver.hpp>

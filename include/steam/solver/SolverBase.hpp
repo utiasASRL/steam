@@ -10,6 +10,7 @@
 #include <Eigen/Core>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <stdexcept>
 
 #include <steam/OptimizationProblem.hpp>
 
@@ -18,10 +19,19 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Reports solver failures (e.g. LLT decomposition fail). Catch and handle properly
 //////////////////////////////////////////////////////////////////////////////////////////////
-class steam_solver_failure : public std::runtime_error
+class solver_failure : public std::runtime_error
 {
 public:
-    steam_solver_failure(const std::string& s) : std::runtime_error(s) {}
+  solver_failure(const std::string& s) : std::runtime_error(s) {}
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Reports unsuccessful steps (should be indicated to user)
+//////////////////////////////////////////////////////////////////////////////////////////////
+class unsuccessful_step : public solver_failure
+{
+public:
+  unsuccessful_step(const std::string& s) : solver_failure(s) {}
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

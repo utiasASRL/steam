@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/sparse/BlockVector.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 #include <stdexcept>
 
@@ -18,49 +18,27 @@ BlockVector::BlockVector() {}
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Block size constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockVector::BlockVector(const std::vector<unsigned int>& blkRowSizes) {
-  this->reset(blkRowSizes);
+BlockVector::BlockVector(const std::vector<unsigned int>& blkRowSizes) : indexing_(blkRowSizes) {
+
+  data_ = Eigen::VectorXd::Zero(indexing_.scalarSize());
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Block size (with data) constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockVector::BlockVector(const std::vector<unsigned int>& blkRowSizes, const Eigen::VectorXd& v) {
-  this->reset(blkRowSizes);
-  this->set(v);
-}
+BlockVector::BlockVector(const std::vector<unsigned int>& blkRowSizes, const Eigen::VectorXd& v)
+ : indexing_(blkRowSizes) {
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Resize and clear vector
-//////////////////////////////////////////////////////////////////////////////////////////////
-void BlockVector::reset(const std::vector<unsigned int>& blkRowSizes) {
-
-  if (blkRowSizes.size() <= 0) {
-    throw std::invalid_argument("Tried to initialize a block matrix with 0 rows.");
-  }
-
-  scalarRowDim_ = 0;
-  blkRowSizes_ = blkRowSizes;
-  cumBlkRowSizes_.reserve(blkRowSizes_.size());
-  for (std::vector<unsigned int>::const_iterator it = blkRowSizes_.begin(); it != blkRowSizes_.end(); ++it) {
-
-    if (*it <= 0) {
-      throw std::invalid_argument("Tried to initialize a block row size of 0.");
-    }
-
-    cumBlkRowSizes_.push_back(scalarRowDim_);
-    scalarRowDim_ += *it;
-  }
-  data_ = Eigen::VectorXd::Zero(scalarRowDim_);
+  this->setFromScalar(v);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Set internal data (total size of v must match concatenated block sizes)
 //////////////////////////////////////////////////////////////////////////////////////////////
-void BlockVector::set(const Eigen::VectorXd& v) {
+void BlockVector::setFromScalar(const Eigen::VectorXd& v) {
 
-  if (scalarRowDim_ != (unsigned int)v.size()) {
-    std::stringstream ss; ss << "Block row size: " << scalarRowDim_ <<
+  if (indexing_.scalarSize() != (unsigned int)v.size()) {
+    std::stringstream ss; ss << "Block row size: " << indexing_.scalarSize() <<
                                 " and vector size: " << v.size() << " do not match.";
     throw std::invalid_argument(ss.str());
   }
@@ -69,10 +47,10 @@ void BlockVector::set(const Eigen::VectorXd& v) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get number of block rows
+/// \brief Get indexing object
 //////////////////////////////////////////////////////////////////////////////////////////////
-unsigned int BlockVector::getNumBlkRows() {
-  return blkRowSizes_.size();
+const BlockDimIndexing& BlockVector::getIndexing() {
+  return indexing_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,33 +58,33 @@ unsigned int BlockVector::getNumBlkRows() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 void BlockVector::add(const unsigned int& r, const Eigen::VectorXd& v) {
 
-  if (r >= blkRowSizes_.size()) {
+  if (r >= indexing_.numEntries()) {
     throw std::invalid_argument("Requested row index is out of bounds.");
   }
 
-  if (v.rows() != (int)blkRowSizes_[r]) {
+  if (v.rows() != (int)indexing_.blkSizeAt(r)) {
     throw std::invalid_argument("Block row size and vector size do not match.");
   }
 
-  data_.block(cumBlkRowSizes_[r],0,blkRowSizes_[r],1) += v;
+  data_.block(indexing_.cumSumAt(r),0,indexing_.blkSizeAt(r),1) += v;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Return block vector at index 'r'
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd BlockVector::getBlkVector(const unsigned int& r) {
+Eigen::VectorXd BlockVector::at(const unsigned int& r) {
 
-  if (r >= blkRowSizes_.size()) {
+  if (r >= indexing_.numEntries()) {
     throw std::invalid_argument("Requested row index is out of bounds.");
   }
 
-  return data_.block(cumBlkRowSizes_[r],0,blkRowSizes_[r],1);
+  return data_.block(indexing_.cumSumAt(r),0,indexing_.blkSizeAt(r),1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Convert to Eigen dense vector format
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd BlockVector::toEigen() {
+const Eigen::VectorXd& BlockVector::toEigen() {
   return data_;
 }
 

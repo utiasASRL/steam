@@ -9,10 +9,8 @@
 
 #include <Eigen/Core>
 
-#include <steam/evaluator/EvaluatorBase.hpp>
 #include <steam/evaluator/TransformEvaluators.hpp>
 #include <steam/state/LandmarkStateVar.hpp>
-#include <steam/Jacobian.hpp>
 
 namespace steam {
 namespace se3 {
@@ -31,12 +29,12 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  ComposeTransformEvaluator(const TransformEvaluator::ConstPtr& pose1, const TransformEvaluator::ConstPtr& pose2);
+  ComposeTransformEvaluator(const TransformEvaluator::ConstPtr& transform1, const TransformEvaluator::ConstPtr& transform2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const TransformEvaluator::ConstPtr& pose1, const TransformEvaluator::ConstPtr& pose2);
+  static Ptr MakeShared(const TransformEvaluator::ConstPtr& transform1, const TransformEvaluator::ConstPtr& transform2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -44,26 +42,33 @@ public:
   virtual bool isActive() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the resultant transformation matrix (pose1*pose2)
+  /// \brief Evaluate the resultant transformation matrix (transform1*transform2)
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the resultant transformation matrix, and Jacobians w.r.t. state variables
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief First transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr pose1_;
+  TransformEvaluator::ConstPtr transform1_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Second transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr pose2_;
+  TransformEvaluator::ConstPtr transform2_;
 
 };
 
@@ -81,12 +86,12 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  InverseTransformEvaluator(const TransformEvaluator::ConstPtr& pose);
+  InverseTransformEvaluator(const TransformEvaluator::ConstPtr& transform);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const TransformEvaluator::ConstPtr& pose);
+  static Ptr MakeShared(const TransformEvaluator::ConstPtr& transform);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -99,16 +104,23 @@ public:
   virtual lgmath::se3::Transformation evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the resultant transformation matrix, and Jacobians w.r.t. state variables
+  /// \brief Evaluate the transformation matrix tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr pose_;
+  TransformEvaluator::ConstPtr transform_;
 
 };
 
@@ -126,12 +138,12 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  LogMapEvaluator(const TransformEvaluator::ConstPtr& pose);
+  LogMapEvaluator(const TransformEvaluator::ConstPtr& transform);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const TransformEvaluator::ConstPtr& pose);
+  static Ptr MakeShared(const TransformEvaluator::ConstPtr& transform);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -144,16 +156,24 @@ public:
   virtual Eigen::Matrix<double,6,1> evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the 6x1 vector belonging to the se(3) algebra and relevant Jacobians
+  /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra and
+  ///        sub-tree of evaluations
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Matrix<double,6,1> evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr pose_;
+  TransformEvaluator::ConstPtr transform_;
 
 };
 
@@ -171,12 +191,12 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& pose, const se3::LandmarkStateVar::ConstPtr& landmark);
+  ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::ConstPtr& landmark);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const TransformEvaluator::ConstPtr& pose, const se3::LandmarkStateVar::ConstPtr& landmark);
+  static Ptr MakeShared(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::ConstPtr& landmark);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -189,16 +209,24 @@ public:
   virtual Eigen::Vector4d evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the point transformed by the transform evaluator and relevant Jacobians
+  /// \brief Evaluate the point transformed by the transform evaluator and
+  ///        sub-tree of evaluations
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Vector4d evaluate(std::vector<Jacobian>* jacs) const;
+  virtual EvalTreeNode<Eigen::Vector4d>* evaluateTree() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                               std::vector<Jacobian>* outJacobians) const;
 
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr pose_;
+  TransformEvaluator::ConstPtr transform_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Landmark state variable
@@ -213,30 +241,30 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compose two transform evaluators
 //////////////////////////////////////////////////////////////////////////////////////////////
-static TransformEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& pose1,
-                                       const TransformEvaluator::ConstPtr& pose2) {
-  return ComposeTransformEvaluator::MakeShared(pose1, pose2);
+static TransformEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform1,
+                                       const TransformEvaluator::ConstPtr& transform2) {
+  return ComposeTransformEvaluator::MakeShared(transform1, transform2);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compose a transform evaluator and landmark state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
-static Vector4dEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& pose, const se3::LandmarkStateVar::ConstPtr& landmark) {
-  return ComposeLandmarkEvaluator::MakeShared(pose, landmark);
+static Vector4dEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::ConstPtr& landmark) {
+  return ComposeLandmarkEvaluator::MakeShared(transform, landmark);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Invert a transform evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-static TransformEvaluator::Ptr inverse(const TransformEvaluator::ConstPtr& pose) {
-  return InverseTransformEvaluator::MakeShared(pose);
+static TransformEvaluator::Ptr inverse(const TransformEvaluator::ConstPtr& transform) {
+  return InverseTransformEvaluator::MakeShared(transform);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Take the 'logarithmic map' of a transformation evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-static Vector6dEvaluator::Ptr tran2vec(const TransformEvaluator::ConstPtr& pose) {
-  return LogMapEvaluator::MakeShared(pose);
+static Vector6dEvaluator::Ptr tran2vec(const TransformEvaluator::ConstPtr& transform) {
+  return LogMapEvaluator::MakeShared(transform);
 }
 
 } // se3

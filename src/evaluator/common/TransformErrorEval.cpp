@@ -59,8 +59,26 @@ Eigen::VectorXd TransformErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 6-d measurement error and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd TransformErrorEval::evaluate(std::vector<Jacobian>* jacs) const {
-  return errorEvaluator_->evaluate(jacs);
+Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
+
+  // Check and initialize jacobian array
+  if (jacs == NULL) {
+    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
+  }
+  jacs->clear();
+
+  // Get evaluation tree
+  EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree = errorEvaluator_->evaluateTree();
+  errorEvaluator_->appendJacobians(lhs, evaluationTree, jacs);
+
+  // Get evaluation from tree
+  Eigen::VectorXd eval = evaluationTree->getValue();
+
+  // Cleanup tree memory
+  delete evaluationTree;
+
+  // Return evaluation
+  return eval;
 }
 
 } // steam
