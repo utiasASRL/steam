@@ -161,7 +161,7 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* a
         unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
 
         // Calculate terms needed to update the right-hand-side
-        Eigen::VectorXd b_add = -jacobians[i].jac.transpose()*error;
+        Eigen::VectorXd b_add = (-1)*jacobians[i].jac.transpose()*error;
 
         // Update the right-hand side (thread critical)
         #pragma omp critical(b_update)
