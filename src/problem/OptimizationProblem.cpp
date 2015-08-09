@@ -29,8 +29,17 @@ void OptimizationProblem::addStateVariable(const StateVariableBase::Ptr& state)
 /// \brief Add a cost term (should depend on active states that were added to the problem)
 //////////////////////////////////////////////////////////////////////////////////////////////
 void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
-  //costTerms_.push_back(costTerm);
   dynamicCostTerms_.add(costTerm);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a collection of cost terms. This function is typically reserved for adding
+///        custom collections which contain fixed-size cost terms and evaluators. For general
+///        dynamic-size cost terms, use addCostTerm(). Note that the cost terms should depend
+///        on active states that were added to the problem.
+//////////////////////////////////////////////////////////////////////////////////////////////
+void OptimizationProblem::addCostTermCollection(const CostTermCollectionBase::ConstPtr& costTermColl) {
+  customCostTerms_.push_back(costTermColl);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,7 +47,21 @@ void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 double OptimizationProblem::cost() const {
 
-  return dynamicCostTerms_.cost();
+  double cost = 0;
+
+  // Add cost of the default dynamic cost terms
+  if (dynamicCostTerms_.size() > 0) {
+    cost += dynamicCostTerms_.cost();
+  }
+
+  // Add cost of the custom cost-term collections
+  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
+    if (customCostTerms_[c]->size() > 0) {
+      cost += customCostTerms_[c]->cost();
+    }
+  }
+
+  return cost;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,8 +75,17 @@ void OptimizationProblem::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* app
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
 
-  // Add dynamic cost terms
-  dynamicCostTerms_.buildGaussNewtonTerms(stateVec_, &A_, &b_);
+  // Add terms from the default dynamic cost terms
+  if (dynamicCostTerms_.size() > 0) {
+    dynamicCostTerms_.buildGaussNewtonTerms(stateVec_, &A_, &b_);
+  }
+
+  // Add terms from the custom cost-term collections
+  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
+    if (customCostTerms_[c]->size() > 0) {
+      customCostTerms_[c]->buildGaussNewtonTerms(stateVec_, &A_, &b_);
+    }
+  }
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
@@ -69,11 +101,21 @@ const StateVector& OptimizationProblem::getStateVector() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get a reference to the cost terms
+/// \brief Get the total number of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-const std::vector<CostTermX::ConstPtr>& OptimizationProblem::getCostTerms() const {
-  //return costTerms_;
-  return dynamicCostTerms_.getCostTerms();
+unsigned int OptimizationProblem::getNumberOfCostTerms() const {
+
+  unsigned int size = 0;
+
+  // Add number of the default dynamic cost terms
+  size += dynamicCostTerms_.size();
+
+  // Add number from the custom cost-term collections
+  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
+    size += customCostTerms_[c]->size();
+  }
+
+  return size;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

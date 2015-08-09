@@ -43,7 +43,7 @@ void SolverBase::iterate() {
     std::cout << "Begin Optimization" << std::endl;
     std::cout << "------------------" << std::endl;
     std::cout << "Number of States: " << problem_->getStateVector().getNumberOfStates() << std::endl;
-    std::cout << "Number of Cost Terms: " << problem_->getCostTerms().size() << std::endl;
+    std::cout << "Number of Cost Terms: " << problem_->getNumberOfCostTerms() << std::endl;
     std::cout << "Initial Cost: " << currCost_ << std::endl;
   }
 
