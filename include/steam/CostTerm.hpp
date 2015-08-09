@@ -46,7 +46,7 @@ public:
   ///              error = sqrt(weight)*sqrt(cov^-1)*rawError
   ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::VectorXd evalWeightedAndWhitened(std::vector<Jacobian>* outJacobians) const;
+  Eigen::VectorXd evalWeightedAndWhitened(std::vector<Jacobian<> >* outJacobians) const;
 
 private:
 

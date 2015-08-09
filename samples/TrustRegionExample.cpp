@@ -61,7 +61,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the error and Jacobians wrt state variables
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<steam::Jacobian>* jacs) const {
+  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<steam::Jacobian<> >* jacs) const {
 
     // Get value of state variable
     double x = stateVec_->getValue()[0];
@@ -76,8 +76,8 @@ public:
     if(!stateVec_->isLocked()) {
 
       // Create Jacobian object
-      jacs->push_back(steam::Jacobian());
-      steam::Jacobian& jacref = jacs->back();
+      jacs->push_back(steam::Jacobian<>());
+      steam::Jacobian<>& jacref = jacs->back();
       jacref.key = stateVec_->getKey();
 
       // Fill out matrix

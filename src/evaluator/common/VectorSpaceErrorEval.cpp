@@ -32,7 +32,7 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the measurement error and relevant Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd VectorSpaceErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
+Eigen::VectorXd VectorSpaceErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -48,7 +48,7 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::
   // Construct Jacobian
   if(!stateVec_->isLocked()) {
     jacs->resize(1);
-    Jacobian& jacref = jacs->back();
+    Jacobian<>& jacref = jacs->back();
     jacref.key = stateVec_->getKey();
     jacref.jac = -lhs;
   }

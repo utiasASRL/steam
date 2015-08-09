@@ -41,7 +41,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the measurement error and relevant Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
+  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
 
 private:
 

@@ -20,7 +20,7 @@ BlockAutomaticEvaluator<TYPE>::BlockAutomaticEvaluator() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE>
 TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
-                                                     std::vector<Jacobian>* jacs) const {
+                                             std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {

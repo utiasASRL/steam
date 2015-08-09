@@ -17,14 +17,17 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Base class that defines the general 'evaluator' interface
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TYPE>
+template <typename TYPE,
+          int LHS_DIM       = Eigen::Dynamic,
+          int INNER_DIM     = Eigen::Dynamic,
+          int MAX_STATE_DIM = Eigen::Dynamic>
 class EvaluatorBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<EvaluatorBase<TYPE> > Ptr;
-  typedef boost::shared_ptr<const EvaluatorBase<TYPE> > ConstPtr;
+  typedef boost::shared_ptr<EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > Ptr;
+  typedef boost::shared_ptr<const EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
@@ -44,7 +47,8 @@ class EvaluatorBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general 'evaluation', with Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const = 0;
+  virtual TYPE evaluate(const Eigen::Matrix<double, LHS_DIM, INNER_DIM>& lhs,
+                        std::vector<Jacobian<LHS_DIM, MAX_STATE_DIM> >* jacs) const = 0;
 };
 
 } // steam

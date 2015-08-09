@@ -42,7 +42,7 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief General evaluation and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
+  virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general 'evaluation', with Jacobian tree
@@ -54,7 +54,7 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const = 0;
+                               std::vector<Jacobian<> >* outJacobians) const = 0;
 
 };
 

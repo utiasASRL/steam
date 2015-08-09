@@ -45,7 +45,7 @@ class GpTrajectoryPrior : public ErrorEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the GP prior factor and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const;
+  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
 
  private:
 

@@ -141,17 +141,26 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* a
   // for the various different block sizes
   typedef std::pair<unsigned int, unsigned int> MatrixKey;
 
+  double evalTime[NUMBER_OF_OPENMP_THREADS];
+
   // For each cost term
   #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
   {
+    int tid = omp_get_thread_num();
+    evalTime[tid] = 0;
+
     std::map<MatrixKey, Eigen::MatrixXd> matrixMap;
     #pragma omp for
     for (unsigned int c = 0 ; c < this->getProblem().getCostTerms().size(); c++) {
 
+      steam::Timer timer;
+      double asdf = this->getProblem().getCostTerms().at(c)->evaluate();
+      evalTime[tid] += timer.milliseconds();
+
       // Compute the weighted and whitened errors and jacobians
       // err = sqrt(w)*sqrt(R^-1)*rawError
       // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
-      std::vector<Jacobian> jacobians;
+      std::vector<Jacobian<> > jacobians;
       Eigen::VectorXd error = this->getProblem().getCostTerms().at(c)->evalWeightedAndWhitened(&jacobians);
 
       // For each jacobian
@@ -200,6 +209,12 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* a
       }
     }
   } // end parallel
+
+  double evaltotal = 0;
+  for (unsigned int i = 0; i < NUMBER_OF_OPENMP_THREADS; i++) {
+    evaltotal += evalTime[i];
+  }
+  std::cout << "time: " << evaltotal << std::endl;
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration

@@ -21,10 +21,16 @@ EvalTreeNodeBase::EvalTreeNodeBase() : index_(0) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNodeBase::~EvalTreeNodeBase() {
 
-  //for (unsigned i = 0; i < children_.size(); i++) {
+//  for (unsigned i = 0; i < index_; i++) {
+//    delete children_[i];
+//  }
+}
+
+void EvalTreeNodeBase::reset() {
   for (unsigned i = 0; i < index_; i++) {
-    delete children_[i];
+    children_[i]->release();
   }
+  index_ = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

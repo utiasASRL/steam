@@ -82,25 +82,37 @@ EvalTreeNode<lgmath::se3::Transformation>* GpTrajectoryEval::evaluateTree() cons
 
   // Get relative matrix info
   EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      new EvalTreeNode<lgmath::se3::Transformation>(knot2_->T_k0->getValue()/knot1_->T_k0->getValue());
+  //    new EvalTreeNode<lgmath::se3::Transformation>(knot2_->T_k0->getValue()/knot1_->T_k0->getValue());
+      EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  T_21->setValue(knot2_->T_k0->getValue()/knot1_->T_k0->getValue());
 
   Eigen::Matrix<double,6,1> xi_21 = T_21->getValue().vec();
 
   EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      new EvalTreeNode<Eigen::Matrix<double,6,6> >(lgmath::se3::vec2jacinv(xi_21));
+  //    new EvalTreeNode<Eigen::Matrix<double,6,6> >(lgmath::se3::vec2jacinv(xi_21));
+      EvalTreeNode<Eigen::Matrix<double,6,6> >::pool.getObj();
+  J_21_inv->setValue(lgmath::se3::vec2jacinv(xi_21));
 
   // Interpolated relative transform
   EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      new EvalTreeNode<Eigen::Matrix<double,6,1> >(lambda12_*knot1_->varpi->getValue() +
+ /*     new EvalTreeNode<Eigen::Matrix<double,6,1> >(lambda12_*knot1_->varpi->getValue() +
                                                    psi11_*xi_21 +
-                                                   psi12_*J_21_inv->getValue()*knot2_->varpi->getValue());
+                                                   psi12_*J_21_inv->getValue()*knot2_->varpi->getValue());*/
+      EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.getObj();
+  xi_i1->setValue(lambda12_*knot1_->varpi->getValue() +
+                 psi11_*xi_21 +
+                 psi12_*J_21_inv->getValue()*knot2_->varpi->getValue());
 
   EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      new EvalTreeNode<lgmath::se3::Transformation>(lgmath::se3::Transformation(xi_i1->getValue()));
+  //    new EvalTreeNode<lgmath::se3::Transformation>(lgmath::se3::Transformation(xi_i1->getValue()));
+      EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  T_i1->setValue(xi_i1->getValue());
 
   // Interpolated relative transform - new root node
   EvalTreeNode<lgmath::se3::Transformation>* root =
-      new EvalTreeNode<lgmath::se3::Transformation>(T_i1->getValue()*knot1_->T_k0->getValue());
+  //    new EvalTreeNode<lgmath::se3::Transformation>(T_i1->getValue()*knot1_->T_k0->getValue());
+      EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  root->setValue(T_i1->getValue()*knot1_->T_k0->getValue());
 
   // Add children - for later use
   root->addChild(T_21);
@@ -117,7 +129,7 @@ EvalTreeNode<lgmath::se3::Transformation>* GpTrajectoryEval::evaluateTree() cons
 //////////////////////////////////////////////////////////////////////////////////////////////
 void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian>* outJacobians) const {
+                             std::vector<Jacobian<> >* outJacobians) const {
 
   // Get precalculated linearization values
 
@@ -153,14 +165,14 @@ void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
 
         // Add Jacobian
         Eigen::MatrixXd jacobian = -w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian(knot1_->T_k0->getKey(), lhs*jacobian));
+        outJacobians->push_back(Jacobian<>(knot1_->T_k0->getKey(), lhs*jacobian));
       }
 
       // 6 x 6 Pose Jacobian 2
       if(!knot2_->T_k0->isLocked()) {
 
         // Add Jacobian
-        outJacobians->push_back(Jacobian(knot2_->T_k0->getKey(), lhs*w));
+        outJacobians->push_back(Jacobian<>(knot2_->T_k0->getKey(), lhs*w));
       }
     }
 
@@ -168,7 +180,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
     if(!knot1_->varpi->isLocked()) {
 
       // Add Jacobian
-      outJacobians->push_back(Jacobian(knot1_->varpi->getKey(), lhs*lambda12_*J_i1));
+      outJacobians->push_back(Jacobian<>(knot1_->varpi->getKey(), lhs*lambda12_*J_i1));
     }
 
     // 6 x 6 Velocity Jacobian 2
@@ -176,7 +188,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
 
       // Add Jacobian
       Eigen::MatrixXd jacobian = psi12_*J_i1*J_21_inv->getValue();
-      outJacobians->push_back(Jacobian(knot2_->varpi->getKey(), lhs*jacobian));
+      outJacobians->push_back(Jacobian<>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
 }

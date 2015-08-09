@@ -33,13 +33,19 @@ bool StereoCameraErrorEval::isActive() const {
 Eigen::VectorXd StereoCameraErrorEval::evaluate() const {
 
   // Return error (between measurement and point estimate projected in camera frame)
-  return meas_ - cameraModel(eval_->evaluate());
+  //return meas_ - cameraModel(eval_->evaluate());
+
+  // Get evaluation tree
+  EvalTreeNode<Eigen::Vector4d>* evaluationTree = eval_->evaluateTree();
+  Eigen::VectorXd temp = meas_ - cameraModel(evaluationTree->getValue());
+  EvalTreeNode<Eigen::Vector4d>::pool.returnObj(evaluationTree);
+  return temp;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd StereoCameraErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
+Eigen::VectorXd StereoCameraErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -57,7 +63,8 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate(const Eigen::MatrixXd& lhs, std:
   eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c), evaluationTree, jacs);
 
   // Cleanup tree memory
-  delete evaluationTree;
+  //delete evaluationTree;
+  EvalTreeNode<Eigen::Vector4d>::pool.returnObj(evaluationTree);
 
   // Return evaluation
   return meas_ - cameraModel(point_in_c);

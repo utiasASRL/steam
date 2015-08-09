@@ -56,7 +56,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const;
+                               std::vector<Jacobian<> >* outJacobians) const;
 
 private:
 
@@ -113,7 +113,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const;
+                               std::vector<Jacobian<> >* outJacobians) const;
 
 private:
 
@@ -166,7 +166,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const;
+                               std::vector<Jacobian<> >* outJacobians) const;
 
 private:
 
@@ -219,7 +219,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const;
+                               std::vector<Jacobian<> >* outJacobians) const;
 
 private:
 

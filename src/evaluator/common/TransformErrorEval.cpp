@@ -59,7 +59,7 @@ Eigen::VectorXd TransformErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 6-d measurement error and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
+Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -75,7 +75,8 @@ Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::ve
   Eigen::VectorXd eval = evaluationTree->getValue();
 
   // Cleanup tree memory
-  delete evaluationTree;
+  //delete evaluationTree;
+  EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.returnObj(evaluationTree);
 
   // Return evaluation
   return eval;

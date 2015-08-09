@@ -44,7 +44,11 @@ lgmath::se3::Transformation TransformStateEvaluator::evaluate() const {
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* TransformStateEvaluator::evaluateTree() const {
-  return new EvalTreeNode<lgmath::se3::Transformation>(transform_->getValue());
+  //return new EvalTreeNode<lgmath::se3::Transformation>(transform_->getValue());
+
+  EvalTreeNode<lgmath::se3::Transformation>* result = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  result->setValue(transform_->getValue());
+  return result;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +56,7 @@ EvalTreeNode<lgmath::se3::Transformation>* TransformStateEvaluator::evaluateTree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void TransformStateEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                              std::vector<Jacobian>* outJacobians) const {
+                                              std::vector<Jacobian<> >* outJacobians) const {
 
   // Check if state is locked
   if (!transform_->isLocked()) {
@@ -63,7 +67,7 @@ void TransformStateEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
     }
 
     // Add Jacobian
-    outJacobians->push_back(Jacobian(transform_->getKey(), lhs));
+    outJacobians->push_back(Jacobian<>(transform_->getKey(), lhs));
   }
 }
 
@@ -100,7 +104,11 @@ lgmath::se3::Transformation FixedTransformEvaluator::evaluate() const {
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* FixedTransformEvaluator::evaluateTree() const {
-  return new EvalTreeNode<lgmath::se3::Transformation>(transform_);
+  //return new EvalTreeNode<lgmath::se3::Transformation>(transform_);
+
+  EvalTreeNode<lgmath::se3::Transformation>* result = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();// makeNew();
+  result->setValue(transform_);
+  return result;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -108,7 +116,7 @@ EvalTreeNode<lgmath::se3::Transformation>* FixedTransformEvaluator::evaluateTree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void FixedTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                              std::vector<Jacobian>* outJacobians) const {
+                                              std::vector<Jacobian<> >* outJacobians) const {
   // Do nothing
   return;
 }

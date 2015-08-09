@@ -75,7 +75,7 @@ class TransformStateEvaluator : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const;
+                               std::vector<Jacobian<> >* outJacobians) const;
 
  private:
 
@@ -127,7 +127,7 @@ class FixedTransformEvaluator : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                               std::vector<Jacobian>* outJacobians) const;
+                               std::vector<Jacobian<> >* outJacobians) const;
 
  private:
 

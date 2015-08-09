@@ -53,8 +53,11 @@ EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTr
   EvalTreeNode<lgmath::se3::Transformation>* transform2 = transform2_->evaluateTree();
 
   // Make new root node
-  EvalTreeNode<lgmath::se3::Transformation>* root =
-      new EvalTreeNode<lgmath::se3::Transformation>(transform1->getValue()*transform2->getValue());
+  //EvalTreeNode<lgmath::se3::Transformation>* root =
+  //    new EvalTreeNode<lgmath::se3::Transformation>(transform1->getValue()*transform2->getValue());
+
+  EvalTreeNode<lgmath::se3::Transformation>* root = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  root->setValue(transform1->getValue()*transform2->getValue());
 
   // Add children
   root->addChild(transform1);
@@ -69,7 +72,7 @@ EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTr
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
+                                  std::vector<Jacobian<> >* outJacobians) const {
 
   EvalTreeNode<lgmath::se3::Transformation>* t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
@@ -91,7 +94,7 @@ void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
   }
 
   // Merge
-  Jacobian::merge(outJacobians, hintIndex);
+  Jacobian<>::merge(outJacobians, hintIndex);
 }
 
 /// Inverse
@@ -132,8 +135,10 @@ EvalTreeNode<lgmath::se3::Transformation>* InverseTransformEvaluator::evaluateTr
   EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
   // Make new root node
-  EvalTreeNode<lgmath::se3::Transformation>* root =
-      new EvalTreeNode<lgmath::se3::Transformation>(transform->getValue().inverse());
+  //EvalTreeNode<lgmath::se3::Transformation>* root =
+  //    new EvalTreeNode<lgmath::se3::Transformation>(transform->getValue().inverse());
+  EvalTreeNode<lgmath::se3::Transformation>* root = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  root->setValue(transform->getValue().inverse());
 
   // Add children
   root->addChild(transform);
@@ -147,7 +152,7 @@ EvalTreeNode<lgmath::se3::Transformation>* InverseTransformEvaluator::evaluateTr
 //////////////////////////////////////////////////////////////////////////////////////////////
 void InverseTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
+                                  std::vector<Jacobian<> >* outJacobians) const {
 
   // Check if transform1 is active
   if (transform_->isActive()) {
@@ -196,8 +201,10 @@ EvalTreeNode<Eigen::Matrix<double,6,1> >* LogMapEvaluator::evaluateTree() const 
   EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
   // Make new root node
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* root =
-      new EvalTreeNode<Eigen::Matrix<double,6,1> >(transform->getValue().vec());
+  //EvalTreeNode<Eigen::Matrix<double,6,1> >* root =
+  //    new EvalTreeNode<Eigen::Matrix<double,6,1> >(transform->getValue().vec());
+  EvalTreeNode<Eigen::Matrix<double,6,1> >* root = EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.getObj();
+  root->setValue(transform->getValue().vec());
 
   // Add children
   root->addChild(transform);
@@ -211,7 +218,7 @@ EvalTreeNode<Eigen::Matrix<double,6,1> >* LogMapEvaluator::evaluateTree() const 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void LogMapEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
+                                  std::vector<Jacobian<> >* outJacobians) const {
 
   // Check if transform1 is active
   if (transform_->isActive()) {
@@ -270,12 +277,17 @@ EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
   EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
   // Make new leaf node for landmark state variable
-  EvalTreeNode<Eigen::Vector4d>* landmarkLeaf =
-      new EvalTreeNode<Eigen::Vector4d>(landmark_->getValue());
+  //EvalTreeNode<Eigen::Vector4d>* landmarkLeaf =
+  //    new EvalTreeNode<Eigen::Vector4d>(landmark_->getValue());
+
+  EvalTreeNode<Eigen::Vector4d>* landmarkLeaf = EvalTreeNode<Eigen::Vector4d>::pool.getObj();
+  landmarkLeaf->setValue(landmark_->getValue());
 
   // Make new root node
-  EvalTreeNode<Eigen::Vector4d>* root =
-      new EvalTreeNode<Eigen::Vector4d>(transform->getValue()*landmarkLeaf->getValue());
+  //EvalTreeNode<Eigen::Vector4d>* root =
+  //    new EvalTreeNode<Eigen::Vector4d>(transform->getValue()*landmarkLeaf->getValue());
+  EvalTreeNode<Eigen::Vector4d>* root = EvalTreeNode<Eigen::Vector4d>::pool.getObj();
+  root->setValue(transform->getValue()*landmarkLeaf->getValue());
 
   // Add children
   root->addChild(transform);
@@ -290,7 +302,7 @@ EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<Eigen::Vector4d>* evaluationTree,
-                                  std::vector<Jacobian>* outJacobians) const {
+                                  std::vector<Jacobian<> >* outJacobians) const {
 
   EvalTreeNode<lgmath::se3::Transformation>* t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
@@ -310,7 +322,7 @@ void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
     }
 
     // Add Jacobian -- transform.matrix() * Eigen::Matrix<double,4,3>::Identity()
-    outJacobians->push_back(Jacobian(landmark_->getKey(), lhs * t1->getValue().matrix().block<4,3>(0,0)));
+    outJacobians->push_back(Jacobian<>(landmark_->getKey(), lhs * t1->getValue().matrix().block<4,3>(0,0)));
   }
 }
 

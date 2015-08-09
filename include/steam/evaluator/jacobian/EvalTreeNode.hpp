@@ -9,6 +9,8 @@
 
 #include <steam/evaluator/jacobian/EvalTreeNodeBase.hpp>
 
+#include <steam/common/Pool.hpp>
+
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,6 +36,18 @@ class EvalTreeNode : public EvalTreeNodeBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual ~EvalTreeNode() {}
 
+  // a method we must implement for pool... pool calls this when we return the object..
+  void reset() {
+    value_ = TYPE();
+    EvalTreeNodeBase::reset();
+  }
+
+  // tell object to release itself back to the pool it came from ...
+  // this method is required in order to release the children contained by the base class
+  virtual void release() {
+    return pool.returnObj(this);
+  }
+
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get current value
   /////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +58,9 @@ class EvalTreeNode : public EvalTreeNodeBase
   /////////////////////////////////////////////////////////////////////////////////////////////
   void setValue(const TYPE& value);
 
+  /// static pool
+  static Pool<EvalTreeNode<TYPE> > pool;
+
  private:
 
   /////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,6 +68,8 @@ class EvalTreeNode : public EvalTreeNodeBase
   /////////////////////////////////////////////////////////////////////////////////////////////
   TYPE value_;
 
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 } // steam

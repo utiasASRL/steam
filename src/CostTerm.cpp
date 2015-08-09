@@ -33,7 +33,7 @@ double CostTerm::evaluate() const
 ///              error = sqrt(weight)*sqrt(cov^-1)*rawError
 ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJacobians) const {
+Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian<> >* outJacobians) const {
 
   // Check and initialize jacobian array
   if (outJacobians == NULL) {
