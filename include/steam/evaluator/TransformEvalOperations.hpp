@@ -61,6 +61,29 @@ public:
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Fixed-size evaluations of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<1,6> >* outJacobians) const;
+
+  virtual void appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<2,6> >* outJacobians) const;
+
+  virtual void appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<3,6> >* outJacobians) const;
+
+  virtual void appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<4,6> >* outJacobians) const;
+
+  virtual void appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<6,6> >* outJacobians) const;
+
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +144,29 @@ public:
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Fixed-size evaluations of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<1,6> >* outJacobians) const;
+
+  virtual void appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<2,6> >* outJacobians) const;
+
+  virtual void appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<3,6> >* outJacobians) const;
+
+  virtual void appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<4,6> >* outJacobians) const;
+
+  virtual void appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<6,6> >* outJacobians) const;
+
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,8 +178,13 @@ private:
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluator for the logarithmic map of a transformation matrix
+///
+/// *Note that we fix MAX_STATE_DIM to 6. Typically the performance benefits of fixed size
+///  matrices begin to die if larger than 6x6. Size 6 allows for transformation matrices
+///  and 6D velocities. If you have a state larger than this, consider writing an
+///  error evaluator that extends from ErrorEvaluatorX.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class LogMapEvaluator : public Vector6dEvaluator
+class LogMapEvaluator : public BlockAutomaticEvaluator<Eigen::Matrix<double,6,1>, 6, 6>
 {
 public:
 
@@ -177,6 +228,29 @@ public:
                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Fixed-size evaluations of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                                std::vector<Jacobian<1,6> >* outJacobians) const;
+
+  virtual void appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                                std::vector<Jacobian<2,6> >* outJacobians) const;
+
+  virtual void appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                                std::vector<Jacobian<3,6> >* outJacobians) const;
+
+  virtual void appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                                std::vector<Jacobian<4,6> >* outJacobians) const;
+
+  virtual void appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+                                EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
+                                std::vector<Jacobian<6,6> >* outJacobians) const;
+
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,8 +262,13 @@ private:
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluator for the composition of a transformation evaluator and landmark state
+///
+/// *Note that we fix MAX_STATE_DIM to 6. Typically the performance benefits of fixed size
+///  matrices begin to die if larger than 6x6. Size 6 allows for transformation matrices
+///  and 6D velocities. If you have a state larger than this, consider writing an
+///  error evaluator that extends from ErrorEvaluatorX.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class ComposeLandmarkEvaluator : public Vector4dEvaluator
+class ComposeLandmarkEvaluator : public BlockAutomaticEvaluator<Eigen::Vector4d, 4, 6>
 {
 public:
 
@@ -233,6 +312,29 @@ public:
                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Fixed-size evaluations of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians1(const Eigen::Matrix<double,1,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                                std::vector<Jacobian<1,6> >* outJacobians) const;
+
+  virtual void appendJacobians2(const Eigen::Matrix<double,2,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                                std::vector<Jacobian<2,6> >* outJacobians) const;
+
+  virtual void appendJacobians3(const Eigen::Matrix<double,3,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                                std::vector<Jacobian<3,6> >* outJacobians) const;
+
+  virtual void appendJacobians4(const Eigen::Matrix<double,4,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                                std::vector<Jacobian<4,6> >* outJacobians) const;
+
+  virtual void appendJacobians6(const Eigen::Matrix<double,6,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+                                std::vector<Jacobian<6,6> >* outJacobians) const;
+
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +363,7 @@ static TransformEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& trans
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compose a transform evaluator and landmark state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
-static Vector4dEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::ConstPtr& landmark) {
+static ComposeLandmarkEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::ConstPtr& landmark) {
   return ComposeLandmarkEvaluator::MakeShared(transform, landmark);
 }
 
@@ -275,7 +377,7 @@ static TransformEvaluator::Ptr inverse(const TransformEvaluator::ConstPtr& trans
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Take the 'logarithmic map' of a transformation evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-static Vector6dEvaluator::Ptr tran2vec(const TransformEvaluator::ConstPtr& transform) {
+static LogMapEvaluator::Ptr tran2vec(const TransformEvaluator::ConstPtr& transform) {
   return LogMapEvaluator::MakeShared(transform);
 }
 

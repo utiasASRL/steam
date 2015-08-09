@@ -59,6 +59,29 @@ class GpTrajectoryEval : public TransformEvaluator
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Fixed-size evaluations of the Jacobian tree
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<1,6> >* outJacobians) const;
+
+  virtual void appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<2,6> >* outJacobians) const;
+
+  virtual void appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<3,6> >* outJacobians) const;
+
+  virtual void appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<4,6> >* outJacobians) const;
+
+  virtual void appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                std::vector<Jacobian<6,6> >* outJacobians) const;
+
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////

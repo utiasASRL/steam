@@ -9,14 +9,20 @@
 
 #include <steam/evaluator/ErrorEvaluator.hpp>
 #include <steam/state/LandmarkStateVar.hpp>
-#include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Stereo camera error function evaluator
+///
+/// *Note that we fix MAX_STATE_DIM to 6. Typically the performance benefits of fixed size
+///  matrices begin to die if larger than 6x6. Size 6 allows for transformation matrices
+///  and 6D velocities. If you have a state larger than this, consider writing an
+///  error evaluator that extends from ErrorEvaluatorX.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class StereoCameraErrorEval : public ErrorEvaluator
+class StereoCameraErrorEval : public ErrorEvaluatorX
+//class StereoCameraErrorEval : public ErrorEvaluatorFixed<4,6>::type
 {
 public:
 
@@ -97,7 +103,7 @@ private:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Point evaluator (evaluates the point transformed into the camera frame)
   //////////////////////////////////////////////////////////////////////////////////////////////
-  se3::Vector4dEvaluator::ConstPtr eval_;
+  se3::ComposeLandmarkEvaluator::ConstPtr eval_;
 
 };
 

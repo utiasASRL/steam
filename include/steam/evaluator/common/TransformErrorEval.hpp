@@ -8,14 +8,14 @@
 #define STEAM_TRANSFORM_ERROR_EVALUATOR_HPP
 
 #include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Transformation error function evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-class TransformErrorEval : public ErrorEvaluator
+class TransformErrorEval : public ErrorEvaluatorX
 {
 public:
 
@@ -61,7 +61,7 @@ private:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Error evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  se3::Vector6dEvaluator::ConstPtr errorEvaluator_;
+  se3::LogMapEvaluator::ConstPtr errorEvaluator_;
 };
 
 } // steam

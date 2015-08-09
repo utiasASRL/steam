@@ -11,16 +11,16 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TYPE>
-BlockAutomaticEvaluator<TYPE>::BlockAutomaticEvaluator() {
+template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
+BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::BlockAutomaticEvaluator() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief General evaluation and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TYPE>
-TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
-                                             std::vector<Jacobian<> >* jacs) const {
+template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
+TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
+    const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {

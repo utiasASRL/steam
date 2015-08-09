@@ -16,7 +16,7 @@
 ///        Minimum error is at zero. Notably vanilla Gauss Newton is unable to converge to
 ///        the answer as a step near zero causes it to diverge.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class DivergenceErrorEval : public steam::ErrorEvaluator
+class DivergenceErrorEval : public steam::ErrorEvaluatorX
 {
 public:
 
