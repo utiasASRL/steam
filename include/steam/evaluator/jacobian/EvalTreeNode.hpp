@@ -38,7 +38,7 @@ class EvalTreeNode : public EvalTreeNodeBase
 
   // a method we must implement for pool... pool calls this when we return the object..
   void reset() {
-    value_ = TYPE();
+    // Note that we choose not to reset the value_ memory, as it is always set by the getter
     EvalTreeNodeBase::reset();
   }
 
@@ -59,7 +59,8 @@ class EvalTreeNode : public EvalTreeNodeBase
   void setValue(const TYPE& value);
 
   /// static pool
-  static Pool<EvalTreeNode<TYPE> > pool;
+  //static Pool<EvalTreeNode<TYPE> > pool;
+  static OmpPool<EvalTreeNode<TYPE> > pool;
 
  private:
 

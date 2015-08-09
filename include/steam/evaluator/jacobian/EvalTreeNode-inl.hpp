@@ -11,7 +11,7 @@ namespace steam {
 
 /// static declaration
 template<typename TYPE>
-Pool<EvalTreeNode<TYPE> > EvalTreeNode<TYPE>::pool;
+OmpPool<EvalTreeNode<TYPE> > EvalTreeNode<TYPE>::pool;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
