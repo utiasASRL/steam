@@ -1,17 +1,15 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTerm.hpp
+/// \file CostTermCollection.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_COST_TERM_HPP
-#define STEAM_COST_TERM_HPP
+#ifndef STEAM_COST_TERM_COLLECTION_HPP
+#define STEAM_COST_TERM_COLLECTION_HPP
 
 #include <boost/shared_ptr.hpp>
 
-#include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/problem/NoiseModel.hpp>
-#include <steam/problem/LossFunctions.hpp>
+#include <steam/problem/CostTermCollectionBase.hpp>
 
 namespace steam {
 
@@ -20,63 +18,57 @@ namespace steam {
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int MEAS_DIM, int MAX_STATE_SIZE>
-class CostTerm
+class CostTermCollection : public CostTermCollectionBase
 {
-public:
+ public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
-  typedef boost::shared_ptr<const CostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
+  typedef boost::shared_ptr<CostTermCollection<MEAS_DIM, MAX_STATE_SIZE> > Ptr;
+  typedef boost::shared_ptr<const CostTermCollection<MEAS_DIM, MAX_STATE_SIZE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTerm(const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
-           const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
-           const LossFunction::ConstPtr& lossFunc);
+  CostTermCollection();
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the cost of this term. Error is first whitened by the noise model
-  ///        and then passed through the loss function, as in:
-  ///          cost = loss(sqrt(e^T * cov^{-1} * e))
+  /// \brief Add a cost term
   //////////////////////////////////////////////////////////////////////////////////////////////
-  double evaluate() const;
+  void add(typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr costTerm);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the iteratively reweighted error vector and Jacobians. The error and
-  ///        Jacobians are first whitened by the noise model and then weighted by the loss
-  ///        function, as in:
-  ///              error = sqrt(weight)*sqrt(cov^-1)*rawError
-  ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
+  /// \brief Compute the cost from the collection of cost terms
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::Matrix<double,MEAS_DIM,1> evalWeightedAndWhitened(
-      std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
-
-private:
+  double cost() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Error evaluator
+  /// \brief Get a reference to the cost terms
   //////////////////////////////////////////////////////////////////////////////////////////////
-  typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr errorFunction_;
+  const std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr>& getCostTerms() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Noise model
+  /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
+  ///        using the cost terms in this collection.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  typename NoiseModel<MEAS_DIM>::ConstPtr noiseModel_;
+  virtual void buildGaussNewtonTerms(const StateVector& stateVector,
+                                     BlockSparseMatrix* approximateHessian,
+                                     BlockVector* gradientVector) const;
+
+ private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Loss function
+  /// \brief Collection of nonlinear cost-term factors
   //////////////////////////////////////////////////////////////////////////////////////////////
-  LossFunction::ConstPtr lossFunc_;
+  std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr> costTerms_;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Typedef for the general dynamic cost term
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef CostTerm<Eigen::Dynamic, Eigen::Dynamic> CostTermX;
+typedef CostTermCollection<Eigen::Dynamic, Eigen::Dynamic> CostTermCollectionX;
 
 } // steam
 
-#include <steam/problem/CostTerm-inl.hpp>
+#include <steam/problem/CostTermCollection-inl.hpp>
 
-#endif // STEAM_COST_TERM_HPP
+#endif // STEAM_COST_TERM_COLLECTION_HPP

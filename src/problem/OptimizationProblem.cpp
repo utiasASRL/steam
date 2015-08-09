@@ -29,7 +29,8 @@ void OptimizationProblem::addStateVariable(const StateVariableBase::Ptr& state)
 /// \brief Add a cost term (should depend on active states that were added to the problem)
 //////////////////////////////////////////////////////////////////////////////////////////////
 void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
-  costTerms_.push_back(costTerm);
+  //costTerms_.push_back(costTerm);
+  dynamicCostTerms_.add(costTerm);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,25 +38,27 @@ void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 double OptimizationProblem::cost() const {
 
-  // Calculate total cost in parallel
-  double cost[NUMBER_OF_OPENMP_THREADS];
-  #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
-  {
-    // Init costs
-    int tid = omp_get_thread_num();
-    cost[tid] = 0;
+  return dynamicCostTerms_.cost();
+}
 
-    #pragma omp for
-    for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      cost[tid] += costTerms_.at(i)->evaluate();
-    }
-  }
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fill in the supplied block matrices
+//////////////////////////////////////////////////////////////////////////////////////////////
+void OptimizationProblem::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* approximateHessian,
+                                                Eigen::VectorXd* gradientVector) const {
 
-  // Sum up costs and return total
-  for(unsigned int i = 1; i < NUMBER_OF_OPENMP_THREADS; i++) {
-    cost[0] += cost[i];
-  }
-  return cost[0];
+  // Setup Matrices
+  std::vector<unsigned int> sqSizes = stateVec_.getStateBlockSizes();
+  BlockSparseMatrix A_(sqSizes, true);
+  BlockVector b_(sqSizes);
+
+  // Add dynamic cost terms
+  dynamicCostTerms_.buildGaussNewtonTerms(stateVec_, &A_, &b_);
+
+  // Convert to Eigen Type - with the block-sparsity pattern
+  // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
+  *approximateHessian = A_.toEigen(false);
+  *gradientVector = b_.toEigen();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +72,8 @@ const StateVector& OptimizationProblem::getStateVector() const {
 /// \brief Get a reference to the cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
 const std::vector<CostTermX::ConstPtr>& OptimizationProblem::getCostTerms() const {
-  return costTerms_;
+  //return costTerms_;
+  return dynamicCostTerms_.getCostTerms();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
