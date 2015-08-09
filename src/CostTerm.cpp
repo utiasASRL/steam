@@ -13,7 +13,7 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-CostTerm::CostTerm(const ErrorEvaluatorX::ConstPtr& errorFunction, const NoiseModel::ConstPtr& noiseModel, const LossFunction::ConstPtr& lossFunc) :
+CostTerm::CostTerm(const ErrorEvaluatorX::ConstPtr& errorFunction, const NoiseModelX::ConstPtr& noiseModel, const LossFunction::ConstPtr& lossFunc) :
   errorFunction_(errorFunction), noiseModel_(noiseModel), lossFunc_(lossFunc) {}
 
 //////////////////////////////////////////////////////////////////////////////////////////////

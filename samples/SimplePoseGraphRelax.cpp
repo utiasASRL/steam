@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   std::vector<steam::CostTerm::Ptr> costTerms;
 
   // Setup shared noise and loss functions
-  steam::NoiseModel::Ptr sharedNoiseModel(new steam::NoiseModel(Eigen::MatrixXd::Identity(6,6)));
+  steam::NoiseModelX::Ptr sharedNoiseModel(new steam::NoiseModelX(Eigen::MatrixXd::Identity(6,6)));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Lock first pose (otherwise entire solution is 'floating')

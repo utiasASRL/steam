@@ -239,7 +239,7 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
   if (!it1->second->varpi->isLocked()) {
 
     // Setup noise for initial velocity (very uncertain)
-    steam::NoiseModel::Ptr initialVelocityNoiseModel(new steam::NoiseModel(10000.0*Eigen::MatrixXd::Identity(6,6)));
+    steam::NoiseModelX::Ptr initialVelocityNoiseModel(new steam::NoiseModelX(10000.0*Eigen::MatrixXd::Identity(6,6)));
 
     // Setup zero measurement
     Eigen::VectorXd meas = Eigen::Matrix<double,6,1>::Zero();
@@ -270,7 +270,7 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
       Qi_inv.block<6,6>(0,0) = 12.0 * one_over_dt3 * Qc_inv_;
       Qi_inv.block<6,6>(6,0) = Qi_inv.block<6,6>(0,6) = -6.0 * one_over_dt2 * Qc_inv_;
       Qi_inv.block<6,6>(6,6) =  4.0 * one_over_dt  * Qc_inv_;
-      steam::NoiseModel::Ptr sharedGPNoiseModel(new steam::NoiseModel(Qi_inv, steam::NoiseModel::INFORMATION));
+      steam::NoiseModelX::Ptr sharedGPNoiseModel(new steam::NoiseModelX(Qi_inv, steam::NoiseModelX::INFORMATION));
 
       // Create cost term
       steam::se3::GpTrajectoryPrior::Ptr errorfunc(new steam::se3::GpTrajectoryPrior(knot1, knot2));

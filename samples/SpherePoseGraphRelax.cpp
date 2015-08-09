@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   std::vector<steam::CostTerm::Ptr> costTerms;
 
   // Setup shared noise and loss functions
-  steam::NoiseModel::Ptr sharedNoiseModel(new steam::NoiseModel(measCollection[0].sqrtInformation, steam::NoiseModel::SQRT_INFORMATION));
+  steam::NoiseModelX::Ptr sharedNoiseModel(new steam::NoiseModelX(measCollection[0].sqrtInformation, steam::NoiseModelX::SQRT_INFORMATION));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Turn measurements into cost terms

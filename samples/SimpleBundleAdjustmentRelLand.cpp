@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
   std::vector<steam::CostTerm::Ptr> costTerms;
 
   // Setup shared noise and loss function
-  steam::NoiseModel::Ptr sharedCameraNoiseModel(new steam::NoiseModel(dataset.noise));
+  steam::NoiseModelX::Ptr sharedCameraNoiseModel(new steam::NoiseModelX(dataset.noise));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
