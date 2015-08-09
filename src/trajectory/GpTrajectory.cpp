@@ -208,9 +208,9 @@ std::vector<steam::StateVariableBase::Ptr> GpTrajectory::getActiveStateVariables
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
+std::vector<steam::CostTermX::ConstPtr> GpTrajectory::getPriorCostTerms() const {
 
-  std::vector<steam::CostTerm::ConstPtr> costTerms;
+  std::vector<steam::CostTermX::ConstPtr> costTerms;
 
   // If empty, return none
   if (knotMap_.empty()) {
@@ -246,7 +246,7 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
 
     // Setup unary error and cost term
     steam::VectorSpaceErrorEval::Ptr errorfunc(new steam::VectorSpaceErrorEval(meas, it1->second->varpi));
-    steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, initialVelocityNoiseModel, sharedLossFunc));
+    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, initialVelocityNoiseModel, sharedLossFunc));
     costTerms.push_back(cost);
   }
 
@@ -274,7 +274,7 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
 
       // Create cost term
       steam::se3::GpTrajectoryPrior::Ptr errorfunc(new steam::se3::GpTrajectoryPrior(knot1, knot2));
-      steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, sharedGPNoiseModel, sharedLossFunc));
+      steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
       costTerms.push_back(cost);
     }
   }

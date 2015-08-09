@@ -19,18 +19,21 @@ namespace steam {
 /// \brief Class that fully defines a nonlinear cost term (or 'factor').
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
+template <int MEAS_DIM, int MAX_STATE_SIZE>
 class CostTerm
 {
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTerm> Ptr;
-  typedef boost::shared_ptr<const CostTerm> ConstPtr;
+  typedef boost::shared_ptr<CostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
+  typedef boost::shared_ptr<const CostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTerm(const ErrorEvaluatorX::ConstPtr& errorFunction, const NoiseModelX::ConstPtr& noiseModel, const LossFunction::ConstPtr& lossFunc);
+  CostTerm(const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
+           const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
+           const LossFunction::ConstPtr& lossFunc);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the cost of this term. Error is first whitened by the noise model
@@ -46,27 +49,34 @@ public:
   ///              error = sqrt(weight)*sqrt(cov^-1)*rawError
   ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::VectorXd evalWeightedAndWhitened(std::vector<Jacobian<> >* outJacobians) const;
+  Eigen::Matrix<double,MEAS_DIM,1> evalWeightedAndWhitened(
+      std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
 
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Error evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  ErrorEvaluatorX::ConstPtr errorFunction_;
+  typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr errorFunction_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Noise model
   //////////////////////////////////////////////////////////////////////////////////////////////
-  NoiseModelX::ConstPtr noiseModel_;
+  typename NoiseModel<MEAS_DIM>::ConstPtr noiseModel_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Loss function
   //////////////////////////////////////////////////////////////////////////////////////////////
   LossFunction::ConstPtr lossFunc_;
-
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Typedef for the general dynamic cost term
+//////////////////////////////////////////////////////////////////////////////////////////////
+typedef CostTerm<Eigen::Dynamic, Eigen::Dynamic> CostTermX;
+
 } // steam
+
+#include <steam/CostTerm-inl.hpp>
 
 #endif // STEAM_COST_TERM_HPP

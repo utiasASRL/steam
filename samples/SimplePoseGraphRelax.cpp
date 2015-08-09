@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
   ///
 
   // steam cost terms
-  std::vector<steam::CostTerm::Ptr> costTerms;
+  std::vector<steam::CostTermX::Ptr> costTerms;
 
   // Setup shared noise and loss functions
   steam::NoiseModelX::Ptr sharedNoiseModel(new steam::NoiseModelX(Eigen::MatrixXd::Identity(6,6)));
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(meas_T_BA, stateVarB, stateVarA));
 
     // Create cost term and add to problem
-    steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, sharedNoiseModel, sharedLossFunc));
+    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedNoiseModel, sharedLossFunc));
     costTerms.push_back(cost);
   }
 

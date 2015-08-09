@@ -28,7 +28,7 @@ void OptimizationProblem::addStateVariable(const StateVariableBase::Ptr& state)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a cost term (should depend on active states that were added to the problem)
 //////////////////////////////////////////////////////////////////////////////////////////////
-void OptimizationProblem::addCostTerm(const CostTerm::ConstPtr& costTerm) {
+void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
   costTerms_.push_back(costTerm);
 }
 
@@ -68,7 +68,7 @@ const StateVector& OptimizationProblem::getStateVector() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get a reference to the cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-const std::vector<CostTerm::ConstPtr>& OptimizationProblem::getCostTerms() const {
+const std::vector<CostTermX::ConstPtr>& OptimizationProblem::getCostTerms() const {
   return costTerms_;
 }
 

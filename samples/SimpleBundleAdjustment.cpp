@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  std::vector<steam::CostTerm::Ptr> costTerms;
+  std::vector<steam::CostTermX::Ptr> costTerms;
 
   // Setup shared noise and loss function
   steam::NoiseModelX::Ptr sharedCameraNoiseModel(new steam::NoiseModelX(dataset.noise));
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
             dataset.meas[i].data, sharedIntrinsics, pose_c_0, landVar));
 
     // Construct cost term
-    steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
+    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
     costTerms.push_back(cost);
   }
 
