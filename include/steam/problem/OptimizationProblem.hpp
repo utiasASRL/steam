@@ -10,8 +10,8 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include <steam/StateVector.hpp>
-#include <steam/CostTerm.hpp>
+#include <steam/state/StateVector.hpp>
+#include <steam/problem/CostTerm.hpp>
 
 namespace steam {
 

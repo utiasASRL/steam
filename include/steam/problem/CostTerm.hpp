@@ -10,8 +10,8 @@
 #include <boost/shared_ptr.hpp>
 
 #include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/NoiseModel.hpp>
-#include <steam/LossFunctions.hpp>
+#include <steam/problem/NoiseModel.hpp>
+#include <steam/problem/LossFunctions.hpp>
 
 namespace steam {
 
@@ -77,6 +77,6 @@ typedef CostTerm<Eigen::Dynamic, Eigen::Dynamic> CostTermX;
 
 } // steam
 
-#include <steam/CostTerm-inl.hpp>
+#include <steam/problem/CostTerm-inl.hpp>
 
 #endif // STEAM_COST_TERM_HPP

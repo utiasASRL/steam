@@ -12,7 +12,7 @@
 #include <boost/make_shared.hpp>
 #include <stdexcept>
 
-#include <steam/OptimizationProblem.hpp>
+#include <steam/problem/OptimizationProblem.hpp>
 
 namespace steam {
 

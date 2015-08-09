@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/OptimizationProblem.hpp>
+#include <steam/problem/OptimizationProblem.hpp>
 
 #include <iomanip>
 #include <steam/common/Timer.hpp>

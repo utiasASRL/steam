@@ -8,12 +8,6 @@
 #ifndef STEAM_ESTIMATION_LIBRARY_HPP
 #define STEAM_ESTIMATION_LIBRARY_HPP
 
-// base
-#include <steam/OptimizationProblem.hpp>
-#include <steam/CostTerm.hpp>
-#include <steam/LossFunctions.hpp>
-#include <steam/NoiseModel.hpp>
-
 // blkmat
 #include <steam/blockmat/BlockMatrix.hpp>
 #include <steam/blockmat/BlockVector.hpp>
@@ -35,6 +29,12 @@
 
 // evaluator - jacobian
 #include <steam/evaluator/jacobian/EvalTreeNode.hpp>
+
+// problem
+#include <steam/problem/CostTerm.hpp>
+#include <steam/problem/NoiseModel.hpp>
+#include <steam/problem/LossFunctions.hpp>
+#include <steam/problem/OptimizationProblem.hpp>
 
 // solver
 #include <steam/solver/VanillaGaussNewtonSolver.hpp>

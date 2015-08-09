@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/NoiseModel.hpp>
+#include <steam/problem/NoiseModel.hpp>
 
 #include <iostream>
 #include <stdexcept>

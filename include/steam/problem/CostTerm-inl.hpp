@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/CostTerm.hpp>
+#include <steam/problem/CostTerm.hpp>
 
 #include <iostream>
 

@@ -89,6 +89,6 @@ typedef NoiseModel<Eigen::Dynamic> NoiseModelX;
 
 } // steam
 
-#include <steam/NoiseModel-inl.hpp>
+#include <steam/problem/NoiseModel-inl.hpp>
 
 #endif // STEAM_NOISE_MODEL_HPP

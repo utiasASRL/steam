@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include <steam/StateVector.hpp>
+#include <steam/state/StateVector.hpp>
 #include <steam/evaluator/jacobian/Jacobian.hpp>
 
 namespace steam {

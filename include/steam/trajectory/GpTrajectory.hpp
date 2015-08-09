@@ -13,7 +13,7 @@
 #include <steam/state/LieGroupStateVar.hpp>
 #include <steam/state/VectorSpaceStateVar.hpp>
 #include <steam/evaluator/TransformEvaluators.hpp>
-#include <steam/CostTerm.hpp>
+#include <steam/problem/CostTerm.hpp>
 
 namespace steam {
 namespace se3 {

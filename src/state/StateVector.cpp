@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/StateVector.hpp>
+#include <steam/state/StateVector.hpp>
 #include <steam/blockmat/BlockVector.hpp>
 
 #include <iostream>
