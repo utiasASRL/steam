@@ -36,17 +36,18 @@ class EvalTreeNode : public EvalTreeNodeBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual ~EvalTreeNode() {}
 
-  // a method we must implement for pool... pool calls this when we return the object..
-  void reset() {
-    // Note that we choose not to reset the value_ memory, as it is always set by the getter
-    EvalTreeNodeBase::reset();
-  }
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Use when node was allocated using a pool. This function causes the object to
+  ///        release itself back to the pool it was allocated from. While the user is
+  ///        responsible for releasing the top level node, this interface method is required
+  ///        in order for this node to release its children.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void release();
 
-  // tell object to release itself back to the pool it came from ...
-  // this method is required in order to release the children contained by the base class
-  virtual void release() {
-    return pool.returnObj(this);
-  }
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Release children and reset internals.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void reset();
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get current value
@@ -58,8 +59,9 @@ class EvalTreeNode : public EvalTreeNodeBase
   /////////////////////////////////////////////////////////////////////////////////////////////
   void setValue(const TYPE& value);
 
-  /// static pool
-  //static Pool<EvalTreeNode<TYPE> > pool;
+  /////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Static instance of OpenMP-enabled pool
+  /////////////////////////////////////////////////////////////////////////////////////////////
   static OmpPool<EvalTreeNode<TYPE> > pool;
 
  private:

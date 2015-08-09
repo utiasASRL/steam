@@ -33,13 +33,7 @@ bool StereoCameraErrorEval::isActive() const {
 Eigen::VectorXd StereoCameraErrorEval::evaluate() const {
 
   // Return error (between measurement and point estimate projected in camera frame)
-  //return meas_ - cameraModel(eval_->evaluate());
-
-  // Get evaluation tree
-  EvalTreeNode<Eigen::Vector4d>* evaluationTree = eval_->evaluateTree();
-  Eigen::VectorXd temp = meas_ - cameraModel(evaluationTree->getValue());
-  EvalTreeNode<Eigen::Vector4d>::pool.returnObj(evaluationTree);
-  return temp;
+  return meas_ - cameraModel(eval_->evaluate());
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,8 +56,7 @@ Eigen::VectorXd StereoCameraErrorEval::evaluate(const Eigen::MatrixXd& lhs, std:
   // Get Jacobians
   eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c), evaluationTree, jacs);
 
-  // Cleanup tree memory
-  //delete evaluationTree;
+  // Return tree memory to pool
   EvalTreeNode<Eigen::Vector4d>::pool.returnObj(evaluationTree);
 
   // Return evaluation

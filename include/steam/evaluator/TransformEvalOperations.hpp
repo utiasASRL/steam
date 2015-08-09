@@ -48,6 +48,9 @@ public:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the transformation matrix tree
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
 
@@ -105,6 +108,9 @@ public:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the transformation matrix tree
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
 
@@ -158,6 +164,9 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra and
   ///        sub-tree of evaluations
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluateTree() const;
 
@@ -211,6 +220,9 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the point transformed by the transform evaluator and
   ///        sub-tree of evaluations
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<Eigen::Vector4d>* evaluateTree() const;
 

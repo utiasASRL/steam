@@ -69,13 +69,14 @@ Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::ve
 
   // Get evaluation tree
   EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree = errorEvaluator_->evaluateTree();
-  errorEvaluator_->appendJacobians(lhs, evaluationTree, jacs);
 
   // Get evaluation from tree
   Eigen::VectorXd eval = evaluationTree->getValue();
 
-  // Cleanup tree memory
-  //delete evaluationTree;
+  // Get Jacobians
+  errorEvaluator_->appendJacobians(lhs, evaluationTree, jacs);
+
+  // Return tree memory to pool
   EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.returnObj(evaluationTree);
 
   // Return evaluation

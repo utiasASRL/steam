@@ -45,12 +45,15 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation', with Jacobian tree
+  /// \brief Interface for an evaluation method that returns the full tree of evaluations
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<TYPE>* evaluateTree() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general evaluation of the Jacobian tree
+  /// \brief Interface for the evaluation of the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<TYPE>* evaluationTree,

@@ -28,7 +28,7 @@ TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
   }
   jacs->clear();
 
-  // Get evaluation tree
+  // Get evaluation tree - note that this pointer belongs to a pool
   EvalTreeNode<TYPE>* tree = this->evaluateTree();
 
   // Get Jacobians
@@ -37,8 +37,8 @@ TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
   // Get evaluation from tree
   TYPE eval = tree->getValue();
 
-  // Cleanup tree memory
-  delete tree;
+  // Return tree memory to pool
+  EvalTreeNode<TYPE>::pool.returnObj(tree);
 
   // Return evaluation
   return eval;

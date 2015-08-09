@@ -44,8 +44,8 @@ lgmath::se3::Transformation TransformStateEvaluator::evaluate() const {
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* TransformStateEvaluator::evaluateTree() const {
-  //return new EvalTreeNode<lgmath::se3::Transformation>(transform_->getValue());
 
+  // Make new leaf node -- note we get memory from the pool
   EvalTreeNode<lgmath::se3::Transformation>* result = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
   result->setValue(transform_->getValue());
   return result;
@@ -104,8 +104,8 @@ lgmath::se3::Transformation FixedTransformEvaluator::evaluate() const {
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* FixedTransformEvaluator::evaluateTree() const {
-  //return new EvalTreeNode<lgmath::se3::Transformation>(transform_);
 
+  // Make new leaf node -- note we get memory from the pool
   EvalTreeNode<lgmath::se3::Transformation>* result = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();// makeNew();
   result->setValue(transform_);
   return result;

@@ -9,7 +9,9 @@
 
 namespace steam {
 
-/// static declaration
+/////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Static declaration of OpenMP-enabled pool
+/////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE>
 OmpPool<EvalTreeNode<TYPE> > EvalTreeNode<TYPE>::pool;
 
@@ -26,6 +28,27 @@ EvalTreeNode<TYPE>::EvalTreeNode() {
 template<typename TYPE>
 EvalTreeNode<TYPE>::EvalTreeNode(const TYPE& value)
   : EvalTreeNodeBase(), value_(value) {
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Use when node was allocated using a pool. This function causes the object to
+///        release itself back to the pool it was allocated from. While the user is
+///        responsible for releasing the top level node, this interface method is required
+///        in order for this node to release its children.
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<typename TYPE>
+void EvalTreeNode<TYPE>::release() {
+  return pool.returnObj(this);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Release children and reset internals.
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<typename TYPE>
+void EvalTreeNode<TYPE>::reset() {
+  // Note that we choose not to reset the value_ memory, as the whole reason we are
+  // using pools is to get high efficiency, we do not want to memcpy more than once.
+  EvalTreeNodeBase::reset();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////

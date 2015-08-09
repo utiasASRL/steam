@@ -52,10 +52,7 @@ EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTr
   EvalTreeNode<lgmath::se3::Transformation>* transform1 = transform1_->evaluateTree();
   EvalTreeNode<lgmath::se3::Transformation>* transform2 = transform2_->evaluateTree();
 
-  // Make new root node
-  //EvalTreeNode<lgmath::se3::Transformation>* root =
-  //    new EvalTreeNode<lgmath::se3::Transformation>(transform1->getValue()*transform2->getValue());
-
+  // Make new root node -- note we get memory from the pool
   EvalTreeNode<lgmath::se3::Transformation>* root = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
   root->setValue(transform1->getValue()*transform2->getValue());
 
@@ -74,6 +71,7 @@ void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                   std::vector<Jacobian<> >* outJacobians) const {
 
+  // Cast back to transformation
   EvalTreeNode<lgmath::se3::Transformation>* t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
 
@@ -82,6 +80,7 @@ void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
     transform1_->appendJacobians(lhs, t1, outJacobians);
   }
 
+  // Get index of split between left and right-hand-side of Jacobians
   unsigned int hintIndex = outJacobians->size();
 
   // Check if transform2 is active
@@ -93,7 +92,7 @@ void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
     transform2_->appendJacobians(lhs*t1->getValue().adjoint(), t2, outJacobians);
   }
 
-  // Merge
+  // Merge jacobians
   Jacobian<>::merge(outJacobians, hintIndex);
 }
 
@@ -134,9 +133,7 @@ EvalTreeNode<lgmath::se3::Transformation>* InverseTransformEvaluator::evaluateTr
   // Evaluate sub-trees
   EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
-  // Make new root node
-  //EvalTreeNode<lgmath::se3::Transformation>* root =
-  //    new EvalTreeNode<lgmath::se3::Transformation>(transform->getValue().inverse());
+  // Make new root node -- note we get memory from the pool
   EvalTreeNode<lgmath::se3::Transformation>* root = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
   root->setValue(transform->getValue().inverse());
 
@@ -200,9 +197,7 @@ EvalTreeNode<Eigen::Matrix<double,6,1> >* LogMapEvaluator::evaluateTree() const 
   // Evaluate sub-trees
   EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
-  // Make new root node
-  //EvalTreeNode<Eigen::Matrix<double,6,1> >* root =
-  //    new EvalTreeNode<Eigen::Matrix<double,6,1> >(transform->getValue().vec());
+  // Make new root node -- note we get memory from the pool
   EvalTreeNode<Eigen::Matrix<double,6,1> >* root = EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.getObj();
   root->setValue(transform->getValue().vec());
 
@@ -276,16 +271,11 @@ EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
   // Evaluate transform sub-tree
   EvalTreeNode<lgmath::se3::Transformation>* transform = transform_->evaluateTree();
 
-  // Make new leaf node for landmark state variable
-  //EvalTreeNode<Eigen::Vector4d>* landmarkLeaf =
-  //    new EvalTreeNode<Eigen::Vector4d>(landmark_->getValue());
-
+  // Make new leaf node for landmark state variable -- note we get memory from the pool
   EvalTreeNode<Eigen::Vector4d>* landmarkLeaf = EvalTreeNode<Eigen::Vector4d>::pool.getObj();
   landmarkLeaf->setValue(landmark_->getValue());
 
-  // Make new root node
-  //EvalTreeNode<Eigen::Vector4d>* root =
-  //    new EvalTreeNode<Eigen::Vector4d>(transform->getValue()*landmarkLeaf->getValue());
+  // Make new root node -- note we get memory from the pool
   EvalTreeNode<Eigen::Vector4d>* root = EvalTreeNode<Eigen::Vector4d>::pool.getObj();
   root->setValue(transform->getValue()*landmarkLeaf->getValue());
 
@@ -304,6 +294,7 @@ void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                   std::vector<Jacobian<> >* outJacobians) const {
 
+  // Cast back to transform
   EvalTreeNode<lgmath::se3::Transformation>* t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
 

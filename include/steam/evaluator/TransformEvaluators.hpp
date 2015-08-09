@@ -67,6 +67,9 @@ class TransformStateEvaluator : public TransformEvaluator
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the transformation matrix tree
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
 
@@ -119,6 +122,9 @@ class FixedTransformEvaluator : public TransformEvaluator
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the transformation matrix tree
+  ///
+  /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
+  ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
 
