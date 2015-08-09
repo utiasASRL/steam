@@ -95,6 +95,7 @@ class OptimizationProblem
   ///        performing a temporary update.
   //////////////////////////////////////////////////////////////////////////////////////////////
   StateVector stateVectorBackup_;
+  bool firstBackup_;
   bool pendingProposedState_;
 
 };

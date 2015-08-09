@@ -7,13 +7,14 @@
 #include <steam/OptimizationProblem.hpp>
 
 #include <iomanip>
+#include <steam/common/Timer.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-OptimizationProblem::OptimizationProblem() : pendingProposedState_(false) {
+OptimizationProblem::OptimizationProblem() : firstBackup_(true), pendingProposedState_(false) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -35,12 +36,26 @@ void OptimizationProblem::addCostTerm(const CostTerm::ConstPtr& costTerm) {
 /// \brief Compute the cost from the collection of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
 double OptimizationProblem::cost() const {
-  double cost = 0.0;
-  for(std::vector<CostTerm::ConstPtr>::const_iterator it = costTerms_.begin();
-      it != costTerms_.end(); ++it) {
-    cost += (*it)->evaluate();
+
+  // Calculate total cost in parallel
+  double cost[NUMBER_OF_OPENMP_THREADS];
+  #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
+  {
+    // Init costs
+    int tid = omp_get_thread_num();
+    cost[tid] = 0;
+
+    #pragma omp for
+    for(unsigned int i = 0; i < costTerms_.size(); i++) {
+      cost[tid] += costTerms_.at(i)->evaluate();
+    }
   }
-  return cost;
+
+  // Sum up costs and return total
+  for(unsigned int i = 1; i < NUMBER_OF_OPENMP_THREADS; i++) {
+    cost[0] += cost[i];
+  }
+  return cost[0];
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +84,12 @@ double OptimizationProblem::proposeUpdate(const Eigen::VectorXd& stateStep) {
   }
 
   // Make copy of state vector
-  stateVectorBackup_ = stateVec_;
+  if (firstBackup_) {
+    stateVectorBackup_ = stateVec_;
+    firstBackup_ = false;
+  } else {
+    stateVectorBackup_.copyValues(stateVec_);
+  }
 
   // Update copy with perturbation
   stateVec_.update(stateStep);

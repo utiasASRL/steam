@@ -141,21 +141,15 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* a
   // for the various different block sizes
   typedef std::pair<unsigned int, unsigned int> MatrixKey;
 
-  double evalTime[NUMBER_OF_OPENMP_THREADS];
-
   // For each cost term
   #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
   {
-    int tid = omp_get_thread_num();
-    evalTime[tid] = 0;
 
-    std::map<MatrixKey, Eigen::MatrixXd> matrixMap;
+    Eigen::MatrixXd a_add;
+    Eigen::VectorXd b_add;
+
     #pragma omp for
     for (unsigned int c = 0 ; c < this->getProblem().getCostTerms().size(); c++) {
-
-      steam::Timer timer;
-      double asdf = this->getProblem().getCostTerms().at(c)->evaluate();
-      evalTime[tid] += timer.milliseconds();
 
       // Compute the weighted and whitened errors and jacobians
       // err = sqrt(w)*sqrt(R^-1)*rawError
@@ -170,7 +164,7 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* a
         unsigned int blkIdx1 = this->getProblem().getStateVector().getStateBlockIndex(jacobians[i].key);
 
         // Calculate terms needed to update the right-hand-side
-        Eigen::VectorXd b_add = (-1)*jacobians[i].jac.transpose()*error;
+        b_add = (-1)*jacobians[i].jac.transpose()*error;
 
         // Update the right-hand side (thread critical)
         #pragma omp critical(b_update)
@@ -187,34 +181,25 @@ void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* a
           // Calculate terms needed to update the Gauss-Newton left-hand side
           unsigned int row;
           unsigned int col;
-          MatrixKey key;
           if (blkIdx1 <= blkIdx2) {
             row = blkIdx1;
             col = blkIdx2;
-            key = std::make_pair(jacobians[i].jac.cols(), jacobians[j].jac.cols());
-            matrixMap[key] = jacobians[i].jac.transpose()*jacobians[j].jac;
+            a_add = jacobians[i].jac.transpose()*jacobians[j].jac;
           } else {
             row = blkIdx2;
             col = blkIdx1;
-            key = std::make_pair(jacobians[j].jac.cols(), jacobians[i].jac.cols());
-            matrixMap[key] = jacobians[j].jac.transpose()*jacobians[i].jac;
+            a_add = jacobians[j].jac.transpose()*jacobians[i].jac;
           }
 
           // Update the left-hand side (thread critical)
           #pragma omp critical(a_update)
           {
-            A_.add(row, col, matrixMap[key]);
+            A_.add(row, col, a_add);
           }
         }
       }
     }
   } // end parallel
-
-  double evaltotal = 0;
-  for (unsigned int i = 0; i < NUMBER_OF_OPENMP_THREADS; i++) {
-    evaltotal += evalTime[i];
-  }
-  std::cout << "time: " << evaltotal << std::endl;
 
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
