@@ -106,16 +106,6 @@ void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixX
   } else {
     it->second.data += m;
   }
-
-//  // Find if row entry exists
-//  std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
-
-//  // Check if found, and create new entry, or add to existing one
-//  if (it == cols_[c].rows.end()) {
-//    cols_[c].rows[r].data = m.block(0,0,blkRowIndexing.blkSizeAt(r), blkColIndexing.blkSizeAt(c));
-//  } else {
-//    it->second.data += m.block(0,0,blkRowIndexing.blkSizeAt(r), blkColIndexing.blkSizeAt(c));
-//  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

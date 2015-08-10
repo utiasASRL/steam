@@ -67,8 +67,6 @@ void BlockVector::add(const unsigned int& r, const Eigen::VectorXd& v) {
   }
 
   data_.block(indexing_.cumSumAt(r),0,indexing_.blkSizeAt(r),1) += v;
-
-  //data_.block(indexing_.cumSumAt(r),0,indexing_.blkSizeAt(r),1) += v.block(0,0,indexing_.blkSizeAt(r),1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -125,8 +125,6 @@ int main(int argc, char** argv) {
             dataset.meas[i].data, sharedIntrinsics, pose_c_0, landVar));
 
     // Construct cost term
-    //steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
-    //costTerms.push_back(cost);
     steam::CostTerm<4,6>::Ptr cost(new steam::CostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
     stereoCostTerms->add(cost);
   }
@@ -149,9 +147,6 @@ int main(int argc, char** argv) {
   }
 
   // Add cost terms
-  /*for (unsigned int i = 0; i < costTerms.size(); i++) {
-    problem.addCostTerm(costTerms[i]);
-  }*/
   problem.addCostTermCollection(stereoCostTerms);
 
   ///

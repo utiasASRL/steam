@@ -91,6 +91,9 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
     double time3[NUMBER_OF_OPENMP_THREADS];
   #endif
 
+  // Get square block indices (we know the hessian is block-symmetric)
+  const std::vector<unsigned int>& blkSizes = approximateHessian->getIndexing().rowIndexing().blkSizes();
+
   // For each cost term
   #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
   {
@@ -102,6 +105,7 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
       time3[tid] = 0;
     #endif
 
+    // Init dynamic matrices
     Eigen::MatrixXd newHessianTerm;
     Eigen::VectorXd newGradTerm;
 
@@ -129,7 +133,7 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         unsigned int blkIdx1 = stateVector.getStateBlockIndex(jacobians[i].key);
 
         // Calculate terms needed to update the right-hand-side
-        unsigned int size1 = approximateHessian->getIndexing().rowIndexing().blkSizeAt(blkIdx1);
+        unsigned int size1 = blkSizes.at(blkIdx1);
         newGradTerm = (-1)*jacobians[i].jac.leftCols(size1).transpose()*error;
         #ifdef DEBUG_BUILD_TIME
           time2[tid] += timer.milliseconds(); timer.reset();
@@ -140,6 +144,7 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         {
           gradientVector->add(blkIdx1, newGradTerm);
         }
+        //gradient[tid].add(blkIdx1, newGradTerm);
         #ifdef DEBUG_BUILD_TIME
           time3[tid] += timer.milliseconds(); timer.reset();
         #endif
@@ -151,7 +156,7 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
           unsigned int blkIdx2 = stateVector.getStateBlockIndex(jacobians[j].key);
 
           // Calculate terms needed to update the Gauss-Newton left-hand side
-          unsigned int size2 = approximateHessian->getIndexing().rowIndexing().blkSizeAt(blkIdx2);
+          unsigned int size2 = blkSizes.at(blkIdx2);
           unsigned int row;
           unsigned int col;
           if (blkIdx1 <= blkIdx2) {
@@ -172,6 +177,7 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
           {
             approximateHessian->add(row, col, newHessianTerm);
           }
+
           #ifdef DEBUG_BUILD_TIME
             time3[tid] += timer.milliseconds(); timer.reset();
           #endif
