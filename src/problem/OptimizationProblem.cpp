@@ -69,11 +69,16 @@ double OptimizationProblem::cost() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 void OptimizationProblem::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* approximateHessian,
                                                 Eigen::VectorXd* gradientVector) const {
+//  double time1 = 0;
+//  double time2 = 0;
+//  double time3 = 0;
 
   // Setup Matrices
+  //Timer timer;
   std::vector<unsigned int> sqSizes = stateVec_.getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
+  //time1 = timer.milliseconds(); timer.reset();
 
   // Add terms from the default dynamic cost terms
   if (dynamicCostTerms_.size() > 0) {
@@ -87,10 +92,16 @@ void OptimizationProblem::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* app
     }
   }
 
+  //time2 = timer.milliseconds(); timer.reset();
+
   // Convert to Eigen Type - with the block-sparsity pattern
   // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
   *approximateHessian = A_.toEigen(false);
   *gradientVector = b_.toEigen();
+
+  //time3 = timer.milliseconds(); timer.reset();
+
+  //std::cout << "top layer: " << time1 << " " << time2 << " " << time3 << " total: " << time1+time2+time3 << std::endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

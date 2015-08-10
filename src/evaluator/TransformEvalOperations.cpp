@@ -204,7 +204,8 @@ void ComposeTransformEvaluator::appendJacobians4(const Eigen::Matrix<double,4,6>
     EvalTreeNode<lgmath::se3::Transformation>* t2 =
         static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
-    transform2_->appendJacobians4(lhs*t1->getValue().adjoint(), t2, outJacobians);
+    Eigen::Matrix<double,4,6> newLhs = lhs*t1->getValue().adjoint();
+    transform2_->appendJacobians4(newLhs, t2, outJacobians);
   }
 
   // Merge jacobians
@@ -343,7 +344,8 @@ void InverseTransformEvaluator::appendJacobians4(const Eigen::Matrix<double,4,6>
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   // Check if transform is active
   if (transform_->isActive()) {
-    transform_->appendJacobians4((-1)*lhs*evaluationTree->getValue().adjoint(),
+    Eigen::Matrix<double,4,6> newLhs = (-1)*lhs*evaluationTree->getValue().adjoint();
+    transform_->appendJacobians4(newLhs,
                                  static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0)),
                                  outJacobians);
   }
@@ -588,8 +590,8 @@ void ComposeLandmarkEvaluator::appendJacobians1(const Eigen::Matrix<double,1,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    transform_->appendJacobians1(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
-                                t1, outJacobians);
+    Eigen::Matrix<double,1,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    transform_->appendJacobians1(newLhs, t1, outJacobians);
   }
 
   // Check if state is locked
@@ -612,8 +614,8 @@ void ComposeLandmarkEvaluator::appendJacobians2(const Eigen::Matrix<double,2,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    transform_->appendJacobians2(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
-                                t1, outJacobians);
+    Eigen::Matrix<double,2,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    transform_->appendJacobians2(newLhs, t1, outJacobians);
   }
 
   // Check if state is locked
@@ -636,8 +638,8 @@ void ComposeLandmarkEvaluator::appendJacobians3(const Eigen::Matrix<double,3,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    transform_->appendJacobians3(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
-                                t1, outJacobians);
+    Eigen::Matrix<double,3,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    transform_->appendJacobians3(newLhs, t1, outJacobians);
   }
 
   // Check if state is locked
@@ -660,8 +662,8 @@ void ComposeLandmarkEvaluator::appendJacobians4(const Eigen::Matrix<double,4,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    transform_->appendJacobians4(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
-                                t1, outJacobians);
+    Eigen::Matrix<double,4,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    transform_->appendJacobians4(newLhs, t1, outJacobians);
   }
 
   // Check if state is locked
@@ -684,8 +686,8 @@ void ComposeLandmarkEvaluator::appendJacobians6(const Eigen::Matrix<double,6,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    transform_->appendJacobians6(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
-                                t1, outJacobians);
+    Eigen::Matrix<double,6,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    transform_->appendJacobians6(newLhs, t1, outJacobians);
   }
 
   // Check if state is locked

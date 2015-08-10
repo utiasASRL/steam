@@ -24,6 +24,7 @@
 
 // evaluator - common (sample functions)
 #include <steam/evaluator/common/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/common/StereoCameraErrorEvalX.hpp>
 #include <steam/evaluator/common/TransformErrorEval.hpp>
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
 

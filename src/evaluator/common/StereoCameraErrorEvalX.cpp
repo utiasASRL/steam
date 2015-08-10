@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file StereoCameraErrorEval.cpp
+/// \file StereoCameraErrorEvalX.cpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/common/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/common/StereoCameraErrorEvalX.hpp>
 
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
@@ -13,7 +13,7 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-StereoCameraErrorEval::StereoCameraErrorEval(const Eigen::Vector4d& meas,
+StereoCameraErrorEvalX::StereoCameraErrorEvalX(const Eigen::Vector4d& meas,
                                      const CameraIntrinsics::ConstPtr& intrinsics,
                                      const se3::TransformEvaluator::ConstPtr& T_cam_landmark,
                                      const se3::LandmarkStateVar::ConstPtr& landmark)
@@ -23,14 +23,14 @@ StereoCameraErrorEval::StereoCameraErrorEval(const Eigen::Vector4d& meas,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool StereoCameraErrorEval::isActive() const {
+bool StereoCameraErrorEvalX::isActive() const {
   return eval_->isActive();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 4-d measurement error (ul vl ur vr)
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector4d StereoCameraErrorEval::evaluate() const {
+Eigen::VectorXd StereoCameraErrorEvalX::evaluate() const {
 
   // Return error (between measurement and point estimate projected in camera frame)
   return meas_ - cameraModel(eval_->evaluate());
@@ -39,7 +39,7 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std::vector<Jacobian<4,6> >* jacs) const {
+Eigen::VectorXd StereoCameraErrorEvalX::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -54,9 +54,7 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
   Eigen::Vector4d point_in_c = evaluationTree->getValue();
 
   // Get Jacobians
-  //eval_->appendJacobians4((-1)*lhs*cameraModelJacobian(point_in_c), evaluationTree, jacs);
-  Eigen::Matrix4d newLhs = (-1)*lhs*cameraModelJacobian(point_in_c);
-  eval_->appendJacobians4(newLhs, evaluationTree, jacs);
+  eval_->appendJacobians(-lhs*cameraModelJacobian(point_in_c), evaluationTree, jacs);
 
   // Return tree memory to pool
   EvalTreeNode<Eigen::Vector4d>::pool.returnObj(evaluationTree);
@@ -68,7 +66,7 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Camera model
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector4d StereoCameraErrorEval::cameraModel(const Eigen::Vector4d& point) const {
+Eigen::Vector4d StereoCameraErrorEvalX::cameraModel(const Eigen::Vector4d& point) const {
 
   // Precompute values
   double one_over_z = 1.0/point[2];
@@ -85,7 +83,7 @@ Eigen::Vector4d StereoCameraErrorEval::cameraModel(const Eigen::Vector4d& point)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Camera model Jacobian
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix4d StereoCameraErrorEval::cameraModelJacobian(const Eigen::Vector4d& point) const {
+Eigen::Matrix4d StereoCameraErrorEvalX::cameraModelJacobian(const Eigen::Vector4d& point) const {
 
   // Precompute values
   double one_over_z = 1.0/point[2];

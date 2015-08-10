@@ -7,6 +7,9 @@
 #include <steam/problem/CostTermCollection.hpp>
 
 #include <iostream>
+#include <steam/common/Timer.hpp>
+
+//#define DEBUG_BUILD_TIME
 
 namespace steam {
 
@@ -82,21 +85,42 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
   // Locally disable any internal eigen multithreading -- we do our own OpenMP
   Eigen::setNbThreads(1);
 
+  #ifdef DEBUG_BUILD_TIME
+    double time1[NUMBER_OF_OPENMP_THREADS];
+    double time2[NUMBER_OF_OPENMP_THREADS];
+    double time3[NUMBER_OF_OPENMP_THREADS];
+  #endif
+
   // For each cost term
   #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
   {
 
-    Eigen::Matrix<double,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
-    Eigen::Matrix<double,MAX_STATE_SIZE,1> newGradTerm;
+    #ifdef DEBUG_BUILD_TIME
+      int tid = omp_get_thread_num();
+      time1[tid] = 0;
+      time2[tid] = 0;
+      time3[tid] = 0;
+    #endif
+
+    Eigen::MatrixXd newHessianTerm;
+    Eigen::VectorXd newGradTerm;
 
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
+
+      #ifdef DEBUG_BUILD_TIME
+        steam::Timer timer;
+      #endif
 
       // Compute the weighted and whitened errors and jacobians
       // err = sqrt(w)*sqrt(R^-1)*rawError
       // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
       std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> > jacobians;
       Eigen::Matrix<double,MEAS_DIM,1> error = costTerms_.at(c)->evalWeightedAndWhitened(&jacobians);
+
+      #ifdef DEBUG_BUILD_TIME
+        time1[tid] += timer.milliseconds(); timer.reset();
+      #endif
 
       // For each jacobian
       for (unsigned int i = 0; i < jacobians.size(); i++) {
@@ -105,13 +129,20 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         unsigned int blkIdx1 = stateVector.getStateBlockIndex(jacobians[i].key);
 
         // Calculate terms needed to update the right-hand-side
-        newGradTerm = (-1)*jacobians[i].jac.transpose()*error;
+        unsigned int size1 = approximateHessian->getIndexing().rowIndexing().blkSizeAt(blkIdx1);
+        newGradTerm = (-1)*jacobians[i].jac.leftCols(size1).transpose()*error;
+        #ifdef DEBUG_BUILD_TIME
+          time2[tid] += timer.milliseconds(); timer.reset();
+        #endif
 
         // Update the right-hand side (thread critical)
         #pragma omp critical(b_update)
         {
           gradientVector->add(blkIdx1, newGradTerm);
         }
+        #ifdef DEBUG_BUILD_TIME
+          time3[tid] += timer.milliseconds(); timer.reset();
+        #endif
 
         // For each jacobian (in upper half)
         for (unsigned int j = i; j < jacobians.size(); j++) {
@@ -120,27 +151,46 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
           unsigned int blkIdx2 = stateVector.getStateBlockIndex(jacobians[j].key);
 
           // Calculate terms needed to update the Gauss-Newton left-hand side
+          unsigned int size2 = approximateHessian->getIndexing().rowIndexing().blkSizeAt(blkIdx2);
           unsigned int row;
           unsigned int col;
           if (blkIdx1 <= blkIdx2) {
             row = blkIdx1;
             col = blkIdx2;
-            newHessianTerm = jacobians[i].jac.transpose()*jacobians[j].jac;
+            newHessianTerm = jacobians[i].jac.leftCols(size1).transpose()*jacobians[j].jac.leftCols(size2);
           } else {
             row = blkIdx2;
             col = blkIdx1;
-            newHessianTerm = jacobians[j].jac.transpose()*jacobians[i].jac;
+            newHessianTerm = jacobians[j].jac.leftCols(size2).transpose()*jacobians[i].jac.leftCols(size1);
           }
+          #ifdef DEBUG_BUILD_TIME
+            time2[tid] += timer.milliseconds(); timer.reset();
+          #endif
 
           // Update the left-hand side (thread critical)
           #pragma omp critical(a_update)
           {
             approximateHessian->add(row, col, newHessianTerm);
           }
+          #ifdef DEBUG_BUILD_TIME
+            time3[tid] += timer.milliseconds(); timer.reset();
+          #endif
         }
       }
     }
   } // end parallel
+
+  #ifdef DEBUG_BUILD_TIME
+    for (unsigned int i = 1; i < NUMBER_OF_OPENMP_THREADS; i++) {
+      time1[0] += time1[i];
+      time2[0] += time2[i];
+      time3[0] += time3[i];
+    }
+    std::cout << "avg calc jac: " << time1[0]/NUMBER_OF_OPENMP_THREADS
+              << ", avg mult jacs: " << time2[0]/NUMBER_OF_OPENMP_THREADS
+              << ", avg sync-add: " << time3[0]/NUMBER_OF_OPENMP_THREADS
+              << ", avg total: " << (time1[0]+time2[0]+time3[0])/NUMBER_OF_OPENMP_THREADS << std::endl;
+  #endif
 }
 
 } // steam

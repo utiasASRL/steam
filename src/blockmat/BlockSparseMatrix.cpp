@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <iostream>
 
+#include <steam/common/Timer.hpp>
+
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,6 +106,16 @@ void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixX
   } else {
     it->second.data += m;
   }
+
+//  // Find if row entry exists
+//  std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
+
+//  // Check if found, and create new entry, or add to existing one
+//  if (it == cols_[c].rows.end()) {
+//    cols_[c].rows[r].data = m.block(0,0,blkRowIndexing.blkSizeAt(r), blkColIndexing.blkSizeAt(c));
+//  } else {
+//    it->second.data += m.block(0,0,blkRowIndexing.blkSizeAt(r), blkColIndexing.blkSizeAt(c));
+//  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -200,15 +212,22 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity)
 
   // Iterate over block-sparse columns and rows
   for (unsigned int c = 0; c < blkColIndexing.numEntries(); c++) {
+
+    unsigned colBlkSize = blkColIndexing.blkSizeAt(c);
+    unsigned colCumSum = blkColIndexing.cumSumAt(c);
     for(std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.begin(); it != cols_[c].rows.end(); ++it) {
 
       // Get row index of block entry
       unsigned int r = it->first;
+      unsigned int rowBlkSize = blkRowIndexing.blkSizeAt(r);
+      unsigned int rowCumSum = blkRowIndexing.cumSumAt(r);
 
       // Iterate over internal matrix dimensions
       // Eigen matrix storage is column-major, outer iterator should be over column first for speed
-      for (unsigned int j = 0; j < blkColIndexing.blkSizeAt(c); j++) {
-        for (unsigned int i = 0; i < blkRowIndexing.blkSizeAt(r); i++) {
+      unsigned int colIdx = colCumSum;
+      for (unsigned int j = 0; j < colBlkSize; j++, colIdx++) {
+        unsigned int rowIdx = rowCumSum;
+        for (unsigned int i = 0; i < rowBlkSize; i++, rowIdx++) {
 
           // Get scalar element
           double v_ij = it->second.data(i,j);
@@ -217,7 +236,7 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity)
           // ** The case where we do not add the element is when sub-block sparsity is enabled
           //    and an element is exactly zero
           if (fabs(v_ij) > 0.0 || !getSubBlockSparsity) {
-            mat.insert(blkRowIndexing.cumSumAt(r) + i, blkColIndexing.cumSumAt(c) + j) = v_ij;
+            mat.insert(rowIdx, colIdx) = v_ij;
           }
         }
       }
@@ -226,6 +245,7 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity)
 
   // (optional) Compress into compact format
   mat.makeCompressed();
+
   return mat;
 }
 
