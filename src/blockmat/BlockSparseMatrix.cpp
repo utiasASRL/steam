@@ -109,6 +109,46 @@ void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixX
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Returns a reference to the row entry at (r,c), if it exists; if it does not exist
+///        it will be inserted if 'allowInsert' is set to true.
+///        *Note this throws an exception if matrix is symmetric and you request a lower
+///         triangular entry.
+//////////////////////////////////////////////////////////////////////////////////////////////
+BlockSparseMatrix::BlockRowEntry& BlockSparseMatrix::rowEntryAt(unsigned int r, unsigned int c, bool allowInsert) {
+
+  // Check that indexing is valid
+  if (r >= this->getIndexing().rowIndexing().numEntries() ||
+      c >= this->getIndexing().colIndexing().numEntries()) {
+    throw std::invalid_argument("Requested row or column indice did not fall in valid "
+                                "range of existing block structure.");
+  }
+
+  // If symmetric, check that we are indexing into upper-triangular portion
+  if (this->isSymmetric() && r > c) {
+    std::cout << "[STEAM WARN] Attempted to add to lower half of upper-symmetric, "
+                 "block-sparse matrix: cannot return reference." << std::endl;
+  }
+
+  // Find if row entry exists
+  std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
+
+  // If it does not exist, throw exception
+  if (it == cols_[c].rows.end()) {
+    if (allowInsert) {
+      BlockRowEntry& entry = cols_[c].rows[r];
+      entry.data = Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
+                                         this->getIndexing().rowIndexing().blkSizeAt(c));
+      return entry;
+    } else {
+      throw std::invalid_argument("Tried to read entry that did not exist");
+    }
+  }
+
+  // Return reference to data
+  return it->second;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns a reference to the value at (r,c), if it exists
 ///        *Note this throws an exception if matrix is symmetric and you request a lower
 ///         triangular entry. For read operations, use copyAt(r,c).

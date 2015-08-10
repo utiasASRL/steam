@@ -106,8 +106,8 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
     #endif
 
     // Init dynamic matrices
-    Eigen::MatrixXd newHessianTerm;
-    Eigen::VectorXd newGradTerm;
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,1> newGradTerm;
 
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
@@ -142,9 +142,8 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         // Update the right-hand side (thread critical)
         #pragma omp critical(b_update)
         {
-          gradientVector->add(blkIdx1, newGradTerm);
+          gradientVector->mapAt(blkIdx1) += newGradTerm;
         }
-        //gradient[tid].add(blkIdx1, newGradTerm);
         #ifdef DEBUG_BUILD_TIME
           time3[tid] += timer.milliseconds(); timer.reset();
         #endif
@@ -175,7 +174,8 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
           // Update the left-hand side (thread critical)
           #pragma omp critical(a_update)
           {
-            approximateHessian->add(row, col, newHessianTerm);
+            BlockSparseMatrix::BlockRowEntry& entry = approximateHessian->rowEntryAt(row, col, true);
+            entry.data += newHessianTerm;
           }
 
           #ifdef DEBUG_BUILD_TIME
