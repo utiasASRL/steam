@@ -11,20 +11,33 @@
 
 #include <steam/problem/CostTermCollectionBase.hpp>
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// The define STEAM_DEFAULT_NUM_OPENMP_THREADS can be used to set the default template
+/// parameter for the number of threads that process a collection of cost terms. Note that
+/// this define can be set in CMake with the following command:
+///
+/// add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
+///
+/// If it is not user defined, we default it to 4.
+//////////////////////////////////////////////////////////////////////////////////////////////
+#ifndef STEAM_DEFAULT_NUM_OPENMP_THREADS
+#define STEAM_DEFAULT_NUM_OPENMP_THREADS 4
+#endif
+
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Class that fully defines a nonlinear cost term (or 'factor').
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS = STEAM_DEFAULT_NUM_OPENMP_THREADS>
 class CostTermCollection : public CostTermCollectionBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTermCollection<MEAS_DIM, MAX_STATE_SIZE> > Ptr;
-  typedef boost::shared_ptr<const CostTermCollection<MEAS_DIM, MAX_STATE_SIZE> > ConstPtr;
+  typedef boost::shared_ptr<CostTermCollection<MEAS_DIM, MAX_STATE_SIZE, NUM_THREADS> > Ptr;
+  typedef boost::shared_ptr<const CostTermCollection<MEAS_DIM, MAX_STATE_SIZE, NUM_THREADS> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

@@ -2,6 +2,9 @@
 ### Sample Programs
 ################################################################################
 
+# define number of threads to be used by OpenMP in steam
+add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
+
 # convergence sample
 add_executable(TrustRegionExample ${CMAKE_CURRENT_SOURCE_DIR}/TrustRegionExample.cpp)
 target_link_libraries(TrustRegionExample steam ${DEPEND_LIBS})

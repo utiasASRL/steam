@@ -13,34 +13,33 @@
 #include <omp.h>
 #endif
 
-//#define DEBUG_BUILD_TIME
-
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
-CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::CostTermCollection() {
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
+CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::CostTermCollection() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a cost term
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
-void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::add(typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr costTerm) {
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
+void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::add(
+    typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr costTerm) {
   costTerms_.push_back(costTerm);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute the cost from the collection of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
-double CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::cost() const {
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
+double CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::cost() const {
 
   double cost = 0;
   #ifdef _OPENMP
-  #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
+  #pragma omp parallel num_threads(NUM_THREADS)
   #endif
   {
     #ifdef _OPENMP
@@ -56,17 +55,17 @@ double CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::cost() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get size of the collection
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
-size_t CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::size() const {
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
+size_t CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::size() const {
   return costTerms_.size();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get a reference to the cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
 const std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr>&
-                          CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::getCostTerms() const {
+    CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::getCostTerms() const {
   return costTerms_;
 }
 
@@ -74,8 +73,8 @@ const std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr>&
 /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
 ///        using the cost terms in this collection.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE>
-void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
+template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
+void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTerms(
     const StateVector& stateVector,
     BlockSparseMatrix* approximateHessian,
     BlockVector* gradientVector) const {
@@ -83,27 +82,15 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
   // Locally disable any internal eigen multithreading -- we do our own OpenMP
   Eigen::setNbThreads(1);
 
-  #ifdef DEBUG_BUILD_TIME
-    double time1[NUMBER_OF_OPENMP_THREADS];
-    double time2[NUMBER_OF_OPENMP_THREADS];
-    double time3[NUMBER_OF_OPENMP_THREADS];
-  #endif
-
   // Get square block indices (we know the hessian is block-symmetric)
-  const std::vector<unsigned int>& blkSizes = approximateHessian->getIndexing().rowIndexing().blkSizes();
+  const std::vector<unsigned int>& blkSizes =
+      approximateHessian->getIndexing().rowIndexing().blkSizes();
 
   // For each cost term
   #ifdef _OPENMP
-  #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
+  #pragma omp parallel num_threads(NUM_THREADS)
   #endif
   {
-
-    #ifdef DEBUG_BUILD_TIME
-      int tid = omp_get_thread_num();
-      time1[tid] = 0;
-      time2[tid] = 0;
-      time3[tid] = 0;
-    #endif
 
     // Init dynamic matrices
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
@@ -114,19 +101,11 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
     #endif
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
 
-      #ifdef DEBUG_BUILD_TIME
-        steam::Timer timer;
-      #endif
-
       // Compute the weighted and whitened errors and jacobians
       // err = sqrt(w)*sqrt(R^-1)*rawError
       // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
       std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> > jacobians;
       Eigen::Matrix<double,MEAS_DIM,1> error = costTerms_.at(c)->evalWeightedAndWhitened(&jacobians);
-
-      #ifdef DEBUG_BUILD_TIME
-        time1[tid] += timer.milliseconds(); timer.reset();
-      #endif
 
       // For each jacobian
       for (unsigned int i = 0; i < jacobians.size(); i++) {
@@ -137,9 +116,6 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         // Calculate terms needed to update the right-hand-side
         unsigned int size1 = blkSizes.at(blkIdx1);
         newGradTerm = (-1)*jacobians[i].jac.leftCols(size1).transpose()*error;
-        #ifdef DEBUG_BUILD_TIME
-          time2[tid] += timer.milliseconds(); timer.reset();
-        #endif
 
         // Update the right-hand side (thread critical)
         #ifdef _OPENMP
@@ -148,9 +124,6 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         {
           gradientVector->mapAt(blkIdx1) += newGradTerm;
         }
-        #ifdef DEBUG_BUILD_TIME
-          time3[tid] += timer.milliseconds(); timer.reset();
-        #endif
 
         // For each jacobian (in upper half)
         for (unsigned int j = i; j < jacobians.size(); j++) {
@@ -171,9 +144,6 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
             col = blkIdx1;
             newHessianTerm = jacobians[j].jac.leftCols(size2).transpose()*jacobians[i].jac.leftCols(size1);
           }
-          #ifdef DEBUG_BUILD_TIME
-            time2[tid] += timer.milliseconds(); timer.reset();
-          #endif
 
           // Update the left-hand side (thread critical)
           BlockSparseMatrix::BlockRowEntry& entry = approximateHessian->rowEntryAt(row, col, true);
@@ -185,25 +155,10 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
           omp_unset_lock(&entry.lock);
           #endif
 
-          #ifdef DEBUG_BUILD_TIME
-            time3[tid] += timer.milliseconds(); timer.reset();
-          #endif
-        }
-      }
-    }
+        } // end row loop
+      } // end column loop
+    } // end cost term loop
   } // end parallel
-
-  #ifdef DEBUG_BUILD_TIME
-    for (unsigned int i = 1; i < NUMBER_OF_OPENMP_THREADS; i++) {
-      time1[0] += time1[i];
-      time2[0] += time2[i];
-      time3[0] += time3[i];
-    }
-    std::cout << "avg calc jac: " << time1[0]/NUMBER_OF_OPENMP_THREADS
-              << ", avg mult jacs: " << time2[0]/NUMBER_OF_OPENMP_THREADS
-              << ", avg sync-add: " << time3[0]/NUMBER_OF_OPENMP_THREADS
-              << ", avg total: " << (time1[0]+time2[0]+time3[0])/NUMBER_OF_OPENMP_THREADS << std::endl;
-  #endif
 }
 
 } // steam
