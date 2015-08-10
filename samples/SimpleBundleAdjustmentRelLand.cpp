@@ -78,7 +78,6 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  //std::vector<steam::CostTermX::Ptr> costTerms;
   steam::CostTermCollection<4,6>::Ptr stereoCostTerms(new steam::CostTermCollection<4,6>());
 
   // Setup shared noise and loss function

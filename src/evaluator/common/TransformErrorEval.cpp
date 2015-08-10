@@ -52,14 +52,15 @@ bool TransformErrorEval::isActive() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 6-d measurement error
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd TransformErrorEval::evaluate() const {
+Eigen::Matrix<double,6,1> TransformErrorEval::evaluate() const {
   return errorEvaluator_->evaluate();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 6-d measurement error and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
+Eigen::Matrix<double,6,1> TransformErrorEval::evaluate(const Eigen::Matrix<double,6,6>& lhs,
+                                                       std::vector<Jacobian<6,6> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -71,10 +72,10 @@ Eigen::VectorXd TransformErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::ve
   EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree = errorEvaluator_->evaluateTree();
 
   // Get evaluation from tree
-  Eigen::VectorXd eval = evaluationTree->getValue();
+  Eigen::Matrix<double,6,1> eval = evaluationTree->getValue();
 
   // Get Jacobians
-  errorEvaluator_->appendJacobians(lhs, evaluationTree, jacs);
+  errorEvaluator_->appendJacobians6(lhs, evaluationTree, jacs);
 
   // Return tree memory to pool
   EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.returnObj(evaluationTree);

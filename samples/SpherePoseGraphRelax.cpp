@@ -75,10 +75,10 @@ int main(int argc, char **argv) {
   ///
 
   // steam cost terms
-  std::vector<steam::CostTermX::Ptr> costTerms;
+  steam::CostTermCollection<6,6>::Ptr costTerms(new steam::CostTermCollection<6,6>());
 
   // Setup shared noise and loss functions
-  steam::NoiseModelX::Ptr sharedNoiseModel(new steam::NoiseModelX(measCollection[0].sqrtInformation, steam::NoiseModelX::SQRT_INFORMATION));
+  steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(measCollection[0].sqrtInformation, steam::NoiseModel<6>::SQRT_INFORMATION));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Turn measurements into cost terms
@@ -97,8 +97,8 @@ int main(int argc, char **argv) {
     steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(meas_T_BA, stateVarB, stateVarA));
 
     // Create cost term and add to problem
-    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedNoiseModel, sharedLossFunc));
-    costTerms.push_back(cost);
+    steam::CostTerm<6,6>::Ptr cost(new steam::CostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
+    costTerms->add(cost);
   }
 
   ///
@@ -115,10 +115,7 @@ int main(int argc, char **argv) {
   }
 
   // Add cost terms
-  for (unsigned int i = 0; i < costTerms.size(); i++)
-  {
-    problem.addCostTerm(costTerms[i]);
-  }
+  problem.addCostTermCollection(costTerms);
 
   ///
   /// Setup Solver and Optimize

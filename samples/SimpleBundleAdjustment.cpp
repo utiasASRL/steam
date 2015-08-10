@@ -83,10 +83,10 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  std::vector<steam::CostTermX::Ptr> costTerms;
+  steam::CostTermCollection<4,6>::Ptr stereoCostTerms(new steam::CostTermCollection<4,6>());
 
   // Setup shared noise and loss function
-  steam::NoiseModelX::Ptr sharedCameraNoiseModel(new steam::NoiseModelX(dataset.noise));
+  steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
@@ -117,8 +117,8 @@ int main(int argc, char** argv) {
             dataset.meas[i].data, sharedIntrinsics, pose_c_0, landVar));
 
     // Construct cost term
-    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
-    costTerms.push_back(cost);
+    steam::CostTerm<4,6>::Ptr cost(new steam::CostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
+    stereoCostTerms->add(cost);
   }
 
   ///
@@ -139,9 +139,7 @@ int main(int argc, char** argv) {
   }
 
   // Add cost terms
-  for (unsigned int i = 0; i < costTerms.size(); i++) {
-    problem.addCostTerm(costTerms[i]);
-  }
+  problem.addCostTermCollection(stereoCostTerms);
 
   ///
   /// Setup Solver and Optimize
