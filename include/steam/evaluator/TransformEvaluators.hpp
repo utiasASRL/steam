@@ -98,22 +98,6 @@ class TransformStateEvaluator : public TransformEvaluator
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<6,6> >* outJacobians) const;
 
-//  virtual void appendJacobians1(const Eigen::Matrix<double,1,INNER_DIM>& lhs,
-//                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-//                                std::vector<Jacobian<1,6> >* outJacobians) const;
-//  virtual void appendJacobians2(const Eigen::Matrix<double,2,INNER_DIM>& lhs,
-//                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-//                                std::vector<Jacobian<2,6> >* outJacobians) const;
-//  virtual void appendJacobians3(const Eigen::Matrix<double,3,INNER_DIM>& lhs,
-//                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-//                                std::vector<Jacobian<3,6> >* outJacobians) const;
-//  virtual void appendJacobians4(const Eigen::Matrix<double,4,INNER_DIM>& lhs,
-//                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-//                                std::vector<Jacobian<4,6> >* outJacobians) const;
-//  virtual void appendJacobians6(const Eigen::Matrix<double,6,INNER_DIM>& lhs,
-//                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-//                                std::vector<Jacobian<6,6> >* outJacobians) const;
-
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +182,6 @@ class FixedTransformEvaluator : public TransformEvaluator
   /// \brief Fixed transformation matrix
   //////////////////////////////////////////////////////////////////////////////////////////////
   lgmath::se3::Transformation transform_;
-
 };
 
 } // se3
