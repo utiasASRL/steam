@@ -5,7 +5,6 @@ cmake_minimum_required(VERSION 2.8)
 project(steam)
 
 # define number of threads to be used by OpenMP
-#add_definitions(-DNUMBER_OF_OPENMP_THREADS=1)
 add_definitions(-DNUMBER_OF_OPENMP_THREADS=4)
 
 ################################################################################
@@ -79,7 +78,7 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   message(STATUS "FOUND: OPENMP")
 else(OPENMP_FOUND)
-  message(STATUS "NOT FOUND: OPENMP")
+  message(STATUS "WARNING: OPENMP NOT FOUND - MULTICORE PERFORMANCE IS MUCH BETTER!")
 endif(OPENMP_FOUND)
 
 # find Lie Group Math

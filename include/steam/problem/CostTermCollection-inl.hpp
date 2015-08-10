@@ -9,6 +9,10 @@
 #include <iostream>
 #include <steam/common/Timer.hpp>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 //#define DEBUG_BUILD_TIME
 
 namespace steam {
@@ -34,25 +38,19 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::add(typename CostTerm<MEAS_DIM
 template<int MEAS_DIM, int MAX_STATE_SIZE>
 double CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::cost() const {
 
-  // Calculate total cost in parallel
-  double cost[NUMBER_OF_OPENMP_THREADS];
+  double cost = 0;
+  #ifdef _OPENMP
   #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
+  #endif
   {
-    // Init costs
-    int tid = omp_get_thread_num();
-    cost[tid] = 0;
-
-    #pragma omp for
+    #ifdef _OPENMP
+    #pragma omp for reduction(+:cost)
+    #endif
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      cost[tid] += costTerms_.at(i)->evaluate();
+      cost += costTerms_.at(i)->evaluate();
     }
   }
-
-  // Sum up costs and return total
-  for(unsigned int i = 1; i < NUMBER_OF_OPENMP_THREADS; i++) {
-    cost[0] += cost[i];
-  }
-  return cost[0];
+  return cost;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,7 +93,9 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
   const std::vector<unsigned int>& blkSizes = approximateHessian->getIndexing().rowIndexing().blkSizes();
 
   // For each cost term
+  #ifdef _OPENMP
   #pragma omp parallel num_threads(NUMBER_OF_OPENMP_THREADS)
+  #endif
   {
 
     #ifdef DEBUG_BUILD_TIME
@@ -109,7 +109,9 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,1> newGradTerm;
 
+    #ifdef _OPENMP
     #pragma omp for
+    #endif
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
 
       #ifdef DEBUG_BUILD_TIME
@@ -140,7 +142,9 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
         #endif
 
         // Update the right-hand side (thread critical)
+        #ifdef _OPENMP
         #pragma omp critical(b_update)
+        #endif
         {
           gradientVector->mapAt(blkIdx1) += newGradTerm;
         }
@@ -172,11 +176,14 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
           #endif
 
           // Update the left-hand side (thread critical)
-          #pragma omp critical(a_update)
-          {
-            BlockSparseMatrix::BlockRowEntry& entry = approximateHessian->rowEntryAt(row, col, true);
-            entry.data += newHessianTerm;
-          }
+          BlockSparseMatrix::BlockRowEntry& entry = approximateHessian->rowEntryAt(row, col, true);
+          #ifdef _OPENMP
+          omp_set_lock(&entry.lock);
+          #endif
+          entry.data += newHessianTerm;
+          #ifdef _OPENMP
+          omp_unset_lock(&entry.lock);
+          #endif
 
           #ifdef DEBUG_BUILD_TIME
             time3[tid] += timer.milliseconds(); timer.reset();

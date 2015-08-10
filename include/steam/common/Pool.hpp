@@ -114,6 +114,7 @@ class Pool {
   unsigned int index_;
 };
 
+#ifdef _OPENMP
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief OpenMP enabled pool class. This is implemented fairly naively by taking advantage
 ///        of the number of OpenMP threads at compile time. By having a seperate pool for
@@ -156,6 +157,7 @@ class OmpPool {
   ////////////////////////////////////////////////////////////////////////////////////////////
   Pool<TYPE,MAX_SIZE> pools_[NUMBER_OF_OPENMP_THREADS];
 };
+#endif
 
 } // steam
 

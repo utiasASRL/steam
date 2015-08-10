@@ -13,7 +13,11 @@ namespace steam {
 /// \brief Static declaration of OpenMP-enabled pool
 /////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE>
+#ifdef _OPENMP
 OmpPool<EvalTreeNode<TYPE> > EvalTreeNode<TYPE>::pool;
+#else
+Pool<EvalTreeNode<TYPE> > EvalTreeNode<TYPE>::pool;
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
