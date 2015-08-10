@@ -701,6 +701,5 @@ void ComposeLandmarkEvaluator::appendJacobians6(const Eigen::Matrix<double,6,4>&
   }
 }
 
-
 } // se3
 } // steam

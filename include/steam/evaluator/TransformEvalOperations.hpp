@@ -352,10 +352,12 @@ private:
 
 /// Quick Ops
 
+/// Quick Ops
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compose two transform evaluators
 //////////////////////////////////////////////////////////////////////////////////////////////
-static TransformEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform1,
+inline TransformEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform1,
                                        const TransformEvaluator::ConstPtr& transform2) {
   return ComposeTransformEvaluator::MakeShared(transform1, transform2);
 }
@@ -363,21 +365,22 @@ static TransformEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& trans
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compose a transform evaluator and landmark state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
-static ComposeLandmarkEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::ConstPtr& landmark) {
+inline ComposeLandmarkEvaluator::Ptr compose(const TransformEvaluator::ConstPtr& transform,
+                                             const se3::LandmarkStateVar::ConstPtr& landmark) {
   return ComposeLandmarkEvaluator::MakeShared(transform, landmark);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Invert a transform evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-static TransformEvaluator::Ptr inverse(const TransformEvaluator::ConstPtr& transform) {
+inline TransformEvaluator::Ptr inverse(const TransformEvaluator::ConstPtr& transform) {
   return InverseTransformEvaluator::MakeShared(transform);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Take the 'logarithmic map' of a transformation evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-static LogMapEvaluator::Ptr tran2vec(const TransformEvaluator::ConstPtr& transform) {
+inline LogMapEvaluator::Ptr tran2vec(const TransformEvaluator::ConstPtr& transform) {
   return LogMapEvaluator::MakeShared(transform);
 }
 
