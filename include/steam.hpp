@@ -33,6 +33,7 @@
 
 // problem
 #include <steam/problem/CostTerm.hpp>
+#include <steam/problem/CostTermCollection.hpp>
 #include <steam/problem/NoiseModel.hpp>
 #include <steam/problem/LossFunctions.hpp>
 #include <steam/problem/OptimizationProblem.hpp>

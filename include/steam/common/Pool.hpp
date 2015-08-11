@@ -14,9 +14,7 @@
 #include <vector>
 #include <stdexcept>
 
-#ifdef _OPENMP
 #include <omp.h>
-#endif
 
 namespace steam {
 
@@ -27,7 +25,7 @@ namespace steam {
 /// a simple array of max size for efficiency. It makes the logic a bit simpler, but more
 /// importantly, if someone forgets to return an object, we do not have memory leaks.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TYPE, int MAX_SIZE = 100>
+template<typename TYPE, int MAX_SIZE = 50>
 class Pool {
  public:
 
@@ -35,6 +33,7 @@ class Pool {
   /// \brief Default constructor
   ////////////////////////////////////////////////////////////////////////////////////////////
   Pool() {
+    index_ = 0;
     resources_ = new TYPE[MAX_SIZE];
     for (unsigned int i = 0; i < MAX_SIZE; i++) {
       available_[i] = true;
@@ -45,8 +44,9 @@ class Pool {
   /// \brief Destructor
   ////////////////////////////////////////////////////////////////////////////////////////////
   ~Pool() {
-    if (resources_)
+    if (resources_) {
       delete [] resources_;
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,14 +118,13 @@ class Pool {
   unsigned int index_;
 };
 
-#ifdef _OPENMP
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief OpenMP enabled pool class. This is implemented fairly naively by taking advantage
 ///        of the number of OpenMP threads at compile time. By having a seperate pool for
 ///        each thread, we are fully safe from sychronization issues.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TYPE, int MAX_SIZE = 100>
+template<typename TYPE, int MAX_SIZE = 50>
 class OmpPool {
  public:
 
@@ -133,7 +132,9 @@ class OmpPool {
   /// \brief Default constructor
   ////////////////////////////////////////////////////////////////////////////////////////////
   OmpPool() {
-    for (unsigned int i = 0; i < MAX_NUM_THREADS; i++) {
+
+    // Initialize pointers
+    for (int i = 0; i < MAX_NUM_THREADS; i++) {
       pools_[i] = NULL;
     }
   }
@@ -142,7 +143,9 @@ class OmpPool {
   /// \brief Destructor
   ////////////////////////////////////////////////////////////////////////////////////////////
   ~OmpPool() {
-    for (unsigned int i = 0; i < MAX_NUM_THREADS; i++) {
+
+    // Deallocate pools
+    for (int i = 0; i < MAX_NUM_THREADS; i++) {
       if (pools_[i]) {
         delete pools_[i];
       }
@@ -153,10 +156,21 @@ class OmpPool {
   /// \brief Get an object
   ////////////////////////////////////////////////////////////////////////////////////////////
   TYPE* getObj() {
+
+    // Unique OpenMP thread identifier
     int tid = omp_get_thread_num();
+
+    // Get thread identifier is in range
+    if (tid < 0 || tid >= MAX_NUM_THREADS) {
+      throw std::runtime_error("Thread ID is higher than maximum number of threads allowed in pool.");
+    }
+
+    // Check if we have allocated a pool for this thread
     if (pools_[tid] == NULL) {
       pools_[tid] = new Pool<TYPE,MAX_SIZE>();
     }
+
+    // Return result from pool
     return pools_[tid]->getObj();
   }
 
@@ -164,10 +178,21 @@ class OmpPool {
   /// \brief Return an object to the pool
   ////////////////////////////////////////////////////////////////////////////////////////////
   void returnObj(TYPE* object) {
+
+    // Unique OpenMP thread identifier
     int tid = omp_get_thread_num();
+
+    // Get thread identifier is in range
+    if (tid < 0 || tid >= MAX_NUM_THREADS) {
+      throw std::runtime_error("Thread ID is higher than maximum number of threads allowed in pool.");
+    }
+
+    // Check if we have allocated a pool for this thread
     if (pools_[tid] == NULL) {
       throw std::runtime_error("Resource returned to an OpenMP Pool that does not exist.");
     }
+
+    // Return object to pool
     pools_[tid]->returnObj(object);
   }
 
@@ -176,14 +201,13 @@ class OmpPool {
   ////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Maximum number of threads this pool can support.
   ////////////////////////////////////////////////////////////////////////////////////////////
-  static const unsigned int MAX_NUM_THREADS = 64;
+  static const int MAX_NUM_THREADS = 64;
 
   ////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Array of pools (one for each "possible" thread)
   ////////////////////////////////////////////////////////////////////////////////////////////
   Pool<TYPE,MAX_SIZE>* pools_[MAX_NUM_THREADS];
 };
-#endif
 
 } // steam
 

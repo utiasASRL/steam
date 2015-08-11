@@ -9,9 +9,7 @@
 #include <iostream>
 #include <steam/common/Timer.hpp>
 
-#ifdef _OPENMP
 #include <omp.h>
-#endif
 
 namespace steam {
 
@@ -38,13 +36,9 @@ template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
 double CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::cost() const {
 
   double cost = 0;
-  #ifdef _OPENMP
   #pragma omp parallel num_threads(NUM_THREADS)
-  #endif
   {
-    #ifdef _OPENMP
     #pragma omp for reduction(+:cost)
-    #endif
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
       cost += costTerms_.at(i)->evaluate();
     }
@@ -87,18 +81,14 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTe
       approximateHessian->getIndexing().rowIndexing().blkSizes();
 
   // For each cost term
-  #ifdef _OPENMP
   #pragma omp parallel num_threads(NUM_THREADS)
-  #endif
   {
 
     // Init dynamic matrices
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,1> newGradTerm;
 
-    #ifdef _OPENMP
     #pragma omp for
-    #endif
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
 
       // Compute the weighted and whitened errors and jacobians
@@ -118,9 +108,7 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTe
         newGradTerm = (-1)*jacobians[i].jac.leftCols(size1).transpose()*error;
 
         // Update the right-hand side (thread critical)
-        #ifdef _OPENMP
         #pragma omp critical(b_update)
-        #endif
         {
           gradientVector->mapAt(blkIdx1) += newGradTerm;
         }
@@ -147,13 +135,9 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTe
 
           // Update the left-hand side (thread critical)
           BlockSparseMatrix::BlockRowEntry& entry = approximateHessian->rowEntryAt(row, col, true);
-          #ifdef _OPENMP
           omp_set_lock(&entry.lock);
-          #endif
           entry.data += newHessianTerm;
-          #ifdef _OPENMP
           omp_unset_lock(&entry.lock);
-          #endif
 
         } // end row loop
       } // end column loop

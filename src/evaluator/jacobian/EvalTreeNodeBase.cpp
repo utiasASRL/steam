@@ -13,7 +13,10 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-EvalTreeNodeBase::EvalTreeNodeBase() : index_(0) {
+EvalTreeNodeBase::EvalTreeNodeBase() : numChildren_(0) {
+  for (unsigned i = 0; i < 4; i++) {
+    children_[i] = NULL;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,10 +29,13 @@ EvalTreeNodeBase::~EvalTreeNodeBase() {
 /// \brief Release children and reset internal indexing to zero.
 //////////////////////////////////////////////////////////////////////////////////////////////
 void EvalTreeNodeBase::reset() {
-  for (unsigned i = 0; i < index_; i++) {
+  for (unsigned i = 0; i < numChildren_; i++) {
     children_[i]->release();
   }
-  index_ = 0;
+  for (unsigned i = 0; i < 4; i++) {
+    children_[i] = NULL;
+  }
+  numChildren_ = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,14 +46,13 @@ void EvalTreeNodeBase::addChild(EvalTreeNodeBase* newChild) {
   // Check for nullptr
   if (newChild != NULL) {
 
-    if (index_ > 3) {
-      throw std::runtime_error("Tried to add more than 4 children");
+    if (numChildren_ >= MAX_NUM_CHILDREN) {
+      throw std::runtime_error("Tried to add more than the maximum number of children");
     }
 
-    children_[index_] = newChild;
-    index_++;
+    children_[numChildren_] = newChild;
+    numChildren_++;
 
-    //children_.push_back(newChild);
   } else {
     throw std::invalid_argument("Tried to add nullptr to EvalTreeNodeBase");
   }
@@ -57,7 +62,7 @@ void EvalTreeNodeBase::addChild(EvalTreeNodeBase* newChild) {
 /// \brief Get number of child evaluation nodes
 //////////////////////////////////////////////////////////////////////////////////////////////
 size_t EvalTreeNodeBase::numChildren() const {
-  return index_;
+  return numChildren_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +70,7 @@ size_t EvalTreeNodeBase::numChildren() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNodeBase* EvalTreeNodeBase::childAt(unsigned int index) const {
 
-  if (index >= index_) {
+  if (index >= numChildren_) {
     throw std::runtime_error("Tried to access null entry");
   }
   return children_[index];

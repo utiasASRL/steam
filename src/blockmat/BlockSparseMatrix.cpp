@@ -130,22 +130,29 @@ BlockSparseMatrix::BlockRowEntry& BlockSparseMatrix::rowEntryAt(unsigned int r, 
   }
 
   // Find if row entry exists
-  std::map<unsigned int, BlockRowEntry>::iterator it = cols_[c].rows.find(r);
+  BlockSparseColumn& colRef = cols_[c];
+
+  // Lock read/write to the column
+  omp_set_lock(&colRef.lock);
+
+  std::map<unsigned int, BlockRowEntry>::iterator it = colRef.rows.find(r);
 
   // If it does not exist, throw exception
-  if (it == cols_[c].rows.end()) {
+  if (it == colRef.rows.end()) {
     if (allowInsert) {
-      BlockRowEntry& entry = cols_[c].rows[r];
-      entry.data = Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
+      BlockRowEntry& result = colRef.rows[r];
+      result.data = Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
                                          this->getIndexing().rowIndexing().blkSizeAt(c));
-      return entry;
+      omp_unset_lock(&colRef.lock); // Unlock read/write to the column
+      return result;
     } else {
       throw std::invalid_argument("Tried to read entry that did not exist");
     }
+  } else {
+    BlockRowEntry& result = it->second;
+    omp_unset_lock(&colRef.lock); // Unlock read/write to the column
+    return result;
   }
-
-  // Return reference to data
-  return it->second;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
