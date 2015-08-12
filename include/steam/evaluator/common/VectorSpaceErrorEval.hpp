@@ -15,18 +15,20 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Error evaluator for a measured vector space state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
-class VectorSpaceErrorEval : public ErrorEvaluatorX
+template<int MEAS_DIM = Eigen::Dynamic, int MAX_STATE_DIM = Eigen::Dynamic>
+class VectorSpaceErrorEval : public ErrorEvaluator<MEAS_DIM,MAX_STATE_DIM>::type
 {
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<VectorSpaceErrorEval> Ptr;
-  typedef boost::shared_ptr<const VectorSpaceErrorEval> ConstPtr;
+  typedef boost::shared_ptr<VectorSpaceErrorEval<MEAS_DIM,MAX_STATE_DIM> > Ptr;
+  typedef boost::shared_ptr<const VectorSpaceErrorEval<MEAS_DIM,MAX_STATE_DIM> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  VectorSpaceErrorEval(const Eigen::VectorXd& measurement, const VectorSpaceStateVar::ConstPtr& stateVec);
+  VectorSpaceErrorEval(const Eigen::Matrix<double,MEAS_DIM,1>& measurement,
+                       const VectorSpaceStateVar::ConstPtr& stateVec);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -36,19 +38,20 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the measurement error
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate() const;
+  virtual Eigen::Matrix<double,MEAS_DIM,1> evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the measurement error and relevant Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
+  virtual Eigen::Matrix<double,MEAS_DIM,1> evaluate(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& lhs,
+                                                    std::vector<Jacobian<MEAS_DIM,MAX_STATE_DIM> >* jacs) const;
 
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Measurement vector
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::VectorXd measurement_;
+  Eigen::Matrix<double,MEAS_DIM,1> measurement_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Vectorspace state variable
@@ -57,6 +60,10 @@ private:
 
 };
 
+typedef VectorSpaceErrorEval<Eigen::Dynamic,Eigen::Dynamic> VectorSpaceErrorEvalX;
+
 } // steam
+
+#include <steam/evaluator/common/VectorSpaceErrorEval-inl.hpp>
 
 #endif // STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP

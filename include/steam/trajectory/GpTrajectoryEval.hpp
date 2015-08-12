@@ -105,7 +105,6 @@ class GpTrajectoryEval : public TransformEvaluator
   double lambda12_;
   double lambda21_;
   double lambda22_;
-
 };
 
 } // se3

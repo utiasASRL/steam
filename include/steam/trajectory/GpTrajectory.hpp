@@ -14,6 +14,7 @@
 #include <steam/state/VectorSpaceStateVar.hpp>
 #include <steam/evaluator/TransformEvaluators.hpp>
 #include <steam/problem/CostTerm.hpp>
+#include <steam/problem/CostTermCollection.hpp>
 
 namespace steam {
 namespace se3 {
@@ -88,7 +89,9 @@ class GpTrajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  std::vector<steam::CostTermX::ConstPtr> getPriorCostTerms() const;
+  void getPriorCostTerms(CostTermCollection<6,6>::Ptr unary,
+                         CostTermCollection<12,6>::Ptr binary) const;
+
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get all of the transformation state variables

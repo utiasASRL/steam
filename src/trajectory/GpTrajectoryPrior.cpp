@@ -34,7 +34,7 @@ bool GpTrajectoryPrior::isActive() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the GP prior factor
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd GpTrajectoryPrior::evaluate() const {
+Eigen::Matrix<double,12,1> GpTrajectoryPrior::evaluate() const {
 
   // Precompute values
   lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
@@ -51,7 +51,8 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the GP prior factor and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
+Eigen::Matrix<double,12,1> GpTrajectoryPrior::evaluate(const Eigen::Matrix<double,12,12>& lhs,
+                                                       std::vector<Jacobian<12,6> >* jacs) const {
 
   // Precompute values
   lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
@@ -71,8 +72,8 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs, std::vec
     Eigen::Matrix<double,6,6> Jinv_12 = J_21_inv*T_21.adjoint();
 
     // Construct Jacobian Object
-    jacs->push_back(Jacobian<>());
-    Jacobian<>& jacref = jacs->back();
+    jacs->push_back(Jacobian<12,6>());
+    Jacobian<12,6>& jacref = jacs->back();
     jacref.key = knot1_->T_k0->getKey();
 
     // Fill in matrix
@@ -86,8 +87,8 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs, std::vec
   if(!knot1_->varpi->isLocked()) {
 
     // Construct Jacobian Object
-    jacs->push_back(Jacobian<>());
-    Jacobian<>& jacref = jacs->back();
+    jacs->push_back(Jacobian<12,6>());
+    Jacobian<12,6>& jacref = jacs->back();
     jacref.key = knot1_->varpi->getKey();
 
     // Fill in matrix
@@ -101,8 +102,8 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs, std::vec
   if(!knot2_->T_k0->isLocked()) {
 
     // Construct Jacobian Object
-    jacs->push_back(Jacobian<>());
-    Jacobian<>& jacref = jacs->back();
+    jacs->push_back(Jacobian<12,6>());
+    Jacobian<12,6>& jacref = jacs->back();
     jacref.key = knot2_->T_k0->getKey();
 
     // Fill in matrix
@@ -116,8 +117,8 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs, std::vec
   if(!knot2_->varpi->isLocked()) {
 
     // Construct Jacobian Object
-    jacs->push_back(Jacobian<>());
-    Jacobian<>& jacref = jacs->back();
+    jacs->push_back(Jacobian<12,6>());
+    Jacobian<12,6>& jacref = jacs->back();
     jacref.key = knot2_->varpi->getKey();
 
     // Fill in matrix
