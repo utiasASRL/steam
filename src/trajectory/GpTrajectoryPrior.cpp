@@ -78,8 +78,8 @@ Eigen::Matrix<double,12,1> GpTrajectoryPrior::evaluate(const Eigen::Matrix<doubl
 
     // Fill in matrix
     Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = -Jinv_12;
-    jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
+    jacobian.topRows<6>() = -Jinv_12;
+    jacobian.bottomRows<6>() = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
     jacref.jac = lhs * jacobian;
   }
 
@@ -93,8 +93,8 @@ Eigen::Matrix<double,12,1> GpTrajectoryPrior::evaluate(const Eigen::Matrix<doubl
 
     // Fill in matrix
     Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
-    jacobian.block<6,6>(6,0) = -Eigen::Matrix<double,6,6>::Identity();
+    jacobian.topRows<6>() = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
+    jacobian.bottomRows<6>() = -Eigen::Matrix<double,6,6>::Identity();
     jacref.jac = lhs * jacobian;
   }
 
@@ -108,8 +108,8 @@ Eigen::Matrix<double,12,1> GpTrajectoryPrior::evaluate(const Eigen::Matrix<doubl
 
     // Fill in matrix
     Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = J_21_inv;
-    jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
+    jacobian.topRows<6>() = J_21_inv;
+    jacobian.bottomRows<6>() = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
     jacref.jac = lhs * jacobian;
   }
 
@@ -123,8 +123,8 @@ Eigen::Matrix<double,12,1> GpTrajectoryPrior::evaluate(const Eigen::Matrix<doubl
 
     // Fill in matrix
     Eigen::Matrix<double,12,6> jacobian;
-    jacobian.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Zero();
-    jacobian.block<6,6>(6,0) = J_21_inv;
+    jacobian.topRows<6>() = Eigen::Matrix<double,6,6>::Zero();
+    jacobian.bottomRows<6>() = J_21_inv;
     jacref.jac = lhs * jacobian;
   }
 
