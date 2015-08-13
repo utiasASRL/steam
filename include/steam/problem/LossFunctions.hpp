@@ -10,7 +10,7 @@
 #include <Eigen/Core>
 #include <boost/shared_ptr.hpp>
 
-#include <steam/NoiseModel.hpp>
+#include <steam/problem/NoiseModel.hpp>
 
 // to do
 // loss functions must implement  cost (rho) and weight (w)

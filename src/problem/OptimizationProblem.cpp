@@ -4,16 +4,17 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/OptimizationProblem.hpp>
+#include <steam/problem/OptimizationProblem.hpp>
 
 #include <iomanip>
+#include <steam/common/Timer.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-OptimizationProblem::OptimizationProblem() : pendingProposedState_(false) {
+OptimizationProblem::OptimizationProblem() : firstBackup_(true), pendingProposedState_(false) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,20 +28,69 @@ void OptimizationProblem::addStateVariable(const StateVariableBase::Ptr& state)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a cost term (should depend on active states that were added to the problem)
 //////////////////////////////////////////////////////////////////////////////////////////////
-void OptimizationProblem::addCostTerm(const CostTerm::ConstPtr& costTerm) {
-  costTerms_.push_back(costTerm);
+void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
+  dynamicCostTerms_.add(costTerm);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a collection of cost terms. This function is typically reserved for adding
+///        custom collections which contain fixed-size cost terms and evaluators. For general
+///        dynamic-size cost terms, use addCostTerm(). Note that the cost terms should depend
+///        on active states that were added to the problem.
+//////////////////////////////////////////////////////////////////////////////////////////////
+void OptimizationProblem::addCostTermCollection(const CostTermCollectionBase::ConstPtr& costTermColl) {
+  customCostTerms_.push_back(costTermColl);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute the cost from the collection of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
 double OptimizationProblem::cost() const {
-  double cost = 0.0;
-  for(std::vector<CostTerm::ConstPtr>::const_iterator it = costTerms_.begin();
-      it != costTerms_.end(); ++it) {
-    cost += (*it)->evaluate();
+
+  double cost = 0;
+
+  // Add cost of the default dynamic cost terms
+  if (dynamicCostTerms_.size() > 0) {
+    cost += dynamicCostTerms_.cost();
   }
+
+  // Add cost of the custom cost-term collections
+  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
+    if (customCostTerms_[c]->size() > 0) {
+      cost += customCostTerms_[c]->cost();
+    }
+  }
+
   return cost;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fill in the supplied block matrices
+//////////////////////////////////////////////////////////////////////////////////////////////
+void OptimizationProblem::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* approximateHessian,
+                                                Eigen::VectorXd* gradientVector) const {
+
+  // Setup Matrices
+  std::vector<unsigned int> sqSizes = stateVec_.getStateBlockSizes();
+  BlockSparseMatrix A_(sqSizes, true);
+  BlockVector b_(sqSizes);
+
+  // Add terms from the default dynamic cost terms
+  if (dynamicCostTerms_.size() > 0) {
+    dynamicCostTerms_.buildGaussNewtonTerms(stateVec_, &A_, &b_);
+  }
+
+  // Add terms from the custom cost-term collections
+  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
+    if (customCostTerms_[c]->size() > 0) {
+      customCostTerms_[c]->buildGaussNewtonTerms(stateVec_, &A_, &b_);
+    }
+  }
+
+  // Convert to Eigen Type - with the block-sparsity pattern
+  // ** Note we do not exploit sub-block-sparsity in case it changes at a later iteration
+  *approximateHessian = A_.toEigen(false);
+  *gradientVector = b_.toEigen();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,10 +101,21 @@ const StateVector& OptimizationProblem::getStateVector() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get a reference to the cost terms
+/// \brief Get the total number of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-const std::vector<CostTerm::ConstPtr>& OptimizationProblem::getCostTerms() const {
-  return costTerms_;
+unsigned int OptimizationProblem::getNumberOfCostTerms() const {
+
+  unsigned int size = 0;
+
+  // Add number of the default dynamic cost terms
+  size += dynamicCostTerms_.size();
+
+  // Add number from the custom cost-term collections
+  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
+    size += customCostTerms_[c]->size();
+  }
+
+  return size;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +130,12 @@ double OptimizationProblem::proposeUpdate(const Eigen::VectorXd& stateStep) {
   }
 
   // Make copy of state vector
-  stateVectorBackup_ = stateVec_;
+  if (firstBackup_) {
+    stateVectorBackup_ = stateVec_;
+    firstBackup_ = false;
+  } else {
+    stateVectorBackup_.copyValues(stateVec_);
+  }
 
   // Update copy with perturbation
   stateVec_.update(stateStep);

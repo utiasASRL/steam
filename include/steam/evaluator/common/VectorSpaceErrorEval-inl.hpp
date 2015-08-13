@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file VectorSpaceErrorEval.cpp
+/// \file VectorSpaceErrorEval-inl.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -11,28 +11,36 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-VectorSpaceErrorEval::VectorSpaceErrorEval(const Eigen::VectorXd& measurement, const VectorSpaceStateVar::ConstPtr& stateVec)
+template<int MEAS_DIM, int MAX_STATE_DIM>
+VectorSpaceErrorEval<MEAS_DIM,MAX_STATE_DIM>::VectorSpaceErrorEval(
+    const Eigen::Matrix<double,MEAS_DIM,1>& measurement,
+    const VectorSpaceStateVar::ConstPtr& stateVec)
   : measurement_(measurement), stateVec_(stateVec) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool VectorSpaceErrorEval::isActive() const {
+template<int MEAS_DIM, int MAX_STATE_DIM>
+bool VectorSpaceErrorEval<MEAS_DIM,MAX_STATE_DIM>::isActive() const {
   return !stateVec_->isLocked();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the measurement error
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd VectorSpaceErrorEval::evaluate() const {
+template<int MEAS_DIM, int MAX_STATE_DIM>
+Eigen::Matrix<double,MEAS_DIM,1> VectorSpaceErrorEval<MEAS_DIM,MAX_STATE_DIM>::evaluate() const {
   return measurement_ - stateVec_->getValue();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the measurement error and relevant Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd VectorSpaceErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian>* jacs) const {
+template<int MEAS_DIM, int MAX_STATE_DIM>
+Eigen::Matrix<double,MEAS_DIM,1> VectorSpaceErrorEval<MEAS_DIM,MAX_STATE_DIM>::evaluate(
+    const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& lhs,
+    std::vector<Jacobian<MEAS_DIM,MAX_STATE_DIM> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -48,7 +56,7 @@ Eigen::VectorXd VectorSpaceErrorEval::evaluate(const Eigen::MatrixXd& lhs, std::
   // Construct Jacobian
   if(!stateVec_->isLocked()) {
     jacs->resize(1);
-    Jacobian& jacref = jacs->back();
+    Jacobian<MEAS_DIM,MAX_STATE_DIM>& jacref = jacs->back();
     jacref.key = stateVec_->getKey();
     jacref.jac = -lhs;
   }

@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTerm.cpp
+/// \file CostTerm-inl.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/CostTerm.hpp>
+#include <steam/problem/CostTerm.hpp>
 
 #include <iostream>
 
@@ -13,15 +13,21 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-CostTerm::CostTerm(const ErrorEvaluator::ConstPtr& errorFunction, const NoiseModel::ConstPtr& noiseModel, const LossFunction::ConstPtr& lossFunc) :
-  errorFunction_(errorFunction), noiseModel_(noiseModel), lossFunc_(lossFunc) {}
+template <int MEAS_DIM, int MAX_STATE_SIZE>
+CostTerm<MEAS_DIM,MAX_STATE_SIZE>::CostTerm(
+    const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
+    const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
+    const LossFunction::ConstPtr& lossFunc) :
+  errorFunction_(errorFunction), noiseModel_(noiseModel), lossFunc_(lossFunc) {
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the cost of this term. Error is first whitened by the noise model
 ///        and then passed through the loss function, as in
 ///          cost = loss(sqrt(e^T * cov^{-1} * e))
 //////////////////////////////////////////////////////////////////////////////////////////////
-double CostTerm::evaluate() const
+template <int MEAS_DIM, int MAX_STATE_SIZE>
+double CostTerm<MEAS_DIM,MAX_STATE_SIZE>::evaluate() const
 {
   return lossFunc_->cost(noiseModel_->getWhitenedErrorNorm(errorFunction_->evaluate()));
 }
@@ -33,7 +39,9 @@ double CostTerm::evaluate() const
 ///              error = sqrt(weight)*sqrt(cov^-1)*rawError
 ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJacobians) const {
+template <int MEAS_DIM, int MAX_STATE_SIZE>
+Eigen::Matrix<double,MEAS_DIM,1> CostTerm<MEAS_DIM,MAX_STATE_SIZE>::evalWeightedAndWhitened(
+    std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
 
   // Check and initialize jacobian array
   if (outJacobians == NULL) {
@@ -42,10 +50,11 @@ Eigen::VectorXd CostTerm::evalWeightedAndWhitened(std::vector<Jacobian>* outJaco
   outJacobians->clear();
 
   // Get raw error and Jacobians
-  Eigen::VectorXd rawError = errorFunction_->evaluate(noiseModel_->getSqrtInformation(), outJacobians);
+  Eigen::Matrix<double,MEAS_DIM,1> rawError =
+      errorFunction_->evaluate(noiseModel_->getSqrtInformation(), outJacobians);
 
   // Get whitened error vector
-  Eigen::VectorXd whiteError = noiseModel_->whitenError(rawError);
+  Eigen::Matrix<double,MEAS_DIM,1> whiteError = noiseModel_->whitenError(rawError);
 
   // Get weight from loss function
   double sqrt_w = sqrt(lossFunc_->weight(whiteError.norm()));

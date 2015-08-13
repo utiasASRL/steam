@@ -1,56 +1,57 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file EvaluatorBase.hpp
+/// \file CostTermCollectionBase.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_EVALUATOR_BASE_HPP
-#define STEAM_EVALUATOR_BASE_HPP
+#ifndef STEAM_COST_TERM_COLLECTION_BASE_HPP
+#define STEAM_COST_TERM_COLLECTION_BASE_HPP
 
-#include <Eigen/Core>
+#include <boost/shared_ptr.hpp>
 
-#include <steam/state/StateVector.hpp>
-#include <steam/evaluator/jacobian/Jacobian.hpp>
+#include <steam/problem/CostTerm.hpp>
+
+#include <steam/blockmat/BlockSparseMatrix.hpp>
+#include <steam/blockmat/BlockVector.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Base class that defines the general 'evaluator' interface
+/// \brief Class that fully defines a nonlinear cost term (or 'factor').
+///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TYPE,
-          int LHS_DIM       = Eigen::Dynamic,
-          int INNER_DIM     = Eigen::Dynamic,
-          int MAX_STATE_DIM = Eigen::Dynamic>
-class EvaluatorBase
+class CostTermCollectionBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > Ptr;
-  typedef boost::shared_ptr<const EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > ConstPtr;
+  typedef boost::shared_ptr<CostTermCollectionBase> Ptr;
+  typedef boost::shared_ptr<const CostTermCollectionBase> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Default constructor
+  /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  EvaluatorBase() {}
+  CostTermCollectionBase() {}
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Returns whether or not an evaluator contains unlocked state variables
+  /// \brief Compute the cost from the collection of cost terms
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual bool isActive() const = 0;
+  virtual double cost() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation'
+  /// \brief Get size of the collection
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual TYPE evaluate() const = 0;
+  virtual size_t size() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the general 'evaluation', with Jacobians
+  /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
+  ///        using the cost terms in this collection.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual TYPE evaluate(const Eigen::Matrix<double, LHS_DIM, INNER_DIM>& lhs,
-                        std::vector<Jacobian<LHS_DIM, MAX_STATE_DIM> >* jacs) const = 0;
+  virtual void buildGaussNewtonTerms(const StateVector& stateVector,
+                                     BlockSparseMatrix* approximateHessian,
+                                     BlockVector* gradientVector) const = 0;
 };
 
 } // steam
 
-#endif // STEAM_EVALUATOR_BASE_HPP
+#endif // STEAM_COST_TERM_COLLECTION_BASE_HPP

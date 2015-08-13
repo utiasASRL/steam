@@ -208,13 +208,12 @@ std::vector<steam::StateVariableBase::Ptr> GpTrajectory::getActiveStateVariables
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
-
-  std::vector<steam::CostTerm::ConstPtr> costTerms;
+void GpTrajectory::getPriorCostTerms(CostTermCollection<6,6>::Ptr unary,
+                                     CostTermCollection<12,6>::Ptr binary) const {
 
   // If empty, return none
   if (knotMap_.empty()) {
-    return costTerms;
+    return;
   }
 
   // All prior factors will use an L2 loss function
@@ -239,15 +238,15 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
   if (!it1->second->varpi->isLocked()) {
 
     // Setup noise for initial velocity (very uncertain)
-    steam::NoiseModel::Ptr initialVelocityNoiseModel(new steam::NoiseModel(10000.0*Eigen::MatrixXd::Identity(6,6)));
+    steam::NoiseModel<6>::Ptr initialVelocityNoiseModel(new steam::NoiseModel<6>(10000.0*Eigen::Matrix<double,6,6>::Identity()));
 
     // Setup zero measurement
-    Eigen::VectorXd meas = Eigen::Matrix<double,6,1>::Zero();
+    Eigen::Matrix<double,6,1> meas = Eigen::Matrix<double,6,1>::Zero();
 
     // Setup unary error and cost term
-    steam::VectorSpaceErrorEval::Ptr errorfunc(new steam::VectorSpaceErrorEval(meas, it1->second->varpi));
-    steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, initialVelocityNoiseModel, sharedLossFunc));
-    costTerms.push_back(cost);
+    steam::VectorSpaceErrorEval<6,6>::Ptr errorfunc(new steam::VectorSpaceErrorEval<6,6>(meas, it1->second->varpi));
+    steam::CostTerm<6,6>::Ptr cost(new steam::CostTerm<6,6>(errorfunc, initialVelocityNoiseModel, sharedLossFunc));
+    unary->add(cost);
   }
 
   // Iterate through all states.. if any are unlocked, supply a prior term
@@ -270,17 +269,14 @@ std::vector<steam::CostTerm::ConstPtr> GpTrajectory::getPriorCostTerms() const {
       Qi_inv.block<6,6>(0,0) = 12.0 * one_over_dt3 * Qc_inv_;
       Qi_inv.block<6,6>(6,0) = Qi_inv.block<6,6>(0,6) = -6.0 * one_over_dt2 * Qc_inv_;
       Qi_inv.block<6,6>(6,6) =  4.0 * one_over_dt  * Qc_inv_;
-      steam::NoiseModel::Ptr sharedGPNoiseModel(new steam::NoiseModel(Qi_inv, steam::NoiseModel::INFORMATION));
+      steam::NoiseModel<12>::Ptr sharedGPNoiseModel(new steam::NoiseModel<12>(Qi_inv, steam::NoiseModel<12>::INFORMATION));
 
       // Create cost term
       steam::se3::GpTrajectoryPrior::Ptr errorfunc(new steam::se3::GpTrajectoryPrior(knot1, knot2));
-      steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, sharedGPNoiseModel, sharedLossFunc));
-      costTerms.push_back(cost);
+      steam::CostTerm<12,6>::Ptr cost(new steam::CostTerm<12,6>(errorfunc, sharedGPNoiseModel, sharedLossFunc));
+      binary->add(cost);
     }
   }
-
-  // Return
-  return costTerms;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

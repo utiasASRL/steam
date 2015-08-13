@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file NoiseModel.hpp
+/// \file NoiseModel-inl.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/NoiseModel.hpp>
+#include <steam/problem/NoiseModel.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -16,13 +16,16 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-NoiseModel::NoiseModel() {
+template<int MEAS_DIM>
+NoiseModel<MEAS_DIM>::NoiseModel() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief General constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-NoiseModel::NoiseModel(const Eigen::MatrixXd& matrix, MatrixType type) {
+template<int MEAS_DIM>
+NoiseModel<MEAS_DIM>::NoiseModel(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix,
+                                 MatrixType type) {
 
   // Depending on the type of 'matrix', we set the internal storage
   switch(type) {
@@ -41,7 +44,9 @@ NoiseModel::NoiseModel(const Eigen::MatrixXd& matrix, MatrixType type) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Set by covariance matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-void NoiseModel::setByCovariance(const Eigen::MatrixXd& matrix) {
+template<int MEAS_DIM>
+void NoiseModel<MEAS_DIM>::setByCovariance(
+    const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) {
 
   // Information is the inverse of covariance
   this->setByInformation(matrix.inverse());
@@ -50,13 +55,15 @@ void NoiseModel::setByCovariance(const Eigen::MatrixXd& matrix) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Set by information matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-void NoiseModel::setByInformation(const Eigen::MatrixXd& matrix) {
+template<int MEAS_DIM>
+void NoiseModel<MEAS_DIM>::setByInformation(
+    const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) {
 
   // Check that the matrix is positive definite
   this->assertPositiveDefiniteMatrix(matrix);
 
   // Perform an LLT decomposition
-  Eigen::LLT<Eigen::MatrixXd> lltOfInformation(matrix);
+  Eigen::LLT<Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> > lltOfInformation(matrix);
 
   // Store upper triangular matrix (the square root information matrix)
   this->setBySqrtInformation(lltOfInformation.matrixL().transpose());
@@ -65,7 +72,10 @@ void NoiseModel::setByInformation(const Eigen::MatrixXd& matrix) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Set by square root of information matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-void NoiseModel::setBySqrtInformation(const Eigen::MatrixXd& matrix) {
+template<int MEAS_DIM>
+void NoiseModel<MEAS_DIM>::setBySqrtInformation(
+    const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) {
+
   // Set internal storage matrix
   sqrtInformation_ = matrix; // todo: check this is upper triangular
 }
@@ -73,31 +83,39 @@ void NoiseModel::setBySqrtInformation(const Eigen::MatrixXd& matrix) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get a reference to the square root information matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-const Eigen::MatrixXd& NoiseModel::getSqrtInformation() const {
+template<int MEAS_DIM>
+const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& NoiseModel<MEAS_DIM>::getSqrtInformation() const {
   return sqrtInformation_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get the norm of the whitened error vector, sqrt(rawError^T * info * rawError)
 //////////////////////////////////////////////////////////////////////////////////////////////
-double NoiseModel::getWhitenedErrorNorm(const Eigen::VectorXd& rawError) const {
+template<int MEAS_DIM>
+double NoiseModel<MEAS_DIM>::getWhitenedErrorNorm(
+    const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const {
   return (sqrtInformation_*rawError).norm();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get the whitened error vector, sqrtInformation*rawError
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd NoiseModel::whitenError(const Eigen::VectorXd &rawError) const {
+template<int MEAS_DIM>
+Eigen::Matrix<double,MEAS_DIM,1> NoiseModel<MEAS_DIM>::whitenError(
+    const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const {
   return sqrtInformation_*rawError;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Assert that the matrix is positive definite
 //////////////////////////////////////////////////////////////////////////////////////////////
-void NoiseModel::assertPositiveDefiniteMatrix(const Eigen::MatrixXd& matrix) {
+template<int MEAS_DIM>
+void NoiseModel<MEAS_DIM>::assertPositiveDefiniteMatrix(
+    const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) {
 
   // Initialize an eigen value solver
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigsolver(matrix, Eigen::EigenvaluesOnly);
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> >
+      eigsolver(matrix, Eigen::EigenvaluesOnly);
 
   // Check the minimum eigen value
   if (eigsolver.eigenvalues().minCoeff() <= 0) {

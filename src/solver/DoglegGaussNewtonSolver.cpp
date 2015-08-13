@@ -90,10 +90,11 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
   // Perform dogleg step
   unsigned int nBacktrack = 0;
+  Eigen::VectorXd dogLegStep;   // initialize outside of loop to avoid reallocation
+  Eigen::VectorXd gdToGnVector; // initialize outside of loop to avoid reallocation
   for (; nBacktrack < params_.maxShrinkSteps; nBacktrack++) {
 
     // Get step
-    Eigen::VectorXd dogLegStep;
     if (gaussNewtonNorm <= trustRegionSize && haveGnStep) {
 
       // Trust region larger than Gauss Newton step
@@ -119,7 +120,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
       }
 
       // Get interpolation direction
-      Eigen::VectorXd gdToGnVector = gaussNewtonStep - gradDescentStep;
+      gdToGnVector = gaussNewtonStep - gradDescentStep;
 
       // Calculate interpolation constant
       double gdDotProdGdToGn = gradDescentStep.transpose()*gdToGnVector;

@@ -1,6 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBundleAdjustment.cpp
+/// \file SimpleBundleAdjustmentRelLand.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
+///        with relative landmarks.
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,53 +73,59 @@ int main(int argc, char** argv) {
   //  **Note: alternatively we could add a prior (UnaryTransformError) to the first pose.
   poses_ic_k_0[0]->setLock(true);
 
-  // Setup landmarks with initial condition
-  for (unsigned int i = 0; i < dataset.land_ic.size(); i++) {
-    steam::se3::LandmarkStateVar::Ptr temp(new steam::se3::LandmarkStateVar(dataset.land_ic[i].point));
-    landmarks_ic.push_back(temp);
-  }
-
   ///
   /// Setup Cost Terms
   ///
 
   // steam cost terms
-  steam::CostTermCollection<4,6>::Ptr stereoCostTerms(new steam::CostTermCollection<4,6>());
+  std::vector<steam::CostTermX::Ptr> costTerms;
 
   // Setup shared noise and loss function
-  steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
+  steam::NoiseModelX::Ptr sharedCameraNoiseModel(new steam::NoiseModelX(dataset.noise));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
-  steam::StereoCameraErrorEval::CameraIntrinsics::Ptr sharedIntrinsics(
-        new steam::StereoCameraErrorEval::CameraIntrinsics());
+  steam::StereoCameraErrorEvalX::CameraIntrinsics::Ptr sharedIntrinsics(
+        new steam::StereoCameraErrorEvalX::CameraIntrinsics());
   sharedIntrinsics->b  = dataset.camParams.b;
   sharedIntrinsics->fu = dataset.camParams.fu;
   sharedIntrinsics->fv = dataset.camParams.fv;
   sharedIntrinsics->cu = dataset.camParams.cu;
   sharedIntrinsics->cv = dataset.camParams.cv;
 
+  // Size vector for landmarks -- initialize while going through measurements
+  landmarks_ic.resize(dataset.land_ic.size());
+
   // Generate cost terms for camera measurements
   for (unsigned int i = 0; i < dataset.meas.size(); i++) {
 
     // Get pose reference
-    steam::se3::TransformStateVar::Ptr& poseVar = poses_ic_k_0[dataset.meas[i].frameID];
+    unsigned int frameIdx = dataset.meas[i].frameID;
+    steam::se3::TransformStateVar::Ptr& poseVar = poses_ic_k_0[frameIdx];
+
+    // Setup landmark if first time
+    unsigned int landmarkIdx = dataset.meas[i].landID;
+    if (!landmarks_ic[landmarkIdx]) {
+      Eigen::Vector4d p_v0; p_v0.head<3>() = dataset.land_ic[landmarkIdx].point; p_v0[3] = 1.0;
+      Eigen::Vector4d p_vl = (poses_ic_k_0[frameIdx]->getValue()/poses_ic_k_0[0]->getValue()) * p_v0;
+      landmarks_ic[landmarkIdx] = steam::se3::LandmarkStateVar::Ptr(new steam::se3::LandmarkStateVar(p_vl.head<3>(), steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[frameIdx])));
+    }
 
     // Get landmark reference
-    steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[dataset.meas[i].landID];
+    steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[landmarkIdx];
 
     // Construct transform evaluator between landmark frame (inertial) and camera frame
     steam::se3::TransformEvaluator::Ptr pose_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
-    steam::se3::TransformEvaluator::Ptr pose_v_0 = steam::se3::TransformStateEvaluator::MakeShared(poseVar);
-    steam::se3::TransformEvaluator::Ptr pose_c_0 = steam::se3::compose(pose_c_v, pose_v_0);
+    steam::se3::TransformEvaluator::Ptr pose_vk_0 = steam::se3::TransformStateEvaluator::MakeShared(poseVar);
+    steam::se3::TransformEvaluator::Ptr pose_c_0 = steam::se3::compose(pose_c_v, pose_vk_0);
 
     // Construct error function
-    steam::StereoCameraErrorEval::Ptr errorfunc(new steam::StereoCameraErrorEval(
+    steam::StereoCameraErrorEvalX::Ptr errorfunc(new steam::StereoCameraErrorEvalX(
             dataset.meas[i].data, sharedIntrinsics, pose_c_0, landVar));
 
     // Construct cost term
-    steam::CostTerm<4,6>::Ptr cost(new steam::CostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
-    stereoCostTerms->add(cost);
+    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
+    costTerms.push_back(cost);
   }
 
   ///
@@ -139,7 +146,9 @@ int main(int argc, char** argv) {
   }
 
   // Add cost terms
-  problem.addCostTermCollection(stereoCostTerms);
+  for (unsigned int i = 0; i < costTerms.size(); i++) {
+    problem.addCostTerm(costTerms[i]);
+  }
 
   ///
   /// Setup Solver and Optimize

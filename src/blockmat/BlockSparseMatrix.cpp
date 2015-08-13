@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <iostream>
 
+#include <steam/common/Timer.hpp>
+
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,6 +109,53 @@ void BlockSparseMatrix::add(unsigned int r, unsigned int c, const Eigen::MatrixX
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Returns a reference to the row entry at (r,c), if it exists; if it does not exist
+///        it will be inserted if 'allowInsert' is set to true.
+///        *Note this throws an exception if matrix is symmetric and you request a lower
+///         triangular entry.
+//////////////////////////////////////////////////////////////////////////////////////////////
+BlockSparseMatrix::BlockRowEntry& BlockSparseMatrix::rowEntryAt(unsigned int r, unsigned int c, bool allowInsert) {
+
+  // Check that indexing is valid
+  if (r >= this->getIndexing().rowIndexing().numEntries() ||
+      c >= this->getIndexing().colIndexing().numEntries()) {
+    throw std::invalid_argument("Requested row or column indice did not fall in valid "
+                                "range of existing block structure.");
+  }
+
+  // If symmetric, check that we are indexing into upper-triangular portion
+  if (this->isSymmetric() && r > c) {
+    std::cout << "[STEAM WARN] Attempted to add to lower half of upper-symmetric, "
+                 "block-sparse matrix: cannot return reference." << std::endl;
+  }
+
+  // Find if row entry exists
+  BlockSparseColumn& colRef = cols_[c];
+
+  // Lock read/write to the column
+  omp_set_lock(&colRef.lock);
+
+  std::map<unsigned int, BlockRowEntry>::iterator it = colRef.rows.find(r);
+
+  // If it does not exist, throw exception
+  if (it == colRef.rows.end()) {
+    if (allowInsert) {
+      BlockRowEntry& result = colRef.rows[r];
+      result.data = Eigen::MatrixXd::Zero(this->getIndexing().rowIndexing().blkSizeAt(r),
+                                         this->getIndexing().rowIndexing().blkSizeAt(c));
+      omp_unset_lock(&colRef.lock); // Unlock read/write to the column
+      return result;
+    } else {
+      throw std::invalid_argument("Tried to read entry that did not exist");
+    }
+  } else {
+    BlockRowEntry& result = it->second;
+    omp_unset_lock(&colRef.lock); // Unlock read/write to the column
+    return result;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns a reference to the value at (r,c), if it exists
 ///        *Note this throws an exception if matrix is symmetric and you request a lower
 ///         triangular entry. For read operations, use copyAt(r,c).
@@ -200,15 +249,22 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity)
 
   // Iterate over block-sparse columns and rows
   for (unsigned int c = 0; c < blkColIndexing.numEntries(); c++) {
+
+    unsigned colBlkSize = blkColIndexing.blkSizeAt(c);
+    unsigned colCumSum = blkColIndexing.cumSumAt(c);
     for(std::map<unsigned int, BlockRowEntry>::const_iterator it = cols_[c].rows.begin(); it != cols_[c].rows.end(); ++it) {
 
       // Get row index of block entry
       unsigned int r = it->first;
+      unsigned int rowBlkSize = blkRowIndexing.blkSizeAt(r);
+      unsigned int rowCumSum = blkRowIndexing.cumSumAt(r);
 
       // Iterate over internal matrix dimensions
       // Eigen matrix storage is column-major, outer iterator should be over column first for speed
-      for (unsigned int j = 0; j < blkColIndexing.blkSizeAt(c); j++) {
-        for (unsigned int i = 0; i < blkRowIndexing.blkSizeAt(r); i++) {
+      unsigned int colIdx = colCumSum;
+      for (unsigned int j = 0; j < colBlkSize; j++, colIdx++) {
+        unsigned int rowIdx = rowCumSum;
+        for (unsigned int i = 0; i < rowBlkSize; i++, rowIdx++) {
 
           // Get scalar element
           double v_ij = it->second.data(i,j);
@@ -217,7 +273,7 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity)
           // ** The case where we do not add the element is when sub-block sparsity is enabled
           //    and an element is exactly zero
           if (fabs(v_ij) > 0.0 || !getSubBlockSparsity) {
-            mat.insert(blkRowIndexing.cumSumAt(r) + i, blkColIndexing.cumSumAt(c) + j) = v_ij;
+            mat.insert(rowIdx, colIdx) = v_ij;
           }
         }
       }
@@ -226,6 +282,7 @@ Eigen::SparseMatrix<double> BlockSparseMatrix::toEigen(bool getSubBlockSparsity)
 
   // (optional) Compress into compact format
   mat.makeCompressed();
+
   return mat;
 }
 

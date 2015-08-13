@@ -69,10 +69,10 @@ int main(int argc, char **argv) {
   ///
 
   // steam cost terms
-  std::vector<steam::CostTerm::Ptr> costTerms;
+  steam::CostTermCollection<6,6>::Ptr costTerms(new steam::CostTermCollection<6,6>());
 
   // Setup shared noise and loss functions
-  steam::NoiseModel::Ptr sharedNoiseModel(new steam::NoiseModel(Eigen::MatrixXd::Identity(6,6)));
+  steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(Eigen::MatrixXd::Identity(6,6)));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Lock first pose (otherwise entire solution is 'floating')
@@ -95,8 +95,8 @@ int main(int argc, char **argv) {
     steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(meas_T_BA, stateVarB, stateVarA));
 
     // Create cost term and add to problem
-    steam::CostTerm::Ptr cost(new steam::CostTerm(errorfunc, sharedNoiseModel, sharedLossFunc));
-    costTerms.push_back(cost);
+    steam::CostTerm<6,6>::Ptr cost(new steam::CostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
+    costTerms->add(cost);
   }
 
   ///
@@ -113,10 +113,7 @@ int main(int argc, char **argv) {
   }
 
   // Add cost terms
-  for (unsigned int i = 0; i < costTerms.size(); i++)
-  {
-    problem.addCostTerm(costTerms[i]);
-  }
+  problem.addCostTermCollection(costTerms);
 
   ///
   /// Setup Solver and Optimize

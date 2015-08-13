@@ -11,16 +11,16 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TYPE>
-BlockAutomaticEvaluator<TYPE>::BlockAutomaticEvaluator() {
+template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
+BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::BlockAutomaticEvaluator() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief General evaluation and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TYPE>
-TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
-                                                     std::vector<Jacobian>* jacs) const {
+template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
+TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
+    const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -28,7 +28,7 @@ TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
   }
   jacs->clear();
 
-  // Get evaluation tree
+  // Get evaluation tree - note that this pointer belongs to a pool
   EvalTreeNode<TYPE>* tree = this->evaluateTree();
 
   // Get Jacobians
@@ -37,8 +37,8 @@ TYPE BlockAutomaticEvaluator<TYPE>::evaluate(const Eigen::MatrixXd& lhs,
   // Get evaluation from tree
   TYPE eval = tree->getValue();
 
-  // Cleanup tree memory
-  delete tree;
+  // Return tree memory to pool
+  EvalTreeNode<TYPE>::pool.returnObj(tree);
 
   // Return evaluation
   return eval;

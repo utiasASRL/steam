@@ -16,7 +16,7 @@
 ///        Minimum error is at zero. Notably vanilla Gauss Newton is unable to converge to
 ///        the answer as a step near zero causes it to diverge.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class DivergenceErrorEval : public steam::ErrorEvaluator
+class DivergenceErrorEval : public steam::ErrorEvaluatorX
 {
 public:
 
@@ -61,7 +61,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the error and Jacobians wrt state variables
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<steam::Jacobian>* jacs) const {
+  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<steam::Jacobian<> >* jacs) const {
 
     // Get value of state variable
     double x = stateVec_->getValue()[0];
@@ -76,8 +76,8 @@ public:
     if(!stateVec_->isLocked()) {
 
       // Create Jacobian object
-      jacs->push_back(steam::Jacobian());
-      steam::Jacobian& jacref = jacs->back();
+      jacs->push_back(steam::Jacobian<>());
+      steam::Jacobian<>& jacref = jacs->back();
       jacref.key = stateVec_->getKey();
 
       // Fill out matrix
@@ -114,12 +114,12 @@ void setupDivergenceProblem(steam::OptimizationProblem* problem) {
   steam::VectorSpaceStateVar::Ptr stateVar(new steam::VectorSpaceStateVar(initial));
 
   // Setup shared noise and loss function
-  steam::NoiseModel::Ptr sharedNoiseModel(new steam::NoiseModel(Eigen::MatrixXd::Identity(2,2)));
+  steam::NoiseModelX::Ptr sharedNoiseModel(new steam::NoiseModelX(Eigen::MatrixXd::Identity(2,2)));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup cost term
   DivergenceErrorEval::Ptr errorfunc(new DivergenceErrorEval(stateVar));
-  steam::CostTerm::Ptr costTerm(new steam::CostTerm(errorfunc, sharedNoiseModel, sharedLossFunc));
+  steam::CostTermX::Ptr costTerm(new steam::CostTermX(errorfunc, sharedNoiseModel, sharedLossFunc));
 
   // Init problem
   problem->addStateVariable(stateVar);

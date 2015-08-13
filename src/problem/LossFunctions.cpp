@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/LossFunctions.hpp>
+#include <steam/problem/LossFunctions.hpp>
 
 namespace steam {
 

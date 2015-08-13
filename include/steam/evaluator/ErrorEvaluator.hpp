@@ -16,7 +16,17 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief The generic error evaluator is simply a typedef of the templated evaluator base
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef EvaluatorBase<Eigen::VectorXd> ErrorEvaluator;
+template<int MEAS_DIM, int MAX_STATE_SIZE>
+struct ErrorEvaluator{
+  typedef EvaluatorBase<Eigen::Matrix<double, MEAS_DIM, 1>, MEAS_DIM, MEAS_DIM, MAX_STATE_SIZE> type;
+  typedef boost::shared_ptr<type> Ptr;
+  typedef boost::shared_ptr<const type> ConstPtr;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Dynamic error evaluator
+//////////////////////////////////////////////////////////////////////////////////////////////
+typedef ErrorEvaluator<Eigen::Dynamic,Eigen::Dynamic>::type ErrorEvaluatorX;
 
 } // steam
 

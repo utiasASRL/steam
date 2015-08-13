@@ -2,6 +2,9 @@
 ### Sample Programs
 ################################################################################
 
+# define number of threads to be used by OpenMP in steam
+add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
+
 # convergence sample
 add_executable(TrustRegionExample ${CMAKE_CURRENT_SOURCE_DIR}/TrustRegionExample.cpp)
 target_link_libraries(TrustRegionExample steam ${DEPEND_LIBS})
@@ -21,6 +24,10 @@ target_link_libraries(SimpleBundleAdjustment steam ${DEPEND_LIBS})
 # bundle adjustment example with hardcoded GP factors
 add_executable(SimpleBundleAdjustmentRelLand ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBundleAdjustmentRelLand.cpp)
 target_link_libraries(SimpleBundleAdjustmentRelLand steam ${DEPEND_LIBS})
+
+# bundle adjustment example with hardcoded GP factors
+add_executable(SimpleBundleAdjustmentRelLandX ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBundleAdjustmentRelLandX.cpp)
+target_link_libraries(SimpleBundleAdjustmentRelLandX steam ${DEPEND_LIBS})
 
 # bundle adjustment example with hardcoded GP factors
 #add_executable(NaiveGPandBA ${CMAKE_CURRENT_SOURCE_DIR}/NaiveGPandBA.cpp)
