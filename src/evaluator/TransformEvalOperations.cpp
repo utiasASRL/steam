@@ -561,7 +561,8 @@ void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    transform_->appendJacobians(lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>()),
+    const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
+    transform_->appendJacobians(lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]),
                                 t1, outJacobians);
   }
 
@@ -590,7 +591,8 @@ void ComposeLandmarkEvaluator::appendJacobians1(const Eigen::Matrix<double,1,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    Eigen::Matrix<double,1,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
+    Eigen::Matrix<double,1,6> newLhs = lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]);
     transform_->appendJacobians1(newLhs, t1, outJacobians);
   }
 
@@ -614,7 +616,8 @@ void ComposeLandmarkEvaluator::appendJacobians2(const Eigen::Matrix<double,2,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    Eigen::Matrix<double,2,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
+    Eigen::Matrix<double,2,6> newLhs = lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]);
     transform_->appendJacobians2(newLhs, t1, outJacobians);
   }
 
@@ -638,7 +641,8 @@ void ComposeLandmarkEvaluator::appendJacobians3(const Eigen::Matrix<double,3,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    Eigen::Matrix<double,3,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
+    Eigen::Matrix<double,3,6> newLhs = lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]);
     transform_->appendJacobians3(newLhs, t1, outJacobians);
   }
 
@@ -662,7 +666,8 @@ void ComposeLandmarkEvaluator::appendJacobians4(const Eigen::Matrix<double,4,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    Eigen::Matrix<double,4,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
+    Eigen::Matrix<double,4,6> newLhs = lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]);
     transform_->appendJacobians4(newLhs, t1, outJacobians);
   }
 
@@ -686,7 +691,8 @@ void ComposeLandmarkEvaluator::appendJacobians6(const Eigen::Matrix<double,6,4>&
 
   // Check if transform1 is active
   if (transform_->isActive()) {
-    Eigen::Matrix<double,6,6> newLhs = lhs * lgmath::se3::point2fs(evaluationTree->getValue().head<3>());
+    const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
+    Eigen::Matrix<double,6,6> newLhs = lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]);
     transform_->appendJacobians6(newLhs, t1, outJacobians);
   }
 

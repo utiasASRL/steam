@@ -13,8 +13,7 @@ namespace se3 {
 /// \brief Constructor from a global 3D point
 //////////////////////////////////////////////////////////////////////////////////////////////
 LandmarkStateVar::LandmarkStateVar(const Eigen::Vector3d& v_0) : StateVariable(3) {
-  this->value_.head<3>() = v_0;
-  this->value_[3] = 1.0; // fourth element
+  this->setHomogeneous(v_0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,8 +22,7 @@ LandmarkStateVar::LandmarkStateVar(const Eigen::Vector3d& v_0) : StateVariable(3
 LandmarkStateVar::LandmarkStateVar(const Eigen::Vector3d& v_ref,
                                    const TransformEvaluator::ConstPtr& refFrame)
   : StateVariable(3), refFrame_(refFrame) {
-  this->value_.head<3>() = v_ref;
-  this->value_[3] = 1.0; // fourth element
+  this->setHomogeneous(v_ref);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +35,8 @@ bool LandmarkStateVar::update(const Eigen::VectorXd& perturbation) {
                              "perturbation (VectorXd) was not the correct size.");
   }
 
-  this->value_.head<3>() = this->value_.head<3>() + perturbation; // todo: speed this up ? http://eigen.tuxfamily.org/dox/TopicWritingEfficientProductExpression.html
+  // todo: speed this up ? http://eigen.tuxfamily.org/dox/TopicWritingEfficientProductExpression.html
+  this->value_.head<3>() += perturbation;
   return true;
 }
 
@@ -59,7 +58,7 @@ bool LandmarkStateVar::hasReferenceFrame() const {
 /// \brief Set value -- mostly for landmark initialization
 //////////////////////////////////////////////////////////////////////////////////////////////
 void LandmarkStateVar::set(const Eigen::Vector3d& v) {
-  this->value_.head<3>() = v;
+  this->setHomogeneous(v);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,6 +77,19 @@ Eigen::Vector4d LandmarkStateVar::getGlobalValue() const {
   } else {
     return this->value_;
   }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Homogeneously scale point from raw xyz point
+//////////////////////////////////////////////////////////////////////////////////////////////
+void LandmarkStateVar::setHomogeneous(const Eigen::Vector3d& v) {
+
+  // Set scale
+  //this->value_[3] = 1.0/v.norm();
+  this->value_[3] = 0.1/v.norm();
+
+  // Set scaled xyz coordinates
+  this->value_.head<3>() = this->value_[3] * v;
 }
 
 } // se3

@@ -71,14 +71,19 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
 Eigen::Vector4d StereoCameraErrorEval::cameraModel(const Eigen::Vector4d& point) const {
 
   // Precompute values
-  double one_over_z = 1.0/point[2];
+  const double x = point[0];
+  const double y = point[1];
+  const double z = point[2];
+  const double w = point[3];
+  const double xr = x - w * intrinsics_->b;
+  const double one_over_z = 1.0/z;
 
   // Project point into camera coordinates
   Eigen::Vector4d projectedMeas;
-  projectedMeas << intrinsics_->fu *  point[0] * one_over_z           + intrinsics_->cu,
-                   intrinsics_->fv *  point[1] * one_over_z           + intrinsics_->cv,
-                   intrinsics_->fu * (point[0] - intrinsics_->b) * one_over_z + intrinsics_->cu,
-                   intrinsics_->fv *  point[1] * one_over_z           + intrinsics_->cv;
+  projectedMeas << intrinsics_->fu *  x  * one_over_z + intrinsics_->cu,
+                   intrinsics_->fv *  y  * one_over_z + intrinsics_->cv,
+                   intrinsics_->fu *  xr * one_over_z + intrinsics_->cu,
+                   intrinsics_->fv *  y  * one_over_z + intrinsics_->cv;
   return projectedMeas;
 }
 
@@ -88,15 +93,20 @@ Eigen::Vector4d StereoCameraErrorEval::cameraModel(const Eigen::Vector4d& point)
 Eigen::Matrix4d StereoCameraErrorEval::cameraModelJacobian(const Eigen::Vector4d& point) const {
 
   // Precompute values
-  double one_over_z = 1.0/point[2];
+  const double x = point[0];
+  const double y = point[1];
+  const double z = point[2];
+  const double w = point[3];
+  const double xr = x - w * intrinsics_->b;
+  double one_over_z = 1.0/z;
   double one_over_z2 = one_over_z*one_over_z;
 
   // Construct Jacobian with respect to x, y, z, and scalar 1.0
   Eigen::Matrix4d jac;
-  jac << intrinsics_->fu*one_over_z, 0.0, -intrinsics_->fu *  point[0] * one_over_z2, 0.0,
-         0.0, intrinsics_->fv*one_over_z, -intrinsics_->fv *  point[1] * one_over_z2, 0.0,
-         intrinsics_->fu*one_over_z, 0.0, -intrinsics_->fu * (point[0] - intrinsics_->b) * one_over_z2, 0.0,
-         0.0, intrinsics_->fv*one_over_z, -intrinsics_->fv *  point[1] * one_over_z2, 0.0;
+  jac << intrinsics_->fu*one_over_z, 0.0, -intrinsics_->fu *  x  * one_over_z2, 0.0,
+         0.0, intrinsics_->fv*one_over_z, -intrinsics_->fv *  y  * one_over_z2, 0.0,
+         intrinsics_->fu*one_over_z, 0.0, -intrinsics_->fu *  xr * one_over_z2, 0.0,
+         0.0, intrinsics_->fv*one_over_z, -intrinsics_->fv *  y  * one_over_z2, 0.0;
   return jac;
 }
 
