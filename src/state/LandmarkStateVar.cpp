@@ -36,7 +36,8 @@ bool LandmarkStateVar::update(const Eigen::VectorXd& perturbation) {
   }
 
   // todo: speed this up ? http://eigen.tuxfamily.org/dox/TopicWritingEfficientProductExpression.html
-  this->value_.head<3>() += perturbation;
+  //this->value_.head<3>() += perturbation;
+  this->setHomogeneous((this->value_.head<3>() + perturbation)/this->value_[3]);
   return true;
 }
 
@@ -85,8 +86,14 @@ Eigen::Vector4d LandmarkStateVar::getGlobalValue() const {
 void LandmarkStateVar::setHomogeneous(const Eigen::Vector3d& v) {
 
   // Set scale
-  //this->value_[3] = 1.0/v.norm();
-  this->value_[3] = 0.1/v.norm();
+//  const double range = v.norm();
+//  if (range < 15.0) {
+//    this->value_[3] = 1.0;
+//  } else {
+//    this->value_[3] = 1.0/(range*range);
+//  }
+  //this->value_[3] = 1.0;
+  this->value_[3] = 1.0/v.squaredNorm();
 
   // Set scaled xyz coordinates
   this->value_.head<3>() = this->value_[3] * v;
