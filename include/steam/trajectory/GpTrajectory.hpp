@@ -29,25 +29,6 @@ class GpTrajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Structure to hold data associated with each knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-//  struct Knot {
-
-//    /// Convenience typedefs
-//    typedef boost::shared_ptr<Knot> Ptr;
-//    typedef boost::shared_ptr<const Knot> ConstPtr;
-
-//    // Pose
-//    se3::TransformStateVar::Ptr T_k0;
-
-//    // Velocity
-//    VectorSpaceStateVar::Ptr varpi;
-
-//    // Time
-//    steam::Time time;
-//  };
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Structure to hold data associated with each knot
-  //////////////////////////////////////////////////////////////////////////////////////////////
   struct Knot {
 
     /// Convenience typedefs
@@ -55,7 +36,7 @@ class GpTrajectory
     typedef boost::shared_ptr<const Knot> ConstPtr;
 
     // Pose
-    se3::TransformEvaluator::Ptr T_k_root;
+    se3::TransformStateVar::Ptr T_k0;
 
     // Velocity
     VectorSpaceStateVar::Ptr varpi;
@@ -63,6 +44,25 @@ class GpTrajectory
     // Time
     steam::Time time;
   };
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Structure to hold data associated with each knot
+  //////////////////////////////////////////////////////////////////////////////////////////////
+//  struct Knot {
+
+//    /// Convenience typedefs
+//    typedef boost::shared_ptr<Knot> Ptr;
+//    typedef boost::shared_ptr<const Knot> ConstPtr;
+
+//    // Pose
+//    se3::TransformEvaluator::Ptr T_k_root;
+
+//    // Velocity
+//    VectorSpaceStateVar::Ptr varpi;
+
+//    // Time
+//    steam::Time time;
+//  };
 
   // Notes
   // - For now we only allow adding.. this way pose evaluators stay valid. In the future, the
