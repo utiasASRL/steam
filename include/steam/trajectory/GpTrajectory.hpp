@@ -29,20 +29,39 @@ class GpTrajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Structure to hold data associated with each knot
   //////////////////////////////////////////////////////////////////////////////////////////////
+//  struct Knot {
+
+//    /// Convenience typedefs
+//    typedef boost::shared_ptr<Knot> Ptr;
+//    typedef boost::shared_ptr<const Knot> ConstPtr;
+
+//    // Pose
+//    se3::TransformStateVar::Ptr T_k0;
+
+//    // Velocity
+//    VectorSpaceStateVar::Ptr varpi;
+
+//    // Time
+//    steam::Time time;
+//  };
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Structure to hold data associated with each knot
+  //////////////////////////////////////////////////////////////////////////////////////////////
   struct Knot {
 
     /// Convenience typedefs
     typedef boost::shared_ptr<Knot> Ptr;
     typedef boost::shared_ptr<const Knot> ConstPtr;
 
-    // Time
-    steam::Time time;
-
     // Pose
-    se3::TransformStateVar::Ptr T_k0;
+    se3::TransformEvaluator::Ptr T_k_root;
 
     // Velocity
     VectorSpaceStateVar::Ptr varpi;
+
+    // Time
+    steam::Time time;
   };
 
   // Notes
