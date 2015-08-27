@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
     landmarks_gt.push_back(temp);
   }
 
-  // Set a fixed origin transform that will be used to initialize landmarks in their parent frame
-  steam::se3::FixedTransformEvaluator::Ptr tf_origin = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
+  // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
+  steam::se3::FixedTransformEvaluator::Ptr tf_identity = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
 
   // Create all the relative transforms from the initial poses
   for (unsigned int i = 1; i < dataset.frames_ic.size(); i++) {
@@ -115,8 +115,8 @@ int main(int argc, char** argv) {
 
       // Transform into local reference frame
       Eigen::Vector4d p_v0; p_v0.head<3>() = dataset.land_ic[landmarkIdx].point; p_v0[3] = 1.0;
-      lgmath::se3::Transformation tf = dataset.frames_ic[frameIdx].T_k0/dataset.frames_ic[0].T_k0;
-      Eigen::Vector4d p_vl = (tf) * p_v0;
+      lgmath::se3::Transformation tf_l0 = dataset.frames_ic[frameIdx].T_k0/dataset.frames_ic[0].T_k0;
+      Eigen::Vector4d p_vl = tf_l0 * p_v0;
 
       // Insert the landmark
       landmarks_ic[landmarkIdx] = steam::se3::LandmarkStateVar::Ptr(new steam::se3::LandmarkStateVar(p_vl.head<3>()));
@@ -128,30 +128,31 @@ int main(int argc, char** argv) {
     // Get landmark reference
     steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[landmarkIdx];
 
-    // Construct transform evaluator between two camera frames that have observations
-    steam::se3::TransformEvaluator::Ptr tf_vk_vkp;
+    // Construct transform evaluator between two camera frames (a and b) that have observations
+    steam::se3::TransformEvaluator::Ptr tf_vb_va;
     if(landmark_map[landmarkIdx] == frameIdx) {
 
         // In this case, the transform remains fixed as an identity transform
-        tf_vk_vkp = tf_origin;
+        tf_vb_va = tf_identity;
 
     } else {
 
       // Initialize from first relative transform
-      tf_vk_vkp = steam::se3::TransformStateEvaluator::MakeShared(relposes_ic_k_kp[landmark_map[landmarkIdx]]);
+      unsigned int firstObsIndex = landmark_map[landmarkIdx];
+      tf_vb_va = steam::se3::TransformStateEvaluator::MakeShared(relposes_ic_k_kp[firstObsIndex]);
 
       // Compose through the chain of transforms
-      for(unsigned j = landmark_map[landmarkIdx]+1; j < frameIdx; j++) {
-        tf_vk_vkp = steam::se3::compose(steam::se3::TransformStateEvaluator::MakeShared(relposes_ic_k_kp[j]), tf_vk_vkp);
+      for(unsigned int j = firstObsIndex + 1; j < frameIdx; j++) {
+        tf_vb_va = steam::se3::compose(steam::se3::TransformStateEvaluator::MakeShared(relposes_ic_k_kp[j]), tf_vb_va);
       }
     }
 
     // Compose with camera to vehicle transform
-    steam::se3::TransformEvaluator::Ptr pose_c_cp = steam::se3::compose(pose_c_v, tf_vk_vkp);
+    steam::se3::TransformEvaluator::Ptr pose_cb_va = steam::se3::compose(pose_c_v, tf_vb_va);
 
     // Construct error function
     steam::StereoCameraErrorEval::Ptr errorfunc(new steam::StereoCameraErrorEval(
-            dataset.meas[i].data, sharedIntrinsics, pose_c_cp, landVar));
+            dataset.meas[i].data, sharedIntrinsics, pose_cb_va, landVar));
 
     // Construct cost term
     steam::CostTerm<4,6>::Ptr cost(new steam::CostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
