@@ -26,16 +26,16 @@ GpTrajectoryEval::GpTrajectoryEval(const Time& time, const GpTrajectory::Knot::C
   double ratio3 = ratio2*ratio;
 
   // Calculate 'psi' interpolation values
-  psi11_ = 3*ratio2 - 2*ratio3;
+  psi11_ = 3.0*ratio2 - 2.0*ratio3;
   psi12_ = tau*(ratio2 - ratio);
-  psi21_ = 6*(ratio - ratio2)/T;
-  psi22_ = 3*ratio2 - 2*ratio;
+  psi21_ = 6.0*(ratio - ratio2)/T;
+  psi22_ = 3.0*ratio2 - 2.0*ratio;
 
   // Calculate 'lambda' interpolation values
-  lambda11_ = 1 - psi11_;
+  lambda11_ = 1.0 - psi11_;
   lambda12_ = tau - T*psi11_ - psi12_;
   lambda21_ = -psi21_;
-  lambda22_ = 1 - psi21_ - psi22_;
+  lambda22_ = 1.0 - psi21_ - psi22_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,9 +50,9 @@ GpTrajectoryEval::Ptr GpTrajectoryEval::MakeShared(const Time& time, const GpTra
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool GpTrajectoryEval::isActive() const {
-  return !knot1_->T_k0->isLocked()  ||
+  return knot1_->T_k_root->isActive()  ||
          !knot1_->varpi->isLocked() ||
-         !knot2_->T_k0->isLocked()  ||
+         knot2_->T_k_root->isActive()  ||
          !knot2_->varpi->isLocked();
 }
 
@@ -62,7 +62,7 @@ bool GpTrajectoryEval::isActive() const {
 lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {
 
   // Get relative matrix info
-  lgmath::se3::Transformation T_21 = knot2_->T_k0->getValue()/knot1_->T_k0->getValue();
+  lgmath::se3::Transformation T_21 = knot2_->T_k_root->evaluate()/knot1_->T_k_root->evaluate();
 
   // Get se3 algebra of relative matrix
   Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
@@ -79,7 +79,7 @@ lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {
   lgmath::se3::Transformation T_i1(xi_i1);
 
   // Return `global' interpolated transform
-  return T_i1*knot1_->T_k0->getValue();
+  return T_i1*knot1_->T_k_root->evaluate();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,45 +87,36 @@ lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* GpTrajectoryEval::evaluateTree() const {
 
-  // Precalculate and store linearization values for later use in appendJacobians
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 = knot1_->T_k_root->evaluateTree();
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 = knot2_->T_k_root->evaluateTree();
 
-  // Get relative matrix info (using pool memory)
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
-  T_21->setValue(knot2_->T_k0->getValue()/knot1_->T_k0->getValue());
+  // Get relative matrix info
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
   // Get se3 algebra of relative matrix
-  Eigen::Matrix<double,6,1> xi_21 = T_21->getValue().vec();
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Calculate the 6x6 associated Jacobian (using pool memory)
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      EvalTreeNode<Eigen::Matrix<double,6,6> >::pool.getObj();
-  J_21_inv->setValue(lgmath::se3::vec2jacinv(xi_21));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Calculate interpolated relative se3 algebra (using pool memory)
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.getObj();
-  xi_i1->setValue(lambda12_*knot1_->varpi->getValue() +
-                 psi11_*xi_21 +
-                 psi12_*J_21_inv->getValue()*knot2_->varpi->getValue());
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
 
-  // Calculate interpolated relative transformation matrix (using pool memory)
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
-  T_i1->setValue(xi_i1->getValue());
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Interpolated relative transform - new root node (using pool memory)
-  EvalTreeNode<lgmath::se3::Transformation>* root =
-      EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
-  root->setValue(T_i1->getValue()*knot1_->T_k0->getValue());
+  EvalTreeNode<lgmath::se3::Transformation>* root = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  root->setValue(T_i1*transform1->getValue());
 
-  // Add children - for later use
-  root->addChild(T_21);
-  root->addChild(J_21_inv);
-  root->addChild(xi_i1);
-  root->addChild(T_i1);
+  // Add children
+  root->addChild(transform1);
+  root->addChild(transform2);
 
-  // Return `global' interpolated transform
+  // Return new root node
   return root;
 }
 
@@ -136,51 +127,58 @@ void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<> >* outJacobians) const {
 
-  // Get precalculated linearization values
+  // Cast back to transformations
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
   // Get relative matrix info
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
-  // Get the 6x6 associated Jacobian
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,6> >*>(evaluationTree->childAt(1));
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Get the interpolated relative se3 algebra
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(2));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Get the interpolated relative transformation matrix
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(3));
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1->getValue());
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   // Check if evaluator is active
   if (this->isActive()) {
 
     // Pose Jacobians
-    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+    if (knot1_->T_k_root->isActive() || knot2_->T_k_root->isActive()) {
 
       // Precompute matrix
-      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv->getValue() +
-        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // 6 x 6 Pose Jacobian 1
-      if(!knot1_->T_k0->isLocked()) {
-
-        // Add Jacobian
-        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian<>(knot1_->T_k0->getKey(), lhs*jacobian));
+      // Check if transform1 is active
+      if (knot1_->T_k_root->isActive()) {
+        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
+        knot1_->T_k_root->appendJacobians(lhs*jacobian, transform1, outJacobians);
       }
 
-      // 6 x 6 Pose Jacobian 2
-      if(!knot2_->T_k0->isLocked()) {
+      // Get index of split between left and right-hand-side of Jacobians
+      unsigned int hintIndex = outJacobians->size();
 
-        // Add Jacobian
-        outJacobians->push_back(Jacobian<>(knot2_->T_k0->getKey(), lhs*w));
+      // Check if transform2 is active
+      if (knot2_->T_k_root->isActive()) {
+        knot2_->T_k_root->appendJacobians(lhs*w, transform2, outJacobians);
       }
+
+      // Merge jacobians
+      Jacobian<>::merge(outJacobians, hintIndex);
     }
 
     // 6 x 6 Velocity Jacobian 1
@@ -194,7 +192,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
     if(!knot2_->varpi->isLocked()) {
 
       // Add Jacobian
-      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv;
       outJacobians->push_back(Jacobian<>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
@@ -207,51 +205,58 @@ void GpTrajectoryEval::appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<1,6> >* outJacobians) const {
 
-  // Get precalculated linearization values
+  // Cast back to transformations
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
   // Get relative matrix info
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
-  // Get the 6x6 associated Jacobian
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,6> >*>(evaluationTree->childAt(1));
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Get the interpolated relative se3 algebra
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(2));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Get the interpolated relative transformation matrix
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(3));
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1->getValue());
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   // Check if evaluator is active
   if (this->isActive()) {
 
     // Pose Jacobians
-    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+    if (knot1_->T_k_root->isActive() || knot2_->T_k_root->isActive()) {
 
       // Precompute matrix
-      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv->getValue() +
-        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // 6 x 6 Pose Jacobian 1
-      if(!knot1_->T_k0->isLocked()) {
-
-        // Add Jacobian
-        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian<1,6>(knot1_->T_k0->getKey(), lhs*jacobian));
+      // Check if transform1 is active
+      if (knot1_->T_k_root->isActive()) {
+        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
+        knot1_->T_k_root->appendJacobians1(lhs*jacobian, transform1, outJacobians);
       }
 
-      // 6 x 6 Pose Jacobian 2
-      if(!knot2_->T_k0->isLocked()) {
+      // Get index of split between left and right-hand-side of Jacobians
+      unsigned int hintIndex = outJacobians->size();
 
-        // Add Jacobian
-        outJacobians->push_back(Jacobian<1,6>(knot2_->T_k0->getKey(), lhs*w));
+      // Check if transform2 is active
+      if (knot2_->T_k_root->isActive()) {
+        knot2_->T_k_root->appendJacobians1(lhs*w, transform2, outJacobians);
       }
+
+      // Merge jacobians
+      Jacobian<1,6>::merge(outJacobians, hintIndex);
     }
 
     // 6 x 6 Velocity Jacobian 1
@@ -265,61 +270,71 @@ void GpTrajectoryEval::appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
     if(!knot2_->varpi->isLocked()) {
 
       // Add Jacobian
-      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv;
       outJacobians->push_back(Jacobian<1,6>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fixed-size evaluations of the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
 void GpTrajectoryEval::appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<2,6> >* outJacobians) const {
 
-  // Get precalculated linearization values
+  // Cast back to transformations
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
   // Get relative matrix info
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
-  // Get the 6x6 associated Jacobian
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,6> >*>(evaluationTree->childAt(1));
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Get the interpolated relative se3 algebra
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(2));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Get the interpolated relative transformation matrix
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(3));
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1->getValue());
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   // Check if evaluator is active
   if (this->isActive()) {
 
     // Pose Jacobians
-    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+    if (knot1_->T_k_root->isActive() || knot2_->T_k_root->isActive()) {
 
       // Precompute matrix
-      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv->getValue() +
-        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // 6 x 6 Pose Jacobian 1
-      if(!knot1_->T_k0->isLocked()) {
-
-        // Add Jacobian
-        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian<2,6>(knot1_->T_k0->getKey(), lhs*jacobian));
+      // Check if transform1 is active
+      if (knot1_->T_k_root->isActive()) {
+        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
+        knot1_->T_k_root->appendJacobians2(lhs*jacobian, transform1, outJacobians);
       }
 
-      // 6 x 6 Pose Jacobian 2
-      if(!knot2_->T_k0->isLocked()) {
+      // Get index of split between left and right-hand-side of Jacobians
+      unsigned int hintIndex = outJacobians->size();
 
-        // Add Jacobian
-        outJacobians->push_back(Jacobian<2,6>(knot2_->T_k0->getKey(), lhs*w));
+      // Check if transform2 is active
+      if (knot2_->T_k_root->isActive()) {
+        knot2_->T_k_root->appendJacobians2(lhs*w, transform2, outJacobians);
       }
+
+      // Merge jacobians
+      Jacobian<2,6>::merge(outJacobians, hintIndex);
     }
 
     // 6 x 6 Velocity Jacobian 1
@@ -333,61 +348,71 @@ void GpTrajectoryEval::appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
     if(!knot2_->varpi->isLocked()) {
 
       // Add Jacobian
-      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv;
       outJacobians->push_back(Jacobian<2,6>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fixed-size evaluations of the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
 void GpTrajectoryEval::appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<3,6> >* outJacobians) const {
 
-  // Get precalculated linearization values
+  // Cast back to transformations
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
   // Get relative matrix info
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
-  // Get the 6x6 associated Jacobian
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,6> >*>(evaluationTree->childAt(1));
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Get the interpolated relative se3 algebra
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(2));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Get the interpolated relative transformation matrix
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(3));
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1->getValue());
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   // Check if evaluator is active
   if (this->isActive()) {
 
     // Pose Jacobians
-    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+    if (knot1_->T_k_root->isActive() || knot2_->T_k_root->isActive()) {
 
       // Precompute matrix
-      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv->getValue() +
-        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // 6 x 6 Pose Jacobian 1
-      if(!knot1_->T_k0->isLocked()) {
-
-        // Add Jacobian
-        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian<3,6>(knot1_->T_k0->getKey(), lhs*jacobian));
+      // Check if transform1 is active
+      if (knot1_->T_k_root->isActive()) {
+        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
+        knot1_->T_k_root->appendJacobians3(lhs*jacobian, transform1, outJacobians);
       }
 
-      // 6 x 6 Pose Jacobian 2
-      if(!knot2_->T_k0->isLocked()) {
+      // Get index of split between left and right-hand-side of Jacobians
+      unsigned int hintIndex = outJacobians->size();
 
-        // Add Jacobian
-        outJacobians->push_back(Jacobian<3,6>(knot2_->T_k0->getKey(), lhs*w));
+      // Check if transform2 is active
+      if (knot2_->T_k_root->isActive()) {
+        knot2_->T_k_root->appendJacobians3(lhs*w, transform2, outJacobians);
       }
+
+      // Merge jacobians
+      Jacobian<3,6>::merge(outJacobians, hintIndex);
     }
 
     // 6 x 6 Velocity Jacobian 1
@@ -401,61 +426,71 @@ void GpTrajectoryEval::appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
     if(!knot2_->varpi->isLocked()) {
 
       // Add Jacobian
-      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv;
       outJacobians->push_back(Jacobian<3,6>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fixed-size evaluations of the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
 void GpTrajectoryEval::appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<4,6> >* outJacobians) const {
 
-  // Get precalculated linearization values
+  // Cast back to transformations
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
   // Get relative matrix info
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
-  // Get the 6x6 associated Jacobian
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,6> >*>(evaluationTree->childAt(1));
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Get the interpolated relative se3 algebra
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(2));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Get the interpolated relative transformation matrix
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(3));
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1->getValue());
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   // Check if evaluator is active
   if (this->isActive()) {
 
     // Pose Jacobians
-    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+    if (knot1_->T_k_root->isActive() || knot2_->T_k_root->isActive()) {
 
       // Precompute matrix
-      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv->getValue() +
-        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // 6 x 6 Pose Jacobian 1
-      if(!knot1_->T_k0->isLocked()) {
-
-        // Add Jacobian
-        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian<4,6>(knot1_->T_k0->getKey(), lhs*jacobian));
+      // Check if transform1 is active
+      if (knot1_->T_k_root->isActive()) {
+        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
+        knot1_->T_k_root->appendJacobians4(lhs*jacobian, transform1, outJacobians);
       }
 
-      // 6 x 6 Pose Jacobian 2
-      if(!knot2_->T_k0->isLocked()) {
+      // Get index of split between left and right-hand-side of Jacobians
+      unsigned int hintIndex = outJacobians->size();
 
-        // Add Jacobian
-        outJacobians->push_back(Jacobian<4,6>(knot2_->T_k0->getKey(), lhs*w));
+      // Check if transform2 is active
+      if (knot2_->T_k_root->isActive()) {
+        knot2_->T_k_root->appendJacobians4(lhs*w, transform2, outJacobians);
       }
+
+      // Merge jacobians
+      Jacobian<4,6>::merge(outJacobians, hintIndex);
     }
 
     // 6 x 6 Velocity Jacobian 1
@@ -469,61 +504,71 @@ void GpTrajectoryEval::appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
     if(!knot2_->varpi->isLocked()) {
 
       // Add Jacobian
-      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv;
       outJacobians->push_back(Jacobian<4,6>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fixed-size evaluations of the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
 void GpTrajectoryEval::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<6,6> >* outJacobians) const {
 
-  // Get precalculated linearization values
+  // Cast back to transformations
+  EvalTreeNode<lgmath::se3::Transformation>* transform1 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  EvalTreeNode<lgmath::se3::Transformation>* transform2 =
+      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
   // Get relative matrix info
-  EvalTreeNode<lgmath::se3::Transformation>* T_21 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
 
-  // Get the 6x6 associated Jacobian
-  EvalTreeNode<Eigen::Matrix<double,6,6> >* J_21_inv =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,6> >*>(evaluationTree->childAt(1));
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
 
-  // Get the interpolated relative se3 algebra
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* xi_i1 =
-      static_cast<EvalTreeNode<Eigen::Matrix<double,6,1> >*>(evaluationTree->childAt(2));
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
 
-  // Get the interpolated relative transformation matrix
-  EvalTreeNode<lgmath::se3::Transformation>* T_i1 =
-      static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(3));
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->varpi->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->varpi->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
 
   // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1->getValue());
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   // Check if evaluator is active
   if (this->isActive()) {
 
     // Pose Jacobians
-    if (!knot1_->T_k0->isLocked() || !knot2_->T_k0->isLocked()) {
+    if (knot1_->T_k_root->isActive() || knot2_->T_k_root->isActive()) {
 
       // Precompute matrix
-      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv->getValue() +
-        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> w = psi11_*J_i1*J_21_inv +
+        0.5*psi12_*J_i1*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
-      // 6 x 6 Pose Jacobian 1
-      if(!knot1_->T_k0->isLocked()) {
-
-        // Add Jacobian
-        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21->getValue().adjoint() + T_i1->getValue().adjoint();
-        outJacobians->push_back(Jacobian<6,6>(knot1_->T_k0->getKey(), lhs*jacobian));
+      // Check if transform1 is active
+      if (knot1_->T_k_root->isActive()) {
+        Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
+        knot1_->T_k_root->appendJacobians6(lhs*jacobian, transform1, outJacobians);
       }
 
-      // 6 x 6 Pose Jacobian 2
-      if(!knot2_->T_k0->isLocked()) {
+      // Get index of split between left and right-hand-side of Jacobians
+      unsigned int hintIndex = outJacobians->size();
 
-        // Add Jacobian
-        outJacobians->push_back(Jacobian<6,6>(knot2_->T_k0->getKey(), lhs*w));
+      // Check if transform2 is active
+      if (knot2_->T_k_root->isActive()) {
+        knot2_->T_k_root->appendJacobians6(lhs*w, transform2, outJacobians);
       }
+
+      // Merge jacobians
+      Jacobian<6,6>::merge(outJacobians, hintIndex);
     }
 
     // 6 x 6 Velocity Jacobian 1
@@ -537,7 +582,7 @@ void GpTrajectoryEval::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
     if(!knot2_->varpi->isLocked()) {
 
       // Add Jacobian
-      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv->getValue();
+      Eigen::Matrix<double,6,6> jacobian = psi12_*J_i1*J_21_inv;
       outJacobians->push_back(Jacobian<6,6>(knot2_->varpi->getKey(), lhs*jacobian));
     }
   }
