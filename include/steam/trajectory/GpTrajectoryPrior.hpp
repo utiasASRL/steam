@@ -16,10 +16,9 @@ namespace steam {
 namespace se3 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple transform evaluator for a transformation state variable
+/// \brief Gaussian-process prior evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
 class GpTrajectoryPrior : public ErrorEvaluatorX
-//class GpTrajectoryPrior : public ErrorEvaluator<12,6>::type
 {
  public:
 
@@ -42,14 +41,11 @@ class GpTrajectoryPrior : public ErrorEvaluatorX
   /// \brief Evaluate the GP prior factor
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual Eigen::VectorXd evaluate() const;
-  //virtual Eigen::Matrix<double,12,1> evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the GP prior factor and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
-  //virtual Eigen::Matrix<double,12,1> evaluate(const Eigen::Matrix<double,12,12>& lhs,
-  //                                            std::vector<Jacobian<12,6> >* jacs) const;
 
  private:
 

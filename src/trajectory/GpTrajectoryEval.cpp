@@ -14,7 +14,8 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectoryEval::GpTrajectoryEval(const Time& time, const GpTrajectory::Knot::ConstPtr& knot1,
+GpTrajectoryEval::GpTrajectoryEval(const Time& time,
+                                   const GpTrajectory::Knot::ConstPtr& knot1,
                                    const GpTrajectory::Knot::ConstPtr& knot2) :
   knot1_(knot1), knot2_(knot2) {
 
@@ -41,7 +42,8 @@ GpTrajectoryEval::GpTrajectoryEval(const Time& time, const GpTrajectory::Knot::C
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectoryEval::Ptr GpTrajectoryEval::MakeShared(const Time& time, const GpTrajectory::Knot::ConstPtr& knot1,
+GpTrajectoryEval::Ptr GpTrajectoryEval::MakeShared(const Time& time,
+                                                   const GpTrajectory::Knot::ConstPtr& knot1,
                                                    const GpTrajectory::Knot::ConstPtr& knot2) {
   return GpTrajectoryEval::Ptr(new GpTrajectoryEval(time, knot1, knot2));
 }
