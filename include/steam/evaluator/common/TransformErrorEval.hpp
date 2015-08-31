@@ -38,8 +38,8 @@ public:
   /// \brief Convenience constructor - error between meas_T_21 and T_20*inv(T_10)
   //////////////////////////////////////////////////////////////////////////////////////////////
   TransformErrorEval(const lgmath::se3::Transformation& meas_T_21,
-                     const se3::TransformStateVar::ConstPtr& T_20,
-                     const se3::TransformStateVar::ConstPtr& T_10);
+                     const se3::TransformStateVar::Ptr& T_20,
+                     const se3::TransformStateVar::Ptr& T_10);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables

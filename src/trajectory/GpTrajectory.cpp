@@ -126,6 +126,26 @@ void GpTrajectory::getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get active state variables in the trajectory
+//////////////////////////////////////////////////////////////////////////////////////////////
+void GpTrajectory::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+
+  // Iterate over trajectory
+  std::map<boost::int64_t, Knot::Ptr>::const_iterator it;
+  for (it = knotMap_.begin(); it != knotMap_.end(); ++it) {
+
+    // Append active states in transform evaluator
+    it->second->T_k_root->getActiveStateVariables(outStates);
+
+    // Check if velocity is locked
+    if (!it->second->varpi->isLocked()) {
+      (*outStates)[it->second->varpi->getKey().getID()] = it->second->varpi;
+    }
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get unlocked state variables in the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
 //std::vector<steam::StateVariableBase::Ptr> GpTrajectory::getActiveStateVariables() const {

@@ -55,7 +55,7 @@ public:
   StereoCameraErrorEvalX(const Eigen::Vector4d& meas,
                         const CameraIntrinsics::ConstPtr& intrinsics,
                         const se3::TransformEvaluator::ConstPtr& T_cam_landmark,
-                        const se3::LandmarkStateVar::ConstPtr& landmark);
+                        const se3::LandmarkStateVar::Ptr& landmark);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables

@@ -59,6 +59,22 @@ bool GpTrajectoryEval::isActive() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Adds references (shared pointers) to active state variables to the map output
+//////////////////////////////////////////////////////////////////////////////////////////////
+void GpTrajectoryEval::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+
+  knot1_->T_k_root->getActiveStateVariables(outStates);
+  knot2_->T_k_root->getActiveStateVariables(outStates);
+  if (!knot1_->varpi->isLocked()) {
+    (*outStates)[knot1_->varpi->getKey().getID()] = knot1_->varpi;
+  }
+  if (!knot2_->varpi->isLocked()) {
+    (*outStates)[knot2_->varpi->getKey().getID()] = knot2_->varpi;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {

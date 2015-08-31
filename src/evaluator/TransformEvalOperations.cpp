@@ -37,6 +37,15 @@ bool ComposeTransformEvaluator::isActive() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Adds references (shared pointers) to active state variables to the map output
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ComposeTransformEvaluator::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+  transform1_->getActiveStateVariables(outStates);
+  transform2_->getActiveStateVariables(outStates);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the resultant transformation matrix (transform1*transform2)
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation ComposeTransformEvaluator::evaluate() const {
@@ -263,6 +272,14 @@ bool InverseTransformEvaluator::isActive() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Adds references (shared pointers) to active state variables to the map output
+//////////////////////////////////////////////////////////////////////////////////////////////
+void InverseTransformEvaluator::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+  transform_->getActiveStateVariables(outStates);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the resultant transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation InverseTransformEvaluator::evaluate() const {
@@ -385,6 +402,14 @@ bool LogMapEvaluator::isActive() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Adds references (shared pointers) to active state variables to the map output
+//////////////////////////////////////////////////////////////////////////////////////////////
+void LogMapEvaluator::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+  transform_->getActiveStateVariables(outStates);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,6,1> LogMapEvaluator::evaluate() const {
@@ -490,7 +515,7 @@ void LogMapEvaluator::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 ComposeLandmarkEvaluator::ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& transform,
-                                                   const se3::LandmarkStateVar::ConstPtr& landmark)
+                                                   const se3::LandmarkStateVar::Ptr& landmark)
   : landmark_(landmark) {
 
   // Check if landmark has a reference frame and create pose evaluator
@@ -505,7 +530,7 @@ ComposeLandmarkEvaluator::ComposeLandmarkEvaluator(const TransformEvaluator::Con
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
 ComposeLandmarkEvaluator::Ptr ComposeLandmarkEvaluator::MakeShared(const TransformEvaluator::ConstPtr& transform,
-                                                                   const se3::LandmarkStateVar::ConstPtr& landmark) {
+                                                                   const se3::LandmarkStateVar::Ptr& landmark) {
   return ComposeLandmarkEvaluator::Ptr(new ComposeLandmarkEvaluator(transform, landmark));
 }
 
@@ -514,6 +539,17 @@ ComposeLandmarkEvaluator::Ptr ComposeLandmarkEvaluator::MakeShared(const Transfo
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool ComposeLandmarkEvaluator::isActive() const {
   return transform_->isActive() || !landmark_->isLocked();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Adds references (shared pointers) to active state variables to the map output
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ComposeLandmarkEvaluator::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+  transform_->getActiveStateVariables(outStates);
+  if (!landmark_->isLocked()) {
+    (*outStates)[landmark_->getKey().getID()] = landmark_;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

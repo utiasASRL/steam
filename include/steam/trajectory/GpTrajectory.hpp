@@ -72,9 +72,10 @@ class GpTrajectory
   void getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get unlocked state variables in the trajectory
+  /// \brief Get active state variables in the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  //std::vector<steam::StateVariableBase::Ptr> getActiveStateVariables() const;
+  void getActiveStateVariables(
+      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
  private:
 
