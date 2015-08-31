@@ -220,5 +220,162 @@ void FixedTransformEvaluator::appendJacobians6(const Eigen::Matrix<double,6,6>& 
   return;
 }
 
+
+// Velocity transform evaluator
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Constructor
+//////////////////////////////////////////////////////////////////////////////////////////////
+ConstVelTransformEvaluator::ConstVelTransformEvaluator(
+    const VectorSpaceStateVar::Ptr& velocity, const Time& time) : velocity_(velocity),
+  time_(time) {
+
+  if(velocity->getPerturbDim() != 6) {
+    throw std::invalid_argument("[ConstVelTransformEval] velocity was not 6D.");
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Pseudo constructor - return a shared pointer to a new instance
+//////////////////////////////////////////////////////////////////////////////////////////////
+ConstVelTransformEvaluator::Ptr ConstVelTransformEvaluator::MakeShared(
+    const VectorSpaceStateVar::Ptr& velocity, const Time& time) {
+  return ConstVelTransformEvaluator::Ptr(new ConstVelTransformEvaluator(velocity, time));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Returns whether or not an evaluator contains unlocked state variables
+//////////////////////////////////////////////////////////////////////////////////////////////
+bool ConstVelTransformEvaluator::isActive() const {
+  return !velocity_->isLocked();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Adds references (shared pointers) to active state variables to the map output
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ConstVelTransformEvaluator::getActiveStateVariables(
+    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+  if (this->isActive()) {
+    (*outStates)[velocity_->getKey().getID()] = velocity_;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix
+//////////////////////////////////////////////////////////////////////////////////////////////
+lgmath::se3::Transformation ConstVelTransformEvaluator::evaluate() const {
+  Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+  return lgmath::se3::Transformation(xi);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the transformation matrix tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+EvalTreeNode<lgmath::se3::Transformation>* ConstVelTransformEvaluator::evaluateTree() const {
+
+  // Make new leaf node -- note we get memory from the pool
+  EvalTreeNode<lgmath::se3::Transformation>* result = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+  Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+  result->setValue(lgmath::se3::Transformation(xi));
+  return result;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluate the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ConstVelTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+                                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                                              std::vector<Jacobian<> >* outJacobians) const {
+
+  // Check if state is locked
+  if (!velocity_->isLocked()) {
+
+    // Check that dimensions match
+    if (lhs.cols() != 6) {
+      throw std::runtime_error("appendJacobians had dimension mismatch.");
+    }
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<>(velocity_->getKey(), lhs*jac));
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Fixed-size evaluations of the Jacobian tree
+//////////////////////////////////////////////////////////////////////////////////////////////
+void ConstVelTransformEvaluator::appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                              std::vector<Jacobian<1,6> >* outJacobians) const {
+  if (!velocity_->isLocked()) {
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<1,6>(velocity_->getKey(), lhs*jac));
+  }
+}
+
+void ConstVelTransformEvaluator::appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                              std::vector<Jacobian<2,6> >* outJacobians) const {
+  if (!velocity_->isLocked()) {
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<2,6>(velocity_->getKey(), lhs*jac));
+  }
+}
+
+void ConstVelTransformEvaluator::appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                              std::vector<Jacobian<3,6> >* outJacobians) const {
+  if (!velocity_->isLocked()) {
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<3,6>(velocity_->getKey(), lhs*jac));
+  }
+}
+
+void ConstVelTransformEvaluator::appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                              std::vector<Jacobian<4,6> >* outJacobians) const {
+  if (!velocity_->isLocked()) {
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<4,6>(velocity_->getKey(), lhs*jac));
+  }
+}
+
+void ConstVelTransformEvaluator::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                              std::vector<Jacobian<6,6> >* outJacobians) const {
+  if (!velocity_->isLocked()) {
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<6,6>(velocity_->getKey(), lhs*jac));
+  }
+}
+
 } // se3
 } // steam
