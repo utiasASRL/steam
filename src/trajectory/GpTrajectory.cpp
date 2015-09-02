@@ -11,6 +11,7 @@
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {
 namespace se3 {
@@ -18,7 +19,8 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectory::GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv) : Qc_inv_(Qc_inv) {
+GpTrajectory::GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation) :
+  Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,25 +49,49 @@ void GpTrajectory::add(const steam::Time& time, const se3::TransformEvaluator::P
 //////////////////////////////////////////////////////////////////////////////////////////////
 TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time) const {
 
-  // Get first iterator
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or great than 'time'
   std::map<boost::int64_t, Knot::Ptr>::const_iterator it1 = knotMap_.lower_bound(time.nanosecs());
+
+  // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
-    throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+
+    // If we allow extrapolation, return constant-velocity interpolated entry
+    if (allowExtrapolation_) {
+      --it1; // should be safe, as we checked that the map was not empty..
+      const Knot::Ptr& endKnot = it1->second;
+      TransformEvaluator::Ptr T_t_k = ConstVelTransformEvaluator::MakeShared(endKnot->varpi, time - endKnot->time);
+      return compose(T_t_k, endKnot->T_k_root);
+    } else {
+      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    }
   }
 
   // Check if we requested time exactly
   if (it1->second->time == time) {
 
     // return state variable exactly (no interp)
-    //return TransformStateEvaluator::MakeShared(it1->second->T_k0);
     return it1->second->T_k_root;
   }
 
-  // Get `earlier' iterator
+  // Check if we requested before first time
   if (it1 == knotMap_.begin()) {
-    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
-                             "should not trigger... report to a STEAM contributor.");
+
+    // If we allow extrapolation, return constant-velocity interpolated entry
+    if (allowExtrapolation_) {
+      const Knot::Ptr& startKnot = it1->second;
+      TransformEvaluator::Ptr T_t_k = ConstVelTransformEvaluator::MakeShared(startKnot->varpi, time - startKnot->time);
+      return compose(T_t_k, startKnot->T_k_root);
+    } else {
+      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    }
   }
+
+  // Get iterators bounding the time interval
   std::map<boost::int64_t, Knot::Ptr>::const_iterator it2 = it1; --it1;
   if (time <= it1->second->time || time >= it2->second->time) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
