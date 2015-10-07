@@ -27,6 +27,7 @@
 #include <steam/evaluator/common/StereoCameraErrorEvalX.hpp>
 #include <steam/evaluator/common/TransformErrorEval.hpp>
 #include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/common/RangeConditioningEval.hpp>
 
 // evaluator - jacobian
 #include <steam/evaluator/jacobian/EvalTreeNode.hpp>
