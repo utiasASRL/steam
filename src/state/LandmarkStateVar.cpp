@@ -86,14 +86,7 @@ Eigen::Vector4d LandmarkStateVar::getGlobalValue() const {
 void LandmarkStateVar::setHomogeneous(const Eigen::Vector3d& v) {
 
   // Set scale
-//  const double range = v.norm();
-//  if (range < 15.0) {
-//    this->value_[3] = 1.0;
-//  } else {
-//    this->value_[3] = 1.0/(range*range);
-//  }
-  //this->value_[3] = 1.0;
-  this->value_[3] = 1.0/v.squaredNorm();
+  this->value_[3] = 1.0/v.norm();
 
   // Set scaled xyz coordinates
   this->value_.head<3>() = this->value_[3] * v;
