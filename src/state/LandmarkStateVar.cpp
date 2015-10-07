@@ -36,7 +36,6 @@ bool LandmarkStateVar::update(const Eigen::VectorXd& perturbation) {
   }
 
   // todo: speed this up ? http://eigen.tuxfamily.org/dox/TopicWritingEfficientProductExpression.html
-  //this->value_.head<3>() += perturbation;
   this->setHomogeneous((this->value_.head<3>() + perturbation)/this->value_[3]);
   return true;
 }
