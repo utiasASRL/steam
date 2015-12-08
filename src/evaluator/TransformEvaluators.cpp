@@ -62,66 +62,55 @@ EvalTreeNode<lgmath::se3::Transformation>* TransformStateEvaluator::evaluateTree
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Implementation for Block Automatic Differentiation
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
+void TransformStateEvaluator::appendJacobiansImpl(
+    const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
+  if (!transform_->isLocked()) {
+    outJacobians->push_back(Jacobian<LHS_DIM,MAX_STATE_SIZE>(transform_->getKey(), lhs));
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void TransformStateEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
-                                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                              std::vector<Jacobian<> >* outJacobians) const {
-
-  // Check if state is locked
-  if (!transform_->isLocked()) {
-
-    // Check that dimensions match
-    if (lhs.cols() != transform_->getPerturbDim()) {
-      throw std::runtime_error("appendJacobians had dimension mismatch.");
-    }
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<>(transform_->getKey(), lhs));
-  }
+                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                              std::vector<Jacobian<> >* outJacobians) const {
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Fixed-size evaluations of the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void TransformStateEvaluator::appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+void TransformStateEvaluator::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
-  if (!transform_->isLocked()) {
-    outJacobians->push_back(Jacobian<1,6>(transform_->getKey(), lhs));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void TransformStateEvaluator::appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+void TransformStateEvaluator::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
-  if (!transform_->isLocked()) {
-    outJacobians->push_back(Jacobian<2,6>(transform_->getKey(), lhs));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void TransformStateEvaluator::appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+void TransformStateEvaluator::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
-  if (!transform_->isLocked()) {
-    outJacobians->push_back(Jacobian<3,6>(transform_->getKey(), lhs));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void TransformStateEvaluator::appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+void TransformStateEvaluator::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
-  if (!transform_->isLocked()) {
-    outJacobians->push_back(Jacobian<4,6>(transform_->getKey(), lhs));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void TransformStateEvaluator::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+void TransformStateEvaluator::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
-  if (!transform_->isLocked()) {
-    outJacobians->push_back(Jacobian<6,6>(transform_->getKey(), lhs));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 // Fixed value
@@ -173,51 +162,55 @@ EvalTreeNode<lgmath::se3::Transformation>* FixedTransformEvaluator::evaluateTree
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Implementation for Block Automatic Differentiation
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
+void FixedTransformEvaluator::appendJacobiansImpl(
+    const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
+
+  // Do nothing
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void FixedTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                               std::vector<Jacobian<> >* outJacobians) const {
-  // Do nothing
-  return;
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Fixed-size evaluations of the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void FixedTransformEvaluator::appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+void FixedTransformEvaluator::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
-  // Do nothing
-  return;
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void FixedTransformEvaluator::appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+void FixedTransformEvaluator::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
-  // Do nothing
-  return;
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void FixedTransformEvaluator::appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+void FixedTransformEvaluator::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
-  // Do nothing
-  return;
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void FixedTransformEvaluator::appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+void FixedTransformEvaluator::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
-  // Do nothing
-  return;
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void FixedTransformEvaluator::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+void FixedTransformEvaluator::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
-  // Do nothing
-  return;
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 
@@ -281,100 +274,62 @@ EvalTreeNode<lgmath::se3::Transformation>* ConstVelTransformEvaluator::evaluateT
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Implementation for Block Automatic Differentiation
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
+void ConstVelTransformEvaluator::appendJacobiansImpl(
+    const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
+
+  if (!velocity_->isLocked()) {
+
+    // Make jacobian
+    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
+    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
+
+    // Add Jacobian
+    outJacobians->push_back(Jacobian<LHS_DIM,MAX_STATE_SIZE>(velocity_->getKey(), lhs*jac));
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ConstVelTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
                                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                               std::vector<Jacobian<> >* outJacobians) const {
-
-  // Check if state is locked
-  if (!velocity_->isLocked()) {
-
-    // Check that dimensions match
-    if (lhs.cols() != 6) {
-      throw std::runtime_error("appendJacobians had dimension mismatch.");
-    }
-
-    // Make jacobian
-    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
-    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<>(velocity_->getKey(), lhs*jac));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Fixed-size evaluations of the Jacobian tree
-//////////////////////////////////////////////////////////////////////////////////////////////
-void ConstVelTransformEvaluator::appendJacobians1(const Eigen::Matrix<double,1,6>& lhs,
+void ConstVelTransformEvaluator::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
-  if (!velocity_->isLocked()) {
-
-    // Make jacobian
-    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
-    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<1,6>(velocity_->getKey(), lhs*jac));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ConstVelTransformEvaluator::appendJacobians2(const Eigen::Matrix<double,2,6>& lhs,
+void ConstVelTransformEvaluator::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
-  if (!velocity_->isLocked()) {
-
-    // Make jacobian
-    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
-    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<2,6>(velocity_->getKey(), lhs*jac));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ConstVelTransformEvaluator::appendJacobians3(const Eigen::Matrix<double,3,6>& lhs,
+void ConstVelTransformEvaluator::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
-  if (!velocity_->isLocked()) {
-
-    // Make jacobian
-    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
-    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<3,6>(velocity_->getKey(), lhs*jac));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ConstVelTransformEvaluator::appendJacobians4(const Eigen::Matrix<double,4,6>& lhs,
+void ConstVelTransformEvaluator::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
-  if (!velocity_->isLocked()) {
-
-    // Make jacobian
-    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
-    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<4,6>(velocity_->getKey(), lhs*jac));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ConstVelTransformEvaluator::appendJacobians6(const Eigen::Matrix<double,6,6>& lhs,
+void ConstVelTransformEvaluator::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
-  if (!velocity_->isLocked()) {
-
-    // Make jacobian
-    Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue();
-    Eigen::Matrix<double,6,6> jac = time_.seconds() * lgmath::se3::vec2jac(xi);
-
-    // Add Jacobian
-    outJacobians->push_back(Jacobian<6,6>(velocity_->getKey(), lhs*jac));
-  }
+  this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 } // se3

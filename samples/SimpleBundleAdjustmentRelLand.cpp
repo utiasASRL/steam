@@ -12,10 +12,33 @@
 #include <steam.hpp>
 #include <steam/data/ParseBA.hpp>
 
+void asdf(const Eigen::Matrix<double,4,1>& m) {
+  std::cout << m << std::endl;
+}
+
+void asdf(const Eigen::Matrix<double,5,1>& m) {
+  std::cout << m << std::endl;
+}
+
+// NOTE ON AMBIGUOUS ERROR: you must specify the input type exactly...
+//   Multiplication is ambiguous: Eigen::Matrix<double,4,4> * Eigen::Matrix<double,4,1>
+//   Set to an exact type first: Eigen::Matrix<double,4,1> = Eigen::Matrix<double,4,4> * Eigen::Matrix<double,4,1>
+void asdf(const Eigen::MatrixXd& m) {
+  std::cout << m << "X" << std::endl;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves simple bundle adjustment problems
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv) {
+
+//Eigen::MatrixXd m = Eigen::Matrix<double,3,1>::Random();
+  Eigen::Matrix<double,4,1> m = Eigen::Matrix<double,4,1>::Random();
+
+  //asdf(m);
+  Eigen::Matrix<double,4,1> z = Eigen::Matrix<double,4,4>::Identity() * m;
+  asdf(z);
+  //asdf(Eigen::Matrix<double,4,4>::Identity() * m);
 
   ///
   /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)

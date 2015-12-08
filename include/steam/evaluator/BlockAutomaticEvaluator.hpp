@@ -69,21 +69,21 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Fixed-size interface for the evaluation of the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendJacobians1(const Eigen::Matrix<double,1,INNER_DIM>& lhs,
-                                EvalTreeNode<TYPE>* evaluationTree,
-                                std::vector<Jacobian<1,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians2(const Eigen::Matrix<double,2,INNER_DIM>& lhs,
-                                EvalTreeNode<TYPE>* evaluationTree,
-                                std::vector<Jacobian<2,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians3(const Eigen::Matrix<double,3,INNER_DIM>& lhs,
-                                EvalTreeNode<TYPE>* evaluationTree,
-                                std::vector<Jacobian<3,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians4(const Eigen::Matrix<double,4,INNER_DIM>& lhs,
-                                EvalTreeNode<TYPE>* evaluationTree,
-                                std::vector<Jacobian<4,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians6(const Eigen::Matrix<double,6,INNER_DIM>& lhs,
-                                EvalTreeNode<TYPE>* evaluationTree,
-                                std::vector<Jacobian<6,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendJacobians(const Eigen::Matrix<double,1,INNER_DIM>& lhs,
+                               EvalTreeNode<TYPE>* evaluationTree,
+                               std::vector<Jacobian<1,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendJacobians(const Eigen::Matrix<double,2,INNER_DIM>& lhs,
+                               EvalTreeNode<TYPE>* evaluationTree,
+                               std::vector<Jacobian<2,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendJacobians(const Eigen::Matrix<double,3,INNER_DIM>& lhs,
+                               EvalTreeNode<TYPE>* evaluationTree,
+                               std::vector<Jacobian<3,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendJacobians(const Eigen::Matrix<double,4,INNER_DIM>& lhs,
+                               EvalTreeNode<TYPE>* evaluationTree,
+                               std::vector<Jacobian<4,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendJacobians(const Eigen::Matrix<double,6,INNER_DIM>& lhs,
+                               EvalTreeNode<TYPE>* evaluationTree,
+                               std::vector<Jacobian<6,MAX_STATE_SIZE> >* outJacobians) const = 0;
 };
 
 } // steam
