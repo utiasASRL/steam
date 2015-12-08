@@ -9,6 +9,7 @@
 
 #include <steam/evaluator/EvaluatorBase.hpp>
 #include <steam/evaluator/jacobian/EvalTreeNode.hpp>
+#include <steam/evaluator/jacobian/EvalTreeHandle.hpp>
 
 namespace steam {
 
@@ -48,14 +49,22 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief General evaluation and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual TYPE evaluate(const Eigen::MatrixXd& lhs,
-                        std::vector<Jacobian<> >* jacs) const;
+  virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Safe block-automatic evaluation method.
+  ///
+  /// Tree handle contains pointer to root of evaluation tree, and on destruction will
+  /// clean memory properly.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual EvalTreeHandle<TYPE> getBlockAutomaticEvaluation() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for an evaluation method that returns the full tree of evaluations
   ///
   /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
-  ///    and should be given back to the pool, rather than being deleted.
+  ///    and should be given back to the pool, rather than being deleted (consider using safe
+  ///    method: )
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<TYPE>* evaluateTree() const = 0;
 
@@ -65,10 +74,6 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   virtual void appendJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<TYPE>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const = 0;
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Fixed-size interface for the evaluation of the Jacobian tree
-  //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendJacobians(const Eigen::Matrix<double,1,INNER_DIM>& lhs,
                                EvalTreeNode<TYPE>* evaluationTree,
                                std::vector<Jacobian<1,MAX_STATE_SIZE> >* outJacobians) const = 0;

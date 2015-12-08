@@ -20,7 +20,7 @@ BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::BlockAutomaticEvaluator(
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
 TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
-    const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
+  const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
   if (jacs == NULL) {
@@ -42,6 +42,17 @@ TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
 
   // Return evaluation
   return eval;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Safe block-automatic evaluation method.
+///
+/// Tree handle contains pointer to root of evaluation tree, and on destruction will
+/// clean memory properly.
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
+EvalTreeHandle<TYPE> BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::getBlockAutomaticEvaluation() const {
+  return EvalTreeHandle<TYPE>(this->evaluateTree());
 }
 
 } // steam

@@ -48,17 +48,14 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
   jacs->clear();
 
   // Get evaluation tree
-  EvalTreeNode<Eigen::Vector4d>* evaluationTree = eval_->evaluateTree();
+  EvalTreeHandle<Eigen::Vector4d> evaluationTree = eval_->getBlockAutomaticEvaluation();
 
   // Get evaluation from tree
-  Eigen::Vector4d point_in_c = evaluationTree->getValue();
+  const Eigen::Vector4d& point_in_c = evaluationTree.getValue();
 
   // Get Jacobians
   Eigen::Matrix4d newLhs = (-1)*lhs*cameraModelJacobian(point_in_c);
-  eval_->appendJacobians(newLhs, evaluationTree, jacs);
-
-  // Return tree memory to pool
-  EvalTreeNode<Eigen::Vector4d>::pool.returnObj(evaluationTree);
+  eval_->appendJacobians(newLhs, evaluationTree.getRoot(), jacs);
 
   // Return evaluation
   return meas_ - cameraModel(point_in_c);
