@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include <steam/evaluator/blockauto/TransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 #include <steam/state/LandmarkStateVar.hpp>
 
 namespace steam {

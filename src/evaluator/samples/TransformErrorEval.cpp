@@ -6,8 +6,8 @@
 
 #include <steam/evaluator/samples/TransformErrorEval.hpp>
 
-#include <steam/evaluator/blockauto/TransformStateEvaluator.hpp>
-#include <steam/evaluator/blockauto/FixedTransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
 
 namespace steam {
 

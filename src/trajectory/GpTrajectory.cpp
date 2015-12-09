@@ -11,8 +11,9 @@
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
-#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
-#include <steam/evaluator/blockauto/ConstVelTransformEvaluator.hpp>
+
+#include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
+#include <steam/evaluator/blockauto/transform/ConstVelTransformEvaluator.hpp>
 
 namespace steam {
 namespace se3 {

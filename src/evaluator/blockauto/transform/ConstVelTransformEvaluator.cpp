@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/blockauto/ConstVelTransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/ConstVelTransformEvaluator.hpp>
 
 namespace steam {
 namespace se3 {

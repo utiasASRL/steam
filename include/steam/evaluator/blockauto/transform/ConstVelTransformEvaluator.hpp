@@ -7,7 +7,7 @@
 #ifndef STEAM_CONSTANT_VEL_TRANSFORM_EVALUATOR_HPP
 #define STEAM_CONSTANT_VEL_TRANSFORM_EVALUATOR_HPP
 
-#include <steam/evaluator/blockauto/TransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 
 namespace steam {
 namespace se3 {

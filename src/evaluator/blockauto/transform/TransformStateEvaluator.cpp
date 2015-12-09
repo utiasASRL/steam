@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/blockauto/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
 
 namespace steam {
 namespace se3 {
