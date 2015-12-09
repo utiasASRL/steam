@@ -14,7 +14,10 @@
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple structure to hold Jacobian information
+/// \brief Class for a node in a block-automatic evaluation tree. While the true strength of
+///        block automatic evaluation is in Jacobian evaluation, note that the most efficient
+///        implementation involves first evaluating the nominal solution of the nonlinear
+///        function at each level of the evaluator chain.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TYPE>
 class EvalTreeNode : public EvalTreeNodeBase

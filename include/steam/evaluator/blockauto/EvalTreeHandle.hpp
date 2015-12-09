@@ -12,7 +12,8 @@
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple structure to hold Jacobian information
+/// \brief Simple container class for the block-automatic evaluation tree. The true purpose
+///        of this class is to help handle the pool-memory release upon desctruction.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TYPE>
 class EvalTreeHandle
@@ -30,7 +31,6 @@ class EvalTreeHandle
   ~EvalTreeHandle() {
     EvalTreeNode<TYPE>::pool.returnObj(root_);
   }
-
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get root
@@ -52,7 +52,6 @@ class EvalTreeHandle
   /// \brief Instance of TYPE
   /////////////////////////////////////////////////////////////////////////////////////////////
   EvalTreeNode<TYPE>* root_;
-
 };
 
 } // steam
