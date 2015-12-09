@@ -7,7 +7,7 @@
 #ifndef STEAM_EVAL_TREE_HANDLE_HPP
 #define STEAM_EVAL_TREE_HANDLE_HPP
 
-#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNode.hpp>
 
 namespace steam {
 

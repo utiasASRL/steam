@@ -11,7 +11,7 @@
 #include <lgmath.hpp>
 #include <steam.hpp>
 #include <steam/data/ParseBA.hpp>
-#include <steam/evaluator/common/RangeConditioningEval.hpp>
+#include <steam/evaluator/samples/RangeConditioningEval.hpp>
 
 Eigen::Vector4d stereoModel(const Eigen::Vector4d& point, const steam::StereoCameraErrorEval::CameraIntrinsics::Ptr& intrinsics_) {
 

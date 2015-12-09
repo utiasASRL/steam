@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/common/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
 
 #include <steam/evaluator/TransformEvalOperations.hpp>
 

@@ -7,7 +7,7 @@
 #ifndef STEAM_EVAL_TREE_NODE_HPP
 #define STEAM_EVAL_TREE_NODE_HPP
 
-#include <steam/evaluator/jacobian/EvalTreeNodeBase.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNodeBase.hpp>
 
 #include <steam/common/Pool.hpp>
 
@@ -77,6 +77,6 @@ class EvalTreeNode : public EvalTreeNodeBase
 
 } // steam
 
-#include <steam/evaluator/jacobian/EvalTreeNode-inl.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNode-inl.hpp>
 
 #endif // STEAM_EVAL_TREE_NODE_HPP

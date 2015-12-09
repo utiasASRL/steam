@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/common/RangeConditioningEval.hpp>
+#include <steam/evaluator/samples/RangeConditioningEval.hpp>
 
 namespace steam {
 

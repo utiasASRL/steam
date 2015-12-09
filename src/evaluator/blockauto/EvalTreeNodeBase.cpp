@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/jacobian/EvalTreeNodeBase.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNodeBase.hpp>
 
 #include <iostream>
 

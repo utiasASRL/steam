@@ -10,7 +10,7 @@
 
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
-#include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
 namespace steam {

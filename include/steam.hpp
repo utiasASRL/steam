@@ -22,14 +22,14 @@
 #include <steam/evaluator/TransformEvaluators.hpp>
 #include <steam/evaluator/BlockAutomaticEvaluator.hpp>
 
-// evaluator - common (sample functions)
-#include <steam/evaluator/common/StereoCameraErrorEval.hpp>
-#include <steam/evaluator/common/StereoCameraErrorEvalX.hpp>
-#include <steam/evaluator/common/TransformErrorEval.hpp>
-#include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+// evaluator - samples (sample functions)
+#include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/samples/StereoCameraErrorEvalX.hpp>
+#include <steam/evaluator/samples/TransformErrorEval.hpp>
+#include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
-// evaluator - jacobian
-#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
+// evaluator - block auto diff
+#include <steam/evaluator/blockauto/EvalTreeNode.hpp>
 
 // problem
 #include <steam/problem/CostTerm.hpp>

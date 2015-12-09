@@ -64,6 +64,6 @@ typedef VectorSpaceErrorEval<Eigen::Dynamic,Eigen::Dynamic> VectorSpaceErrorEval
 
 } // steam
 
-#include <steam/evaluator/common/VectorSpaceErrorEval-inl.hpp>
+#include <steam/evaluator/samples/VectorSpaceErrorEval-inl.hpp>
 
 #endif // STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP

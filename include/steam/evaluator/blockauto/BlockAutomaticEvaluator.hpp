@@ -8,8 +8,8 @@
 #define STEAM_BLOCK_AUTOMATIC_EVALUATOR_HPP
 
 #include <steam/evaluator/EvaluatorBase.hpp>
-#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
-#include <steam/evaluator/jacobian/EvalTreeHandle.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNode.hpp>
+#include <steam/evaluator/blockauto/EvalTreeHandle.hpp>
 
 namespace steam {
 

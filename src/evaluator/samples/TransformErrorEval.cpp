@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/common/TransformErrorEval.hpp>
+#include <steam/evaluator/samples/TransformErrorEval.hpp>
 
 #include <steam/evaluator/TransformEvalOperations.hpp>
 
