@@ -7,9 +7,7 @@
 #ifndef STEAM_STEREO_CAMERA_ERROR_EVALUATOR_DYNAMIC_HPP
 #define STEAM_STEREO_CAMERA_ERROR_EVALUATOR_DYNAMIC_HPP
 
-#include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/state/LandmarkStateVar.hpp>
-#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
+#include <steam.hpp>
 
 namespace steam {
 
@@ -70,7 +68,8 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
+  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs,
+                                   std::vector<Jacobian<> >* jacs) const;
 
 private:
 

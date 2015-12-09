@@ -7,9 +7,7 @@
 #ifndef STEAM_STEREO_CAMERA_ERROR_EVALUATOR_HPP
 #define STEAM_STEREO_CAMERA_ERROR_EVALUATOR_HPP
 
-#include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/state/LandmarkStateVar.hpp>
-#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
+#include <steam.hpp>
 
 namespace steam {
 
@@ -18,8 +16,8 @@ namespace steam {
 ///
 /// *Note that we fix MAX_STATE_DIM to 6. Typically the performance benefits of fixed size
 ///  matrices begin to die if larger than 6x6. Size 6 allows for transformation matrices
-///  and 6D velocities. If you have a state larger than this, consider writing an
-///  error evaluator that extends from ErrorEvaluatorX.
+///  and 6D velocities. If you have a state-type larger than this, consider writing an
+///  error evaluator that extends from the dynamically sized ErrorEvaluatorX.
 //////////////////////////////////////////////////////////////////////////////////////////////
 class StereoCameraErrorEval : public ErrorEvaluator<4,6>::type
 {
@@ -75,7 +73,8 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Vector4d evaluate(const Eigen::Matrix4d& lhs, std::vector<Jacobian<4,6> >* jacs) const;
+  virtual Eigen::Vector4d evaluate(const Eigen::Matrix4d& lhs,
+                                   std::vector<Jacobian<4,6> >* jacs) const;
 
 private:
 

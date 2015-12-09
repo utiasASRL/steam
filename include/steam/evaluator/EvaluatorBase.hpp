@@ -17,10 +17,12 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Base class that defines the general 'evaluator' interface
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TYPE,
-          int LHS_DIM       = Eigen::Dynamic,
-          int INNER_DIM     = Eigen::Dynamic,
-          int MAX_STATE_DIM = Eigen::Dynamic>
+template <typename TYPE,                      // The output 'evaluation' type
+          int LHS_DIM       = Eigen::Dynamic, // The LHS dim of the 'most' left-ward
+                                              // Jacobian in the evaluation tree
+          int INNER_DIM     = Eigen::Dynamic, // The LHS dimension of 'this' evaluators Jacobian
+          int MAX_STATE_DIM = Eigen::Dynamic> // The maximum dimension of a single state variable
+                                              // perturbation (aka the 'most' RHS Jacobian dim)
 class EvaluatorBase
 {
  public:
