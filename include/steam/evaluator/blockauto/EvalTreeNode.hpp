@@ -9,7 +9,7 @@
 
 #include <steam/evaluator/blockauto/EvalTreeNodeBase.hpp>
 
-#include <steam/evaluator/blockauto/Pool.hpp>
+#include <steam/evaluator/blockauto/OpenMpPool.hpp>
 
 namespace steam {
 

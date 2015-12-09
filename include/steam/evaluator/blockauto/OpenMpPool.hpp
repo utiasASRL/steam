@@ -1,41 +1,41 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file Pool.hpp
+/// \file OpenMpPool.hpp
 /// \brief Implements a basic singleton object pool. The implementation is fairly naive,
-///        but should be fast given its assumptions. The purpose of this object to avoid
-///        making many small dynamic allocations during block automatic evaluation.
+///        but should be fast given its assumptions. The OmpPool is also thread safe for
+///        OpenMP threads, assuming the number of OpenMP threads was set at compile time.
+///        The purpose of this object to avoid making many small dynamic allocations
+///        during block automatic evaluation.
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_POOL_HPP
-#define STEAM_POOL_HPP
+#ifndef STEAM_OPENMP_POOL_HPP
+#define STEAM_OPENMP_POOL_HPP
 
-#include <iostream>
-#include <vector>
-#include <stdexcept>
+#include <steam/evaluator/blockauto/Pool.hpp>
+
+#include <omp.h>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Pool class
-///
-/// While the object pool class could be implemented with a linked list, we choose to use
-/// a simple array of max size for efficiency. It makes the logic a bit simpler, but more
-/// importantly, if someone forgets to return an object, we do not have memory leaks.
+/// \brief OpenMP enabled pool class. This is implemented fairly naively by taking advantage
+///        of the number of OpenMP threads at compile time. By having a seperate pool for
+///        each thread, we are fully safe from sychronization issues.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE, int MAX_SIZE = 50>
-class Pool {
+class OmpPool {
  public:
 
   ////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
   ////////////////////////////////////////////////////////////////////////////////////////////
-  Pool();
+  OmpPool();
 
   ////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Destructor
   ////////////////////////////////////////////////////////////////////////////////////////////
-  ~Pool();
+  ~OmpPool();
 
   ////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get an object
@@ -50,23 +50,18 @@ class Pool {
  private:
 
   ////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Array of objects
+  /// \brief Maximum number of threads this pool can support.
   ////////////////////////////////////////////////////////////////////////////////////////////
-  TYPE* resources_;
+  static const int MAX_NUM_THREADS = 64;
 
   ////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Array of availability
+  /// \brief Array of pools (one for each "possible" thread)
   ////////////////////////////////////////////////////////////////////////////////////////////
-  bool available_[MAX_SIZE];
-
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Current index of next most likely available resource
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  unsigned int index_;
+  Pool<TYPE,MAX_SIZE>* pools_[MAX_NUM_THREADS];
 };
 
 } // steam
 
-#include <steam/evaluator/blockauto/Pool-inl.hpp>
+#include <steam/evaluator/blockauto/OpenMpPool-inl.hpp>
 
-#endif // STEAM_POOL_HPP
+#endif // STEAM_OPENMP_POOL_HPP
