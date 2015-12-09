@@ -101,6 +101,6 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
 
 } // steam
 
-#include <steam/evaluator/BlockAutomaticEvaluator-inl.hpp>
+#include <steam/evaluator/blockauto/BlockAutomaticEvaluator-inl.hpp>
 
 #endif // STEAM_BLOCK_AUTOMATIC_EVALUATOR_HPP

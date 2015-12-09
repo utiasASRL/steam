@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/BlockAutomaticEvaluator.hpp>
+#include <steam/evaluator/blockauto/BlockAutomaticEvaluator.hpp>
 
 namespace steam {
 

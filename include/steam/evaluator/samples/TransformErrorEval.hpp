@@ -8,7 +8,7 @@
 #define STEAM_TRANSFORM_ERROR_EVALUATOR_HPP
 
 #include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/evaluator/TransformEvalOperations.hpp>
+#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
 
 namespace steam {
 

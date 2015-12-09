@@ -8,7 +8,7 @@
 #define STEAM_LANDMARK_STATE_VARIABLE_HPP
 
 #include <steam/state/StateVariable.hpp>
-#include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/blockauto/TransformEvaluators.hpp>
 
 namespace steam {
 namespace se3 {

@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/blockauto/TransformEvaluators.hpp>
 
 #include <lgmath.hpp>
 

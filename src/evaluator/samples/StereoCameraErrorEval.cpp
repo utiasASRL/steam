@@ -6,8 +6,6 @@
 
 #include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
 
-#include <steam/evaluator/TransformEvalOperations.hpp>
-
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////

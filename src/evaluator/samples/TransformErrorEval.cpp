@@ -6,8 +6,6 @@
 
 #include <steam/evaluator/samples/TransformErrorEval.hpp>
 
-#include <steam/evaluator/TransformEvalOperations.hpp>
-
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////

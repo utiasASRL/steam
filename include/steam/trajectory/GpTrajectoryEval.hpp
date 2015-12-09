@@ -10,7 +10,7 @@
 #include <Eigen/Core>
 
 #include <steam/trajectory/GpTrajectory.hpp>
-#include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/blockauto/TransformEvaluators.hpp>
 
 namespace steam {
 namespace se3 {

@@ -11,7 +11,7 @@
 #include <steam/trajectory/GpTrajectoryEval.hpp>
 #include <steam/trajectory/GpTrajectoryPrior.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
-#include <steam/evaluator/TransformEvalOperations.hpp>
+#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
 
 namespace steam {
 namespace se3 {

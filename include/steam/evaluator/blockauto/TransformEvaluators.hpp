@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include <steam/evaluator/BlockAutomaticEvaluator.hpp>
+#include <steam/evaluator/blockauto/BlockAutomaticEvaluator.hpp>
 #include <steam/state/LieGroupStateVar.hpp>
 #include <steam/state/VectorSpaceStateVar.hpp>
 #include <steam/common/Time.hpp>
