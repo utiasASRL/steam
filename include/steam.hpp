@@ -18,9 +18,11 @@
 
 // evaluator
 #include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
-#include <steam/evaluator/blockauto/TransformEvaluators.hpp>
 #include <steam/evaluator/blockauto/BlockAutomaticEvaluator.hpp>
+#include <steam/evaluator/blockauto/TransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/FixedTransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/TransformEvalOperations.hpp>
 
 // evaluator - samples (sample functions)
 #include <steam/evaluator/samples/StereoCameraErrorEval.hpp>

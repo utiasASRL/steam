@@ -12,7 +12,7 @@
 #include <steam/common/Time.hpp>
 #include <steam/state/LieGroupStateVar.hpp>
 #include <steam/state/VectorSpaceStateVar.hpp>
-#include <steam/evaluator/blockauto/TransformEvaluators.hpp>
+#include <steam/evaluator/blockauto/TransformEvaluator.hpp>
 #include <steam/problem/CostTerm.hpp>
 #include <steam/problem/CostTermCollection.hpp>
 
