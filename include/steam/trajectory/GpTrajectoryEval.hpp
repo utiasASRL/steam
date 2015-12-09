@@ -63,30 +63,30 @@ class GpTrajectoryEval : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
+  virtual void appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Fixed-size evaluations of the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<1,6> >* outJacobians) const;
 
-  virtual void appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<2,6> >* outJacobians) const;
 
-  virtual void appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<3,6> >* outJacobians) const;
 
-  virtual void appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<4,6> >* outJacobians) const;
 
-  virtual void appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<6,6> >* outJacobians) const;
 

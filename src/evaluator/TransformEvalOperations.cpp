@@ -88,7 +88,7 @@ void ComposeTransformEvaluator::appendJacobiansImpl(
 
   // Check if transform1 is active
   if (transform1_->isActive()) {
-    transform1_->appendJacobians(lhs, t1, outJacobians);
+    transform1_->appendBlockAutomaticJacobians(lhs, t1, outJacobians);
   }
 
   // Get index of split between left and right-hand-side of Jacobians
@@ -101,7 +101,7 @@ void ComposeTransformEvaluator::appendJacobiansImpl(
         static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
 
     Eigen::Matrix<double,LHS_DIM,INNER_DIM> newLhs = lhs*t1->getValue().adjoint();
-    transform2_->appendJacobians(newLhs, t2, outJacobians);
+    transform2_->appendBlockAutomaticJacobians(newLhs, t2, outJacobians);
   }
 
   // Merge jacobians
@@ -111,37 +111,37 @@ void ComposeTransformEvaluator::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ComposeTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                   std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeTransformEvaluator::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
+void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeTransformEvaluator::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
+void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeTransformEvaluator::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
+void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeTransformEvaluator::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
+void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeTransformEvaluator::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
+void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -215,7 +215,7 @@ void InverseTransformEvaluator::appendJacobiansImpl(
   // Check if transform is active
   if (transform_->isActive()) {
     Eigen::Matrix<double,LHS_DIM,INNER_DIM> newLhs = (-1)*lhs*evaluationTree->getValue().adjoint();
-    transform_->appendJacobians(newLhs,
+    transform_->appendBlockAutomaticJacobians(newLhs,
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0)),
       outJacobians);
   }
@@ -224,37 +224,37 @@ void InverseTransformEvaluator::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void InverseTransformEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+void InverseTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                   std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void InverseTransformEvaluator::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
+void InverseTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void InverseTransformEvaluator::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
+void InverseTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void InverseTransformEvaluator::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
+void InverseTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void InverseTransformEvaluator::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
+void InverseTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void InverseTransformEvaluator::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
+void InverseTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -329,7 +329,7 @@ void LogMapEvaluator::appendJacobiansImpl(
   // Check if transform is active
   if (transform_->isActive()) {
     Eigen::Matrix<double,LHS_DIM,INNER_DIM> newLhs = lhs * lgmath::se3::vec2jacinv(evaluationTree->getValue());
-    transform_->appendJacobians(newLhs,
+    transform_->appendBlockAutomaticJacobians(newLhs,
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0)),
       outJacobians);
   }
@@ -338,37 +338,37 @@ void LogMapEvaluator::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void LogMapEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+void LogMapEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                                   std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void LogMapEvaluator::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
+void LogMapEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void LogMapEvaluator::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
+void LogMapEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void LogMapEvaluator::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
+void LogMapEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void LogMapEvaluator::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
+void LogMapEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void LogMapEvaluator::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
+void LogMapEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
                               EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -466,7 +466,7 @@ void ComposeLandmarkEvaluator::appendJacobiansImpl(
   if (transform_->isActive()) {
     const Eigen::Vector4d& homogeneous = evaluationTree->getValue();
     Eigen::Matrix<double,LHS_DIM,6> newLhs = lhs * lgmath::se3::point2fs(homogeneous.head<3>(), homogeneous[3]);
-    transform_->appendJacobians(newLhs, t1, outJacobians);
+    transform_->appendBlockAutomaticJacobians(newLhs, t1, outJacobians);
   }
 
   // Check if state is locked
@@ -483,37 +483,37 @@ void ComposeLandmarkEvaluator::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ComposeLandmarkEvaluator::appendJacobians(const Eigen::MatrixXd& lhs,
+void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
                                   EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                   std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeLandmarkEvaluator::appendJacobians(const Eigen::Matrix<double,1,4>& lhs,
+void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,4>& lhs,
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                               std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeLandmarkEvaluator::appendJacobians(const Eigen::Matrix<double,2,4>& lhs,
+void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,4>& lhs,
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                               std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeLandmarkEvaluator::appendJacobians(const Eigen::Matrix<double,3,4>& lhs,
+void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,4>& lhs,
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                               std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeLandmarkEvaluator::appendJacobians(const Eigen::Matrix<double,4,4>& lhs,
+void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,4>& lhs,
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
-void ComposeLandmarkEvaluator::appendJacobians(const Eigen::Matrix<double,6,4>& lhs,
+void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,4>& lhs,
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                               std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);

@@ -78,7 +78,7 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs,
     jacobian.bottomRows<6>() = -0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*Jinv_12;
 
     // Get Jacobians
-    knot1_->T_k_root->appendJacobians(lhs * jacobian, evaluationTree1, jacs);
+    knot1_->T_k_root->appendBlockAutomaticJacobians(lhs * jacobian, evaluationTree1, jacs);
   }
 
   // Get index of split between left and right-hand-side of pose Jacobians
@@ -93,7 +93,7 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs,
     jacobian.bottomRows<6>() = 0.5*lgmath::se3::curlyhat(knot2_->varpi->getValue())*J_21_inv;
 
     // Get Jacobians
-    knot2_->T_k_root->appendJacobians(lhs * jacobian, evaluationTree2, jacs);
+    knot2_->T_k_root->appendBlockAutomaticJacobians(lhs * jacobian, evaluationTree2, jacs);
   }
 
   // Merge jacobians (transform evaluators from knots 1 and 2 could contain the same

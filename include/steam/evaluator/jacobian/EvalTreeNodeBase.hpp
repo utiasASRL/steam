@@ -8,7 +8,7 @@
 #define STEAM_EVAL_TREE_NODE_BASE_HPP
 
 #include <vector>
-#include <steam/evaluator/jacobian/Jacobian.hpp>
+#include <steam/problem/Jacobian.hpp>
 
 namespace steam {
 

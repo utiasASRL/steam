@@ -14,7 +14,7 @@
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Base class that defines the general 'evaluator' interface
+/// \brief Class that defines the interface for block automatic differentiation
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
 class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
@@ -52,43 +52,51 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   virtual TYPE evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Safe block-automatic evaluation method.
+  /// \brief Memory-safe, block-automatic evaluation method.
   ///
-  /// Tree handle contains pointer to root of evaluation tree, and on destruction will
-  /// clean memory properly.
+  /// The returned evaluation-tree handle contains a pointer to the evaluation-tree root.
+  /// Memory is properly returned to pool upon destruction.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeHandle<TYPE> getBlockAutomaticEvaluation() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for an evaluation method that returns the full tree of evaluations
+  /// \brief Interface for an evaluation method that returns the 'unsafe' tree of evaluations
   ///
   /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
   ///    and should be given back to the pool, rather than being deleted (consider using safe
-  ///    method: )
+  ///    method: getBlockAutomaticEvaluation)
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual EvalTreeNode<TYPE>* evaluateTree() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interface for the evaluation of the Jacobian tree
+  /// \brief Interface for the evaluation of the block automatic Jacobian tree
+  ///
+  /// Note the various fixed-sizes are hardcoded since virtual functions CANNOT be templated.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendJacobians(const Eigen::MatrixXd& lhs,
-                               EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian<> >* outJacobians) const = 0;
-  virtual void appendJacobians(const Eigen::Matrix<double,1,INNER_DIM>& lhs,
-                               EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian<1,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians(const Eigen::Matrix<double,2,INNER_DIM>& lhs,
-                               EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian<2,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians(const Eigen::Matrix<double,3,INNER_DIM>& lhs,
-                               EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian<3,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians(const Eigen::Matrix<double,4,INNER_DIM>& lhs,
-                               EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian<4,MAX_STATE_SIZE> >* outJacobians) const = 0;
-  virtual void appendJacobians(const Eigen::Matrix<double,6,INNER_DIM>& lhs,
-                               EvalTreeNode<TYPE>* evaluationTree,
-                               std::vector<Jacobian<6,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::MatrixXd& lhs,
+      EvalTreeNode<TYPE>* evaluationTree,
+      std::vector<Jacobian<> >* outJacobians) const = 0;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,1,INNER_DIM>& lhs,
+      EvalTreeNode<TYPE>* evaluationTree,
+      std::vector<Jacobian<1,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,2,INNER_DIM>& lhs,
+      EvalTreeNode<TYPE>* evaluationTree,
+      std::vector<Jacobian<2,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,3,INNER_DIM>& lhs,
+      EvalTreeNode<TYPE>* evaluationTree,
+      std::vector<Jacobian<3,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,4,INNER_DIM>& lhs,
+      EvalTreeNode<TYPE>* evaluationTree,
+      std::vector<Jacobian<4,MAX_STATE_SIZE> >* outJacobians) const = 0;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,6,INNER_DIM>& lhs,
+      EvalTreeNode<TYPE>* evaluationTree,
+      std::vector<Jacobian<6,MAX_STATE_SIZE> >* outJacobians) const = 0;
 };
 
 } // steam

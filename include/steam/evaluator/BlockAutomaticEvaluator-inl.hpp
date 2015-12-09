@@ -32,7 +32,7 @@ TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
   EvalTreeNode<TYPE>* tree = this->evaluateTree();
 
   // Get Jacobians
-  this->appendJacobians(lhs, tree, jacs);
+  this->appendBlockAutomaticJacobians(lhs, tree, jacs);
 
   // Get evaluation from tree
   TYPE eval = tree->getValue();
@@ -46,9 +46,6 @@ TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Safe block-automatic evaluation method.
-///
-/// Tree handle contains pointer to root of evaluation tree, and on destruction will
-/// clean memory properly.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE, int INNER_DIM, int MAX_STATE_SIZE>
 EvalTreeHandle<TYPE> BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::getBlockAutomaticEvaluation() const {

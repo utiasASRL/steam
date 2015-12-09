@@ -186,7 +186,7 @@ void GpTrajectoryEval::appendJacobiansImpl(
       // Check if transform1 is active
       if (knot1_->T_k_root->isActive()) {
         Eigen::Matrix<double,6,6> jacobian = (-1) * w * T_21.adjoint() + T_i1.adjoint();
-        knot1_->T_k_root->appendJacobians(lhs*jacobian, transform1, outJacobians);
+        knot1_->T_k_root->appendBlockAutomaticJacobians(lhs*jacobian, transform1, outJacobians);
       }
 
       // Get index of split between left and right-hand-side of Jacobians
@@ -194,7 +194,7 @@ void GpTrajectoryEval::appendJacobiansImpl(
 
       // Check if transform2 is active
       if (knot2_->T_k_root->isActive()) {
-        knot2_->T_k_root->appendJacobians(lhs*w, transform2, outJacobians);
+        knot2_->T_k_root->appendBlockAutomaticJacobians(lhs*w, transform2, outJacobians);
       }
 
       // Merge jacobians
@@ -221,7 +221,7 @@ void GpTrajectoryEval::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
+void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -230,7 +230,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::MatrixXd& lhs,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
+void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -239,7 +239,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,1,6>& lhs,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
+void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -248,7 +248,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,2,6>& lhs,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
+void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -257,7 +257,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,3,6>& lhs,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
+void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
@@ -266,7 +266,7 @@ void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,4,6>& lhs,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendJacobians(const Eigen::Matrix<double,6,6>& lhs,
+void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
                              EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                              std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);

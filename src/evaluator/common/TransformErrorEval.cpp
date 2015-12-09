@@ -75,7 +75,7 @@ Eigen::Matrix<double,6,1> TransformErrorEval::evaluate(const Eigen::Matrix<doubl
   Eigen::Matrix<double,6,1> eval = evaluationTree.getValue();
 
   // Get Jacobians
-  errorEvaluator_->appendJacobians(lhs, evaluationTree.getRoot(), jacs);
+  errorEvaluator_->appendBlockAutomaticJacobians(lhs, evaluationTree.getRoot(), jacs);
 
   // Return evaluation
   return eval;
