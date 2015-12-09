@@ -46,17 +46,18 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
   jacs->clear();
 
   // Get evaluation tree
-  EvalTreeHandle<Eigen::Vector4d> evaluationTree = eval_->getBlockAutomaticEvaluation();
+  EvalTreeHandle<Eigen::Vector4d> blkAutoEvalPointInCameraFrame =
+      eval_->getBlockAutomaticEvaluation();
 
   // Get evaluation from tree
-  const Eigen::Vector4d& point_in_c = evaluationTree.getValue();
+  const Eigen::Vector4d& pointInCamFrame = blkAutoEvalPointInCameraFrame.getValue();
 
   // Get Jacobians
-  Eigen::Matrix4d newLhs = (-1)*lhs*cameraModelJacobian(point_in_c);
-  eval_->appendBlockAutomaticJacobians(newLhs, evaluationTree.getRoot(), jacs);
+  Eigen::Matrix4d newLhs = (-1)*lhs*cameraModelJacobian(pointInCamFrame);
+  eval_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalPointInCameraFrame.getRoot(), jacs);
 
   // Return evaluation
-  return meas_ - cameraModel(point_in_c);
+  return meas_ - cameraModel(pointInCamFrame);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,15 +93,16 @@ Eigen::Matrix4d StereoCameraErrorEval::cameraModelJacobian(const Eigen::Vector4d
   const double z = point[2];
   const double w = point[3];
   const double xr = x - w * intrinsics_->b;
-  double one_over_z = 1.0/z;
-  double one_over_z2 = one_over_z*one_over_z;
+  const double one_over_z = 1.0/z;
+  const double one_over_z2 = one_over_z*one_over_z;
 
-  // Construct Jacobian with respect to x, y, z, and scalar 1.0
+  // Construct Jacobian with respect to x, y, z, and scalar w
+  const double dw = -intrinsics_->fu * intrinsics_->b * one_over_z;
   Eigen::Matrix4d jac;
-  jac << intrinsics_->fu*one_over_z, 0.0, -intrinsics_->fu *  x  * one_over_z2, 0.0,
-         0.0, intrinsics_->fv*one_over_z, -intrinsics_->fv *  y  * one_over_z2, 0.0,
-         intrinsics_->fu*one_over_z, 0.0, -intrinsics_->fu *  xr * one_over_z2, 0.0,
-         0.0, intrinsics_->fv*one_over_z, -intrinsics_->fv *  y  * one_over_z2, 0.0;
+  jac << intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * x  * one_over_z2, 0.0,
+         0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0,
+         intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * xr * one_over_z2,  dw,
+         0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0;
   return jac;
 }
 

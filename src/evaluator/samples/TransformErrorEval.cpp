@@ -67,16 +67,18 @@ Eigen::Matrix<double,6,1> TransformErrorEval::evaluate(const Eigen::Matrix<doubl
   jacs->clear();
 
   // Get evaluation tree
-  EvalTreeHandle<Eigen::Matrix<double,6,1> > evaluationTree = errorEvaluator_->getBlockAutomaticEvaluation();
+  EvalTreeHandle<Eigen::Matrix<double,6,1> > blkAutoEvalLogOfTransformDiff =
+      errorEvaluator_->getBlockAutomaticEvaluation();
 
   // Get evaluation from tree
-  Eigen::Matrix<double,6,1> eval = evaluationTree.getValue();
+  Eigen::Matrix<double,6,1> error = blkAutoEvalLogOfTransformDiff.getValue();
 
   // Get Jacobians
-  errorEvaluator_->appendBlockAutomaticJacobians(lhs, evaluationTree.getRoot(), jacs);
+  errorEvaluator_->appendBlockAutomaticJacobians(lhs,
+      blkAutoEvalLogOfTransformDiff.getRoot(), jacs);
 
   // Return evaluation
-  return eval;
+  return error;
 }
 
 } // steam
