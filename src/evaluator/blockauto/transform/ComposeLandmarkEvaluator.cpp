@@ -20,14 +20,7 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 ComposeLandmarkEvaluator::ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& transform,
                                                    const se3::LandmarkStateVar::Ptr& landmark)
-  : landmark_(landmark) {
-
-  // Check if landmark has a reference frame and create pose evaluator
-  if(landmark_->hasReferenceFrame()) {
-    transform_ = ComposeTransformEvaluator::MakeShared(transform, InverseTransformEvaluator::MakeShared(landmark_->getReferenceFrame())); // once this is undone, remove includes above
-  } else {
-    transform_ = transform;
-  }
+  : transform_(transform), landmark_(landmark) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
