@@ -88,6 +88,8 @@ void ComposeTransformEvaluator::appendJacobiansImpl(
 
   // Check if transform1 is active
   if (transform1_->isActive()) {
+
+    // LHS Jacobian passes through -- identity multiplication
     transform1_->appendBlockAutomaticJacobians(lhs, t1, outJacobians);
   }
 

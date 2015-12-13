@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
       unsigned int firstObsIndex = landmark_map[landmarkIdx];
       steam::se3::TransformEvaluator::Ptr pose_va_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[firstObsIndex]);
       steam::se3::TransformEvaluator::Ptr pose_vb_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[frameIdx]);
-      tf_vb_va = steam::se3::compose(pose_vb_0, steam::se3::inverse(pose_va_0));
+      tf_vb_va = steam::se3::composeInverse(pose_vb_0, pose_va_0);
     }
 
     // Compose with camera to vehicle transform
