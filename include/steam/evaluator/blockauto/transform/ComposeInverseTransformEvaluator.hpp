@@ -15,7 +15,7 @@ namespace steam {
 namespace se3 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluator for the composition of transformation matrices
+/// \brief Evaluator for the composition of two transformation matrices (with one inverted)
 //////////////////////////////////////////////////////////////////////////////////////////////
 class ComposeInverseTransformEvaluator : public TransformEvaluator
 {
