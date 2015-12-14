@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/jacobian/EvalTreeNodeBase.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNodeBase.hpp>
 
 #include <iostream>
 
@@ -14,7 +14,7 @@ namespace steam {
 /// \brief Default constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNodeBase::EvalTreeNodeBase() : numChildren_(0) {
-  for (unsigned i = 0; i < 4; i++) {
+  for (unsigned i = 0; i < MAX_NUM_CHILDREN_; i++) {
     children_[i] = NULL;
   }
 }
@@ -32,7 +32,7 @@ void EvalTreeNodeBase::reset() {
   for (unsigned i = 0; i < numChildren_; i++) {
     children_[i]->release();
   }
-  for (unsigned i = 0; i < 4; i++) {
+  for (unsigned i = 0; i < MAX_NUM_CHILDREN_; i++) {
     children_[i] = NULL;
   }
   numChildren_ = 0;
@@ -46,7 +46,7 @@ void EvalTreeNodeBase::addChild(EvalTreeNodeBase* newChild) {
   // Check for nullptr
   if (newChild != NULL) {
 
-    if (numChildren_ >= MAX_NUM_CHILDREN) {
+    if (numChildren_ >= MAX_NUM_CHILDREN_) {
       throw std::runtime_error("Tried to add more than the maximum number of children");
     }
 

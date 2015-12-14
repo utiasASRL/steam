@@ -91,6 +91,13 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTe
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
 
+      // moving these "in" has no apparent cost increase...
+//      const std::vector<unsigned int>& blkSizes =
+//          approximateHessian->getIndexing().rowIndexing().blkSizes();
+
+//      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
+//      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,1> newGradTerm;
+
       // Compute the weighted and whitened errors and jacobians
       // err = sqrt(w)*sqrt(R^-1)*rawError
       // jac = sqrt(w)*sqrt(R^-1)*rawJacobian

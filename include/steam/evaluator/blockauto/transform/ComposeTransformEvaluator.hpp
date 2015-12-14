@@ -1,40 +1,39 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectoryEval.hpp
+/// \file ComposeTransformEvaluator.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_GP_TRAJECTORY_EVAL_HPP
-#define STEAM_GP_TRAJECTORY_EVAL_HPP
+#ifndef STEAM_COMPOSE_TRANSFORM_EVALUATOR_HPP
+#define STEAM_COMPOSE_TRANSFORM_EVALUATOR_HPP
 
 #include <Eigen/Core>
 
-#include <steam/trajectory/GpTrajectory.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 
 namespace steam {
 namespace se3 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple transform evaluator for a transformation state variable
+/// \brief Evaluator for the composition of transformation matrices
 //////////////////////////////////////////////////////////////////////////////////////////////
-class GpTrajectoryEval : public TransformEvaluator
+class ComposeTransformEvaluator : public TransformEvaluator
 {
- public:
+public:
+
+  /// Convenience typedefs
+  typedef boost::shared_ptr<ComposeTransformEvaluator> Ptr;
+  typedef boost::shared_ptr<const ComposeTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectoryEval(const Time& time,
-                   const GpTrajectory::Knot::ConstPtr& knot1,
-                   const GpTrajectory::Knot::ConstPtr& knot2);
+  ComposeTransformEvaluator(const TransformEvaluator::ConstPtr& transform1, const TransformEvaluator::ConstPtr& transform2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const Time& time,
-                        const GpTrajectory::Knot::ConstPtr& knot1,
-                        const GpTrajectory::Knot::ConstPtr& knot2);
+  static Ptr MakeShared(const TransformEvaluator::ConstPtr& transform1, const TransformEvaluator::ConstPtr& transform2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -48,7 +47,7 @@ class GpTrajectoryEval : public TransformEvaluator
       std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the transformation matrix
+  /// \brief Evaluate the resultant transformation matrix (transform1*transform2)
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual lgmath::se3::Transformation evaluate() const;
 
@@ -67,16 +66,13 @@ class GpTrajectoryEval : public TransformEvaluator
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Fixed-size evaluations of the Jacobian tree
-  //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<1,6> >* outJacobians) const;
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian<1,6> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<2,6> >* outJacobians) const;
+                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               std::vector<Jacobian<2,6> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
@@ -90,7 +86,7 @@ class GpTrajectoryEval : public TransformEvaluator
                                 EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                                 std::vector<Jacobian<6,6> >* outJacobians) const;
 
- private:
+private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Implementation for Block Automatic Differentiation
@@ -101,29 +97,18 @@ class GpTrajectoryEval : public TransformEvaluator
                            std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief First (earlier) knot
+  /// \brief First transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot1_;
+  TransformEvaluator::ConstPtr transform1_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Second (later) knot
+  /// \brief Second transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot2_;
+  TransformEvaluator::ConstPtr transform2_;
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interpolation coefficients
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  double psi11_;
-  double psi12_;
-  double psi21_;
-  double psi22_;
-  double lambda11_;
-  double lambda12_;
-  double lambda21_;
-  double lambda22_;
 };
 
 } // se3
 } // steam
 
-#endif // STEAM_GP_TRAJECTORY_EVAL_HPP
+#endif // STEAM_COMPOSE_TRANSFORM_EVALUATOR_HPP

@@ -7,8 +7,7 @@
 #ifndef STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP
 #define STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP
 
-#include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/state/VectorSpaceStateVar.hpp>
+#include <steam.hpp>
 
 namespace steam {
 
@@ -43,8 +42,9 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the measurement error and relevant Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Matrix<double,MEAS_DIM,1> evaluate(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& lhs,
-                                                    std::vector<Jacobian<MEAS_DIM,MAX_STATE_DIM> >* jacs) const;
+  virtual Eigen::Matrix<double,MEAS_DIM,1> evaluate(
+      const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& lhs,
+      std::vector<Jacobian<MEAS_DIM,MAX_STATE_DIM> >* jacs) const;
 
 private:
 
@@ -64,6 +64,6 @@ typedef VectorSpaceErrorEval<Eigen::Dynamic,Eigen::Dynamic> VectorSpaceErrorEval
 
 } // steam
 
-#include <steam/evaluator/common/VectorSpaceErrorEval-inl.hpp>
+#include <steam/evaluator/samples/VectorSpaceErrorEval-inl.hpp>
 
 #endif // STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP

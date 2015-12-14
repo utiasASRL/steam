@@ -1,40 +1,45 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectoryEval.hpp
+/// \file ComposeLandmarkEvaluator.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_GP_TRAJECTORY_EVAL_HPP
-#define STEAM_GP_TRAJECTORY_EVAL_HPP
+#ifndef STEAM_COMPOSE_LANDMARK_EVALUATOR_HPP
+#define STEAM_COMPOSE_LANDMARK_EVALUATOR_HPP
 
 #include <Eigen/Core>
 
-#include <steam/trajectory/GpTrajectory.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
+#include <steam/state/LandmarkStateVar.hpp>
 
 namespace steam {
 namespace se3 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple transform evaluator for a transformation state variable
+/// \brief Evaluator for the composition of a transformation evaluator and landmark state
+///
+/// *Note that we fix MAX_STATE_DIM to 6. Typically the performance benefits of fixed size
+///  matrices begin to die if larger than 6x6. Size 6 allows for transformation matrices
+///  and 6D velocities. If you have a state larger than this, consider writing an
+///  error evaluator that extends from ErrorEvaluatorX.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class GpTrajectoryEval : public TransformEvaluator
+class ComposeLandmarkEvaluator : public BlockAutomaticEvaluator<Eigen::Vector4d, 4, 6>
 {
- public:
+public:
+
+  /// Convenience typedefs
+  typedef boost::shared_ptr<ComposeLandmarkEvaluator> Ptr;
+  typedef boost::shared_ptr<const ComposeLandmarkEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectoryEval(const Time& time,
-                   const GpTrajectory::Knot::ConstPtr& knot1,
-                   const GpTrajectory::Knot::ConstPtr& knot2);
+  ComposeLandmarkEvaluator(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::Ptr& landmark);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const Time& time,
-                        const GpTrajectory::Knot::ConstPtr& knot1,
-                        const GpTrajectory::Knot::ConstPtr& knot2);
+  static Ptr MakeShared(const TransformEvaluator::ConstPtr& transform, const se3::LandmarkStateVar::Ptr& landmark);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -48,82 +53,72 @@ class GpTrajectoryEval : public TransformEvaluator
       std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the transformation matrix
+  /// \brief Evaluate the point transformed by the transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual lgmath::se3::Transformation evaluate() const;
+  virtual Eigen::Vector4d evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the transformation matrix tree
+  /// \brief Evaluate the point transformed by the transform evaluator and
+  ///        sub-tree of evaluations
   ///
   /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
   ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+  virtual EvalTreeNode<Eigen::Vector4d>* evaluateTree() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
-                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                std::vector<Jacobian<> >* outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Fixed-size evaluations of the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                 std::vector<Jacobian<1,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                 std::vector<Jacobian<2,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                 std::vector<Jacobian<3,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                 std::vector<Jacobian<4,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,4>& lhs,
+                                EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                                 std::vector<Jacobian<6,6> >* outJacobians) const;
 
- private:
+private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Implementation for Block Automatic Differentiation
   //////////////////////////////////////////////////////////////////////////////////////////////
   template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
   void appendJacobiansImpl(const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
-                           EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+                           EvalTreeNode<Eigen::Vector4d>* evaluationTree,
                            std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief First (earlier) knot
+  /// \brief Transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot1_;
+  TransformEvaluator::ConstPtr transform_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Second (later) knot
+  /// \brief Landmark state variable
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot2_;
+  se3::LandmarkStateVar::Ptr landmark_;
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Interpolation coefficients
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  double psi11_;
-  double psi12_;
-  double psi21_;
-  double psi22_;
-  double lambda11_;
-  double lambda12_;
-  double lambda21_;
-  double lambda22_;
 };
 
 } // se3
 } // steam
 
-#endif // STEAM_GP_TRAJECTORY_EVAL_HPP
+#endif // STEAM_COMPOSE_LANDMARK_EVALUATOR_HPP

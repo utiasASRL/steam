@@ -4,9 +4,10 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/common/TransformErrorEval.hpp>
+#include <steam/evaluator/samples/TransformErrorEval.hpp>
 
-#include <steam/evaluator/TransformEvalOperations.hpp>
+#include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
 
 namespace steam {
 
@@ -32,8 +33,8 @@ TransformErrorEval::TransformErrorEval(const lgmath::se3::Transformation& meas_T
 /// \brief Convenience constructor - error between meas_T_21 and T_20*inv(T_10)
 //////////////////////////////////////////////////////////////////////////////////////////////
 TransformErrorEval::TransformErrorEval(const lgmath::se3::Transformation& meas_T_21,
-                                       const se3::TransformStateVar::ConstPtr& T_20,
-                                       const se3::TransformStateVar::ConstPtr& T_10) {
+                                       const se3::TransformStateVar::Ptr& T_20,
+                                       const se3::TransformStateVar::Ptr& T_10) {
 
   // Construct the evaluator using the convenient transform evaluators
   se3::FixedTransformEvaluator::ConstPtr meas = se3::FixedTransformEvaluator::MakeShared(meas_T_21);
@@ -69,19 +70,18 @@ Eigen::Matrix<double,6,1> TransformErrorEval::evaluate(const Eigen::Matrix<doubl
   jacs->clear();
 
   // Get evaluation tree
-  EvalTreeNode<Eigen::Matrix<double,6,1> >* evaluationTree = errorEvaluator_->evaluateTree();
+  EvalTreeHandle<Eigen::Matrix<double,6,1> > blkAutoEvalLogOfTransformDiff =
+      errorEvaluator_->getBlockAutomaticEvaluation();
 
   // Get evaluation from tree
-  Eigen::Matrix<double,6,1> eval = evaluationTree->getValue();
+  Eigen::Matrix<double,6,1> error = blkAutoEvalLogOfTransformDiff.getValue();
 
   // Get Jacobians
-  errorEvaluator_->appendJacobians6(lhs, evaluationTree, jacs);
-
-  // Return tree memory to pool
-  EvalTreeNode<Eigen::Matrix<double,6,1> >::pool.returnObj(evaluationTree);
+  errorEvaluator_->appendBlockAutomaticJacobians(lhs,
+      blkAutoEvalLogOfTransformDiff.getRoot(), jacs);
 
   // Return evaluation
-  return eval;
+  return error;
 }
 
 } // steam

@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
 namespace steam {
 

@@ -12,7 +12,7 @@
 #include <steam/common/Time.hpp>
 #include <steam/state/LieGroupStateVar.hpp>
 #include <steam/state/VectorSpaceStateVar.hpp>
-#include <steam/evaluator/TransformEvaluators.hpp>
+#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 #include <steam/problem/CostTerm.hpp>
 #include <steam/problem/CostTermCollection.hpp>
 
@@ -20,7 +20,8 @@ namespace steam {
 namespace se3 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple transform evaluator for a transformation state variable
+/// \brief The trajectory class wraps a set of state variables to provide an interface
+///        that allows for continuous-time pose interpolation.
 //////////////////////////////////////////////////////////////////////////////////////////////
 class GpTrajectory
 {
@@ -35,41 +36,32 @@ class GpTrajectory
     typedef boost::shared_ptr<Knot> Ptr;
     typedef boost::shared_ptr<const Knot> ConstPtr;
 
-    // Time
-    steam::Time time;
-
     // Pose
-    se3::TransformStateVar::Ptr T_k0;
+    se3::TransformEvaluator::Ptr T_k_root;
 
     // Velocity
     VectorSpaceStateVar::Ptr varpi;
+
+    // Time
+    steam::Time time;
   };
 
-  // Notes
-  // - For now we only allow adding.. this way pose evaluators stay valid. In the future, the
-  //   pose evaluator could simply store a reference back to the GpTrajectory, and the
-  //   evaluation methods could be called from the trajectory .. the overhead
-  //   being the std::map search time.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Constructor
+  ///        Note, without providing Qc, the trajectory can be used safely for interpolation,
+  ///        but should not be used for estimation.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  GpTrajectory(bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv);
+  GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(const steam::Time& time, const lgmath::se3::Transformation& T_k0, const Eigen::Matrix<double,6,1>& varpi);
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Add a new knot. Initialize varpi using constant velocity between this and last pose
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(const steam::Time& time, const lgmath::se3::Transformation& T_k0);
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Add a new knot. Initialize by extrapolating velocity estimate.
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(const steam::Time& time);
+  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0, const VectorSpaceStateVar::Ptr& varpi);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get evaluator
@@ -77,31 +69,20 @@ class GpTrajectory
   TransformEvaluator::ConstPtr getEvaluator(const steam::Time& time) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Locks state variables before the provided time. Useful in sliding window filters.
+  /// \brief Get a unary velocity prior
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void lockBefore(const steam::Time& time);
+  //void getVelocityPriorFactor(const steam::Time& time, CostTermCollection<6,6>::Ptr unary) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get unlocked state variables in the trajectory
+  /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  std::vector<steam::StateVariableBase::Ptr> getActiveStateVariables() const;
+  void getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
+  /// \brief Get active state variables in the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void getPriorCostTerms(CostTermCollection<6,6>::Ptr unary,
-                         CostTermCollection<12,6>::Ptr binary) const;
-
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get all of the transformation state variables
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  std::vector<se3::TransformStateVar::Ptr> getTransformStateVariables() const;
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get all of the velocity state variables
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  std::vector<VectorSpaceStateVar::Ptr> getVelocityStateVariables() const;
+  void getActiveStateVariables(
+      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
  private:
 
@@ -109,6 +90,11 @@ class GpTrajectory
   /// \brief Ordered map of knots
   //////////////////////////////////////////////////////////////////////////////////////////////
   Eigen::Matrix<double,6,6> Qc_inv_;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Allow for extrapolation
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  bool allowExtrapolation_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Ordered map of knots

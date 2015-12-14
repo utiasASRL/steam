@@ -4,7 +4,7 @@
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNode.hpp>
 #include <boost/make_shared.hpp>
 
 namespace steam {

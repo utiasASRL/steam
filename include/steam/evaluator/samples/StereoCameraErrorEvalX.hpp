@@ -7,9 +7,7 @@
 #ifndef STEAM_STEREO_CAMERA_ERROR_EVALUATOR_DYNAMIC_HPP
 #define STEAM_STEREO_CAMERA_ERROR_EVALUATOR_DYNAMIC_HPP
 
-#include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/state/LandmarkStateVar.hpp>
-#include <steam/evaluator/TransformEvalOperations.hpp>
+#include <steam.hpp>
 
 namespace steam {
 
@@ -55,7 +53,7 @@ public:
   StereoCameraErrorEvalX(const Eigen::Vector4d& meas,
                         const CameraIntrinsics::ConstPtr& intrinsics,
                         const se3::TransformEvaluator::ConstPtr& T_cam_landmark,
-                        const se3::LandmarkStateVar::ConstPtr& landmark);
+                        const se3::LandmarkStateVar::Ptr& landmark);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -70,7 +68,8 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs, std::vector<Jacobian<> >* jacs) const;
+  virtual Eigen::VectorXd evaluate(const Eigen::MatrixXd& lhs,
+                                   std::vector<Jacobian<> >* jacs) const;
 
 private:
 

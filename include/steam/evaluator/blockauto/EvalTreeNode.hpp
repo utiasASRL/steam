@@ -7,14 +7,17 @@
 #ifndef STEAM_EVAL_TREE_NODE_HPP
 #define STEAM_EVAL_TREE_NODE_HPP
 
-#include <steam/evaluator/jacobian/EvalTreeNodeBase.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNodeBase.hpp>
 
-#include <steam/common/Pool.hpp>
+#include <steam/evaluator/blockauto/OpenMpPool.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Simple structure to hold Jacobian information
+/// \brief Class for a node in a block-automatic evaluation tree. While the true strength of
+///        block automatic evaluation is in Jacobian evaluation, note that the most efficient
+///        implementation involves first evaluating the nominal solution of the nonlinear
+///        function at each level of the evaluator chain.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TYPE>
 class EvalTreeNode : public EvalTreeNodeBase
@@ -77,6 +80,6 @@ class EvalTreeNode : public EvalTreeNodeBase
 
 } // steam
 
-#include <steam/evaluator/jacobian/EvalTreeNode-inl.hpp>
+#include <steam/evaluator/blockauto/EvalTreeNode-inl.hpp>
 
 #endif // STEAM_EVAL_TREE_NODE_HPP
