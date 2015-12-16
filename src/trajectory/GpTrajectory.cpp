@@ -116,7 +116,7 @@ TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectory::getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary) const {
+void GpTrajectory::getBinaryPriorFactors(const CostTermCollection<>::Ptr& binary) const {
 
   // If empty, return none
   if (knotMap_.empty()) {

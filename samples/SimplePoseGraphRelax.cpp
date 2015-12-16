@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
   ///
 
   // steam cost terms
-  steam::CostTermCollection<6,6>::Ptr costTerms(new steam::CostTermCollection<6,6>());
+  steam::CostTermCollection<>::Ptr costTerms(new steam::CostTermCollection<>());
 
   // Setup shared noise and loss functions
   steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(Eigen::MatrixXd::Identity(6,6)));
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   }
 
   // Add cost terms
-  problem.addCostTermCollection(costTerms);
+  problem.addCostTerm(costTerms);
 
   ///
   /// Setup Solver and Optimize

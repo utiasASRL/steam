@@ -9,6 +9,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <steam/problem/CostTermBase.hpp>
+
 #include <steam/evaluator/ErrorEvaluator.hpp>
 #include <steam/problem/NoiseModel.hpp>
 #include <steam/problem/LossFunctions.hpp>
@@ -20,7 +22,7 @@ namespace steam {
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int MEAS_DIM, int MAX_STATE_SIZE>
-class CostTerm
+class CostTerm : public CostTermBase
 {
 public:
 
@@ -40,7 +42,27 @@ public:
   ///        and then passed through the loss function, as in:
   ///          cost = loss(sqrt(e^T * cov^{-1} * e))
   //////////////////////////////////////////////////////////////////////////////////////////////
-  double evaluate() const;
+  virtual double cost() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Returns the number of cost terms contained by this object (typically 1)
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual unsigned int numCostTerms() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Returns whether or not the implementation already uses multi-threading
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual bool isImplParallelized() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add the contribution of this cost term to the left-hand (Hessian) and right-hand
+  ///        (gradient vector) sides of the Gauss-Newton system of equations.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void buildGaussNewtonTerms(const StateVector& stateVector,
+                                     BlockSparseMatrix* approximateHessian,
+                                     BlockVector* gradientVector) const;
+
+private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the iteratively reweighted error vector and Jacobians. The error and
@@ -51,8 +73,6 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   Eigen::Matrix<double,MEAS_DIM,1> evalWeightedAndWhitened(
       std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
-
-private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Error evaluator

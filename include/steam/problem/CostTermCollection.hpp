@@ -9,7 +9,7 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include <steam/problem/CostTermCollectionBase.hpp>
+#include <steam/problem/CostTermBase.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// The define STEAM_DEFAULT_NUM_OPENMP_THREADS can be used to set the default template
@@ -30,14 +30,14 @@ namespace steam {
 /// \brief Class that fully defines a nonlinear cost term (or 'factor').
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS = STEAM_DEFAULT_NUM_OPENMP_THREADS>
-class CostTermCollection : public CostTermCollectionBase
+template<int NUM_THREADS = STEAM_DEFAULT_NUM_OPENMP_THREADS>
+class CostTermCollection : public CostTermBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTermCollection<MEAS_DIM, MAX_STATE_SIZE, NUM_THREADS> > Ptr;
-  typedef boost::shared_ptr<const CostTermCollection<MEAS_DIM, MAX_STATE_SIZE, NUM_THREADS> > ConstPtr;
+  typedef boost::shared_ptr<CostTermCollection<NUM_THREADS> > Ptr;
+  typedef boost::shared_ptr<const CostTermCollection<NUM_THREADS> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
@@ -47,7 +47,7 @@ class CostTermCollection : public CostTermCollectionBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a cost term
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr costTerm);
+  void add(const CostTermBase::ConstPtr& costTerm);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Compute the cost from the collection of cost terms
@@ -55,14 +55,14 @@ class CostTermCollection : public CostTermCollectionBase
   virtual double cost() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get size of the collection
+  /// \brief Returns the number of cost terms contained by this object
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual size_t size() const;
+  virtual unsigned int numCostTerms() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get a reference to the cost terms
+  /// \brief Returns whether or not the implementation already uses multi-threading
   //////////////////////////////////////////////////////////////////////////////////////////////
-  const std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr>& getCostTerms() const;
+  virtual bool isImplParallelized() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
@@ -77,13 +77,8 @@ class CostTermCollection : public CostTermCollectionBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Collection of nonlinear cost-term factors
   //////////////////////////////////////////////////////////////////////////////////////////////
-  std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr> costTerms_;
+  std::vector<CostTermBase::ConstPtr> costTerms_;
 };
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Typedef for the general dynamic cost term
-//////////////////////////////////////////////////////////////////////////////////////////////
-typedef CostTermCollection<Eigen::Dynamic, Eigen::Dynamic> CostTermCollectionX;
 
 } // steam
 

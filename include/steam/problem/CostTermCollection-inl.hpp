@@ -16,59 +16,62 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
-CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::CostTermCollection() {
+template<int NUM_THREADS>
+CostTermCollection<NUM_THREADS>::CostTermCollection() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a cost term
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
-void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::add(
-    typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr costTerm) {
+template<int NUM_THREADS>
+void CostTermCollection<NUM_THREADS>::add(const CostTermBase::ConstPtr& costTerm) {
+
+  if (costTerm->isImplParallelized()) {
+    throw std::runtime_error("Do not add pre-parallelized cost "
+                             "terms to a cost term parallelizer.");
+  }
   costTerms_.push_back(costTerm);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute the cost from the collection of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
-double CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::cost() const {
+template<int NUM_THREADS>
+double CostTermCollection<NUM_THREADS>::cost() const {
 
   double cost = 0;
   #pragma omp parallel num_threads(NUM_THREADS)
   {
     #pragma omp for reduction(+:cost)
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      cost += costTerms_.at(i)->evaluate();
+      cost += costTerms_.at(i)->cost();
     }
   }
   return cost;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get size of the collection
+/// \brief Returns the number of cost terms contained by this object
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
-size_t CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::size() const {
+template<int NUM_THREADS>
+unsigned int CostTermCollection<NUM_THREADS>::numCostTerms() const {
   return costTerms_.size();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get a reference to the cost terms
+/// \brief Returns whether or not the implementation already uses multi-threading
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
-const std::vector<typename CostTerm<MEAS_DIM, MAX_STATE_SIZE>::ConstPtr>&
-    CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::getCostTerms() const {
-  return costTerms_;
+template<int NUM_THREADS>
+bool CostTermCollection<NUM_THREADS>::isImplParallelized() const {
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
 ///        using the cost terms in this collection.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int MEAS_DIM, int MAX_STATE_SIZE, int NUM_THREADS>
-void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTerms(
+template<int NUM_THREADS>
+void CostTermCollection<NUM_THREADS>::buildGaussNewtonTerms(
     const StateVector& stateVector,
     BlockSparseMatrix* approximateHessian,
     BlockVector* gradientVector) const {
@@ -76,78 +79,14 @@ void CostTermCollection<MEAS_DIM,MAX_STATE_SIZE,NUM_THREADS>::buildGaussNewtonTe
   // Locally disable any internal eigen multithreading -- we do our own OpenMP
   Eigen::setNbThreads(1);
 
-  // Get square block indices (we know the hessian is block-symmetric)
-  const std::vector<unsigned int>& blkSizes =
-      approximateHessian->getIndexing().rowIndexing().blkSizes();
-
   // For each cost term
   #pragma omp parallel num_threads(NUM_THREADS)
   {
-
-    // Init dynamic matrices
-    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
-    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,1> newGradTerm;
-
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
 
-      // moving these "in" has no apparent cost increase...
-//      const std::vector<unsigned int>& blkSizes =
-//          approximateHessian->getIndexing().rowIndexing().blkSizes();
+      costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
 
-//      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,MAX_STATE_SIZE> newHessianTerm;
-//      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,0,MAX_STATE_SIZE,1> newGradTerm;
-
-      // Compute the weighted and whitened errors and jacobians
-      // err = sqrt(w)*sqrt(R^-1)*rawError
-      // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
-      std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> > jacobians;
-      Eigen::Matrix<double,MEAS_DIM,1> error = costTerms_.at(c)->evalWeightedAndWhitened(&jacobians);
-
-      // For each jacobian
-      for (unsigned int i = 0; i < jacobians.size(); i++) {
-
-        // Get the key and state range affected
-        unsigned int blkIdx1 = stateVector.getStateBlockIndex(jacobians[i].key);
-
-        // Calculate terms needed to update the right-hand-side
-        unsigned int size1 = blkSizes.at(blkIdx1);
-        newGradTerm = (-1)*jacobians[i].jac.leftCols(size1).transpose()*error;
-
-        // Update the right-hand side (thread critical)
-        #pragma omp critical(b_update)
-        {
-          gradientVector->mapAt(blkIdx1) += newGradTerm;
-        }
-
-        // For each jacobian (in upper half)
-        for (unsigned int j = i; j < jacobians.size(); j++) {
-
-          // Get the key and state range affected
-          unsigned int blkIdx2 = stateVector.getStateBlockIndex(jacobians[j].key);
-
-          // Calculate terms needed to update the Gauss-Newton left-hand side
-          unsigned int size2 = blkSizes.at(blkIdx2);
-          unsigned int row;
-          unsigned int col;
-          if (blkIdx1 <= blkIdx2) {
-            row = blkIdx1;
-            col = blkIdx2;
-            newHessianTerm = jacobians[i].jac.leftCols(size1).transpose()*jacobians[j].jac.leftCols(size2);
-          } else {
-            row = blkIdx2;
-            col = blkIdx1;
-            newHessianTerm = jacobians[j].jac.leftCols(size2).transpose()*jacobians[i].jac.leftCols(size1);
-          }
-
-          // Update the left-hand side (thread critical)
-          BlockSparseMatrix::BlockRowEntry& entry = approximateHessian->rowEntryAt(row, col, true);
-          omp_set_lock(&entry.lock);
-          entry.data += newHessianTerm;
-          omp_unset_lock(&entry.lock);
-
-        } // end row loop
-      } // end column loop
     } // end cost term loop
   } // end parallel
 }

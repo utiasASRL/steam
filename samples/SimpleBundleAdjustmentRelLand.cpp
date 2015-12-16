@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  steam::CostTermCollection<4,6>::Ptr stereoCostTerms(new steam::CostTermCollection<4,6>());
+  steam::CostTermCollection<>::Ptr stereoCostTerms(new steam::CostTermCollection<>());
 
   // Setup shared noise and loss function
   steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
   }
 
   // Add cost terms
-  problem.addCostTermCollection(stereoCostTerms);
+  problem.addCostTerm(stereoCostTerms);
 
   ///
   /// Setup Solver and Optimize

@@ -1,51 +1,56 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTermCollectionBase.hpp
+/// \file CostTermBase.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_COST_TERM_COLLECTION_BASE_HPP
-#define STEAM_COST_TERM_COLLECTION_BASE_HPP
+#ifndef STEAM_COST_TERM_BASE_HPP
+#define STEAM_COST_TERM_BASE_HPP
 
 #include <boost/shared_ptr.hpp>
 
-#include <steam/problem/CostTerm.hpp>
-
+#include <steam/state/StateVector.hpp>
 #include <steam/blockmat/BlockSparseMatrix.hpp>
 #include <steam/blockmat/BlockVector.hpp>
 
 namespace steam {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Class that fully defines a nonlinear cost term (or 'factor').
-///        Cost terms are composed of an error function, loss function and noise model.
+/// \brief Interface for a 'cost term' class that contributes to the objective function.
+///        Functions must be provided to calculate the scalar 'cost' and to build the
+///        contributions to the Gauss-Newton system of equations.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class CostTermCollectionBase
+class CostTermBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTermCollectionBase> Ptr;
-  typedef boost::shared_ptr<const CostTermCollectionBase> ConstPtr;
+  typedef boost::shared_ptr<CostTermBase> Ptr;
+  typedef boost::shared_ptr<const CostTermBase> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTermCollectionBase() {}
+  CostTermBase() {}
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Compute the cost from the collection of cost terms
+  /// \brief Compute the cost to the objective function
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual double cost() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get size of the collection
+  /// \brief Returns the number of cost terms contained by this object (typically 1)
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual size_t size() const = 0;
+  virtual unsigned int numCostTerms() const = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
-  ///        using the cost terms in this collection.
+  /// \brief Returns whether or not the implementation already uses multi-threading
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual bool isImplParallelized() const = 0;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add the contribution of this cost term to the left-hand (Hessian) and right-hand
+  ///        (gradient vector) sides of the Gauss-Newton system of equations.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void buildGaussNewtonTerms(const StateVector& stateVector,
                                      BlockSparseMatrix* approximateHessian,
@@ -54,4 +59,4 @@ class CostTermCollectionBase
 
 } // steam
 
-#endif // STEAM_COST_TERM_COLLECTION_BASE_HPP
+#endif // STEAM_COST_TERM_BASE_HPP
