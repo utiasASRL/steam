@@ -17,7 +17,7 @@ template <int MEAS_DIM, int MAX_STATE_SIZE>
 WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::WeightedLeastSqCostTerm(
     const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
     const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
-    const LossFunction::ConstPtr& lossFunc) :
+    const LossFunctionBase::ConstPtr& lossFunc) :
   errorFunction_(errorFunction), noiseModel_(noiseModel), lossFunc_(lossFunc) {
 }
 
