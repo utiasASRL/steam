@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTermCollection.hpp
+/// \file ParallelizedCostTermCollection.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_COST_TERM_COLLECTION_HPP
-#define STEAM_COST_TERM_COLLECTION_HPP
+#ifndef STEAM_PARALLELIZED_COST_TERM_COLLECTION_HPP
+#define STEAM_PARALLELIZED_COST_TERM_COLLECTION_HPP
 
 #include <boost/shared_ptr.hpp>
 
@@ -31,18 +31,18 @@ namespace steam {
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int NUM_THREADS = STEAM_DEFAULT_NUM_OPENMP_THREADS>
-class CostTermCollection : public CostTermBase
+class ParallelizedCostTermCollection : public CostTermBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTermCollection<NUM_THREADS> > Ptr;
-  typedef boost::shared_ptr<const CostTermCollection<NUM_THREADS> > ConstPtr;
+  typedef boost::shared_ptr<ParallelizedCostTermCollection<NUM_THREADS> > Ptr;
+  typedef boost::shared_ptr<const ParallelizedCostTermCollection<NUM_THREADS> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTermCollection();
+  ParallelizedCostTermCollection();
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a cost term
@@ -82,6 +82,6 @@ class CostTermCollection : public CostTermBase
 
 } // steam
 
-#include <steam/problem/CostTermCollection-inl.hpp>
+#include <steam/problem/ParallelizedCostTermCollection-inl.hpp>
 
-#endif // STEAM_COST_TERM_COLLECTION_HPP
+#endif // STEAM_PARALLELIZED_COST_TERM_COLLECTION_HPP

@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
   ///
 
   // steam cost terms
-  steam::CostTermCollection<>::Ptr costTerms(new steam::CostTermCollection<>());
+  steam::ParallelizedCostTermCollection<>::Ptr costTerms(new steam::ParallelizedCostTermCollection<>());
 
   // Setup shared noise and loss functions
   steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(measCollection[0].sqrtInformation, steam::NoiseModel<6>::SQRT_INFORMATION));
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(meas_T_BA, stateVarB, stateVarA));
 
     // Create cost term and add to problem
-    steam::CostTerm<6,6>::Ptr cost(new steam::CostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
+    steam::WeightedLeastSqCostTerm<6,6>::Ptr cost(new steam::WeightedLeastSqCostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
     costTerms->add(cost);
   }
 

@@ -11,7 +11,7 @@
 #include <Eigen/Sparse>
 
 #include <steam/state/StateVector.hpp>
-#include <steam/problem/CostTermCollection.hpp>
+#include <steam/problem/ParallelizedCostTermCollection.hpp>
 
 namespace steam {
 
@@ -86,7 +86,7 @@ class OptimizationProblem
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Single threaded cost terms
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTermCollection<> singleCostTerms_;
+  ParallelizedCostTermCollection<> singleCostTerms_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Collection of cost terms that implement their own parallelization

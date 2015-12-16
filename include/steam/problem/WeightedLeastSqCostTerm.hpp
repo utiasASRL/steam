@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTerm.hpp
+/// \file WeightedLeastSqCostTerm.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_COST_TERM_HPP
-#define STEAM_COST_TERM_HPP
+#ifndef STEAM_WEIGHTED_LSQ_COST_TERM_HPP
+#define STEAM_WEIGHTED_LSQ_COST_TERM_HPP
 
 #include <boost/shared_ptr.hpp>
 
@@ -22,18 +22,18 @@ namespace steam {
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int MEAS_DIM, int MAX_STATE_SIZE>
-class CostTerm : public CostTermBase
+class WeightedLeastSqCostTerm : public CostTermBase
 {
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
-  typedef boost::shared_ptr<const CostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
+  typedef boost::shared_ptr<WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
+  typedef boost::shared_ptr<const WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTerm(const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
+  WeightedLeastSqCostTerm(const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
            const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
            const LossFunction::ConstPtr& lossFunc);
 
@@ -93,10 +93,10 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Typedef for the general dynamic cost term
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef CostTerm<Eigen::Dynamic, Eigen::Dynamic> CostTermX;
+typedef WeightedLeastSqCostTerm<Eigen::Dynamic, Eigen::Dynamic> WeightedLeastSqCostTermX;
 
 } // steam
 
-#include <steam/problem/CostTerm-inl.hpp>
+#include <steam/problem/WeightedLeastSqCostTerm-inl.hpp>
 
-#endif // STEAM_COST_TERM_HPP
+#endif // STEAM_WEIGHTED_LSQ_COST_TERM_HPP

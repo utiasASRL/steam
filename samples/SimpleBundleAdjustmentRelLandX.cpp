@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  steam::CostTermCollection<>::Ptr stereoCostTerms(new steam::CostTermCollection<>());
+  steam::ParallelizedCostTermCollection<>::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection<>());
 
   // Setup shared noise and loss function
   steam::NoiseModelX::Ptr sharedCameraNoiseModel(new steam::NoiseModelX(dataset.noise));
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
             dataset.meas[i].data, sharedIntrinsics, tf_cb_va, landVar));
 
     // Construct cost term
-    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
+    steam::WeightedLeastSqCostTermX::Ptr cost(new steam::WeightedLeastSqCostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
     stereoCostTerms->add(cost);
   }
 

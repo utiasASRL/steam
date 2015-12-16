@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTerm-inl.hpp
+/// \file WeightedLeastSqCostTerm-inl.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/problem/CostTerm.hpp>
+#include <steam/problem/WeightedLeastSqCostTerm.hpp>
 
 #include <iostream>
 
@@ -14,7 +14,7 @@ namespace steam {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <int MEAS_DIM, int MAX_STATE_SIZE>
-CostTerm<MEAS_DIM,MAX_STATE_SIZE>::CostTerm(
+WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::WeightedLeastSqCostTerm(
     const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
     const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
     const LossFunction::ConstPtr& lossFunc) :
@@ -27,7 +27,7 @@ CostTerm<MEAS_DIM,MAX_STATE_SIZE>::CostTerm(
 ///          cost = loss(sqrt(e^T * cov^{-1} * e))
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <int MEAS_DIM, int MAX_STATE_SIZE>
-double CostTerm<MEAS_DIM,MAX_STATE_SIZE>::cost() const
+double WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::cost() const
 {
   return lossFunc_->cost(noiseModel_->getWhitenedErrorNorm(errorFunction_->evaluate()));
 }
@@ -36,7 +36,7 @@ double CostTerm<MEAS_DIM,MAX_STATE_SIZE>::cost() const
 /// \brief Returns the number of cost terms contained by this object (typically 1)
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <int MEAS_DIM, int MAX_STATE_SIZE>
-unsigned int CostTerm<MEAS_DIM,MAX_STATE_SIZE>::numCostTerms() const {
+unsigned int WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::numCostTerms() const {
   return 1;
 }
 
@@ -44,7 +44,7 @@ unsigned int CostTerm<MEAS_DIM,MAX_STATE_SIZE>::numCostTerms() const {
 /// \brief Returns whether or not the implementation already uses multi-threading
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <int MEAS_DIM, int MAX_STATE_SIZE>
-bool CostTerm<MEAS_DIM,MAX_STATE_SIZE>::isImplParallelized() const {
+bool WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::isImplParallelized() const {
   return false;
 }
 
@@ -53,7 +53,7 @@ bool CostTerm<MEAS_DIM,MAX_STATE_SIZE>::isImplParallelized() const {
 ///        (gradient vector) sides of the Gauss-Newton system of equations.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <int MEAS_DIM, int MAX_STATE_SIZE>
-void CostTerm<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
+void WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
     const StateVector& stateVector,
     BlockSparseMatrix* approximateHessian,
     BlockVector* gradientVector) const {
@@ -126,7 +126,7 @@ void CostTerm<MEAS_DIM,MAX_STATE_SIZE>::buildGaussNewtonTerms(
 ///           jacobian = sqrt(weight)*sqrt(cov^-1)*rawJacobian
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <int MEAS_DIM, int MAX_STATE_SIZE>
-Eigen::Matrix<double,MEAS_DIM,1> CostTerm<MEAS_DIM,MAX_STATE_SIZE>::evalWeightedAndWhitened(
+Eigen::Matrix<double,MEAS_DIM,1> WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE>::evalWeightedAndWhitened(
     std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
 
   // Check and initialize jacobian array
