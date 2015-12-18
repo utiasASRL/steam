@@ -116,7 +116,7 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time&
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void SteamTrajInterface::getBinaryPriorFactors(const ParallelizedCostTermCollection<>::Ptr& binary) const {
+void SteamTrajInterface::getBinaryPriorFactors(const ParallelizedCostTermCollection::Ptr& binary) const {
 
   // If empty, return none
   if (knotMap_.empty()) {

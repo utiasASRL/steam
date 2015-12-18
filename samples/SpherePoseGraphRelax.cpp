@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
   ///
 
   // steam cost terms
-  steam::ParallelizedCostTermCollection<>::Ptr costTerms(new steam::ParallelizedCostTermCollection<>());
+  steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
 
   // Setup shared noise and loss functions
   steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(measCollection[0].sqrtInformation, steam::NoiseModel<6>::SQRT_INFORMATION));
