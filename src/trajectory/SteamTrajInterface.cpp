@@ -30,35 +30,49 @@ SteamTrajInterface::SteamTrajInterface(bool allowExtrapolation) :
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-SteamTrajInterface::SteamTrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation) :
+SteamTrajInterface::SteamTrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv,
+                                       bool allowExtrapolation) :
   Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a new knot
 //////////////////////////////////////////////////////////////////////////////////////////////
-void SteamTrajInterface::add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-                       const VectorSpaceStateVar::Ptr& varpi) {
+void SteamTrajInterface::add(const SteamTrajVar::Ptr& knot) {
+
+  // Todo, check that time does not already exist in map?
+
+  // Insert in map
+  knotMap_.insert(knotMap_.end(),
+                  std::pair<boost::int64_t, SteamTrajVar::Ptr>(knot->getTime().nanosecs(), knot));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a new knot
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::add(const steam::Time& time,
+                             const se3::TransformEvaluator::Ptr& T_k0,
+                             const VectorSpaceStateVar::Ptr& velocity) {
 
   // Check velocity input
-  if (varpi->getPerturbDim() != 6) {
+  if (velocity->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 
+  // Todo, check that time does not already exist in map?
+
   // Make knot
-  Knot::Ptr newEntry(new Knot());
-  newEntry->time = time;
-  newEntry->T_k_root = T_k0;
-  newEntry->varpi = varpi;
+  SteamTrajVar::Ptr newEntry(new SteamTrajVar(time, T_k0, velocity));
 
   // Insert in map
-  knotMap_.insert(knotMap_.end(), std::pair<boost::int64_t, Knot::Ptr>(time.nanosecs(), newEntry));
+  knotMap_.insert(knotMap_.end(),
+                  std::pair<boost::int64_t, SteamTrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time& time) const {
+TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::Time& time) const {
 
   // Check that map is not empty
   if (knotMap_.empty()) {
@@ -66,7 +80,8 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time&
   }
 
   // Get iterator to first element with time equal to or great than 'time'
-  std::map<boost::int64_t, Knot::Ptr>::const_iterator it1 = knotMap_.lower_bound(time.nanosecs());
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+      = knotMap_.lower_bound(time.nanosecs());
 
   // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
@@ -74,19 +89,20 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time&
     // If we allow extrapolation, return constant-velocity interpolated entry
     if (allowExtrapolation_) {
       --it1; // should be safe, as we checked that the map was not empty..
-      const Knot::Ptr& endKnot = it1->second;
-      TransformEvaluator::Ptr T_t_k = ConstVelTransformEvaluator::MakeShared(endKnot->varpi, time - endKnot->time);
-      return compose(T_t_k, endKnot->T_k_root);
+      const SteamTrajVar::Ptr& endKnot = it1->second;
+      TransformEvaluator::Ptr T_t_k =
+          ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());
+      return compose(T_t_k, endKnot->getPose());
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
   }
 
   // Check if we requested time exactly
-  if (it1->second->time == time) {
+  if (it1->second->getTime() == time) {
 
     // return state variable exactly (no interp)
-    return it1->second->T_k_root;
+    return it1->second->getPose();
   }
 
   // Check if we requested before first time
@@ -94,17 +110,19 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time&
 
     // If we allow extrapolation, return constant-velocity interpolated entry
     if (allowExtrapolation_) {
-      const Knot::Ptr& startKnot = it1->second;
-      TransformEvaluator::Ptr T_t_k = ConstVelTransformEvaluator::MakeShared(startKnot->varpi, time - startKnot->time);
-      return compose(T_t_k, startKnot->T_k_root);
+      const SteamTrajVar::Ptr& startKnot = it1->second;
+      TransformEvaluator::Ptr T_t_k =
+          ConstVelTransformEvaluator::MakeShared(startKnot->getVelocity(),
+                                                 time - startKnot->getTime());
+      return compose(T_t_k, startKnot->getPose());
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
   }
 
   // Get iterators bounding the time interval
-  std::map<boost::int64_t, Knot::Ptr>::const_iterator it2 = it1; --it1;
-  if (time <= it1->second->time || time >= it2->second->time) {
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
                              "should not trigger... report to a STEAM contributor.");
   }
@@ -116,7 +134,8 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time&
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void SteamTrajInterface::getBinaryPriorFactors(const ParallelizedCostTermCollection::Ptr& binary) const {
+void SteamTrajInterface::getPriorFactors(
+    const ParallelizedCostTermCollection::Ptr& factors) const {
 
   // If empty, return none
   if (knotMap_.empty()) {
@@ -127,37 +146,40 @@ void SteamTrajInterface::getBinaryPriorFactors(const ParallelizedCostTermCollect
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Initialize first iterator
-  std::map<boost::int64_t, Knot::Ptr>::const_iterator it1 = knotMap_.begin();
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1 = knotMap_.begin();
   if (it1 == knotMap_.end()) {
     throw std::runtime_error("No knots...");
   }
 
   // Iterate through all states.. if any are unlocked, supply a prior term
-  std::map<boost::int64_t, Knot::Ptr>::const_iterator it2 = it1; ++it2;
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; ++it2;
   for (; it2 != knotMap_.end(); ++it1, ++it2) {
 
     // Get knots
-    const Knot::ConstPtr& knot1 = it1->second;
-    const Knot::ConstPtr& knot2 = it2->second;
+    const SteamTrajVar::ConstPtr& knot1 = it1->second;
+    const SteamTrajVar::ConstPtr& knot2 = it2->second;
 
     // Check if any of the variables are unlocked
-    if(knot1->T_k_root->isActive()  || !knot1->varpi->isLocked() ||
-       knot2->T_k_root->isActive()  || !knot2->varpi->isLocked() ) {
+    if(knot1->getPose()->isActive()  || !knot1->getVelocity()->isLocked() ||
+       knot2->getPose()->isActive()  || !knot2->getVelocity()->isLocked() ) {
 
       // Generate 12 x 12 information matrix for GP prior factor
       Eigen::Matrix<double,12,12> Qi_inv;
-      double one_over_dt = 1.0/(knot2->time - knot1->time).seconds();
+      double one_over_dt = 1.0/(knot2->getTime() - knot1->getTime()).seconds();
       double one_over_dt2 = one_over_dt*one_over_dt;
       double one_over_dt3 = one_over_dt2*one_over_dt;
       Qi_inv.block<6,6>(0,0) = 12.0 * one_over_dt3 * Qc_inv_;
       Qi_inv.block<6,6>(6,0) = Qi_inv.block<6,6>(0,6) = -6.0 * one_over_dt2 * Qc_inv_;
-      Qi_inv.block<6,6>(6,6) =  4.0 * one_over_dt  * Qc_inv_;
-      steam::NoiseModelX::Ptr sharedGPNoiseModel(new steam::NoiseModelX(Qi_inv, steam::NoiseModelX::INFORMATION));
+      Qi_inv.block<6,6>(6,6) = 4.0 * one_over_dt  * Qc_inv_;
+      steam::NoiseModelX::Ptr sharedGPNoiseModel(
+            new steam::NoiseModelX(Qi_inv, steam::NoiseModelX::INFORMATION));
 
       // Create cost term
-      steam::se3::SteamTrajPriorFactor::Ptr errorfunc(new steam::se3::SteamTrajPriorFactor(knot1, knot2));
-      steam::WeightedLeastSqCostTermX::Ptr cost(new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
-      binary->add(cost);
+      steam::se3::SteamTrajPriorFactor::Ptr errorfunc(
+            new steam::se3::SteamTrajPriorFactor(knot1, knot2));
+      steam::WeightedLeastSqCostTermX::Ptr cost(
+            new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
+      factors->add(cost);
     }
   }
 }
@@ -169,43 +191,18 @@ void SteamTrajInterface::getActiveStateVariables(
     std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
 
   // Iterate over trajectory
-  std::map<boost::int64_t, Knot::Ptr>::const_iterator it;
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it;
   for (it = knotMap_.begin(); it != knotMap_.end(); ++it) {
 
     // Append active states in transform evaluator
-    it->second->T_k_root->getActiveStateVariables(outStates);
+    it->second->getPose()->getActiveStateVariables(outStates);
 
     // Check if velocity is locked
-    if (!it->second->varpi->isLocked()) {
-      (*outStates)[it->second->varpi->getKey().getID()] = it->second->varpi;
+    if (!it->second->getVelocity()->isLocked()) {
+      (*outStates)[it->second->getVelocity()->getKey().getID()] = it->second->getVelocity();
     }
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get unlocked state variables in the trajectory
-//////////////////////////////////////////////////////////////////////////////////////////////
-//std::vector<steam::StateVariableBase::Ptr> SteamTrajInterface::getActiveStateVariables() const {
-
-//  std::vector<steam::StateVariableBase::Ptr> result;
-
-//  // Iterate over trajectory
-//  std::map<boost::int64_t, Knot::Ptr>::const_iterator it;
-//  for (it = knotMap_.begin(); it != knotMap_.end(); ++it) {
-
-//    // Check if transform is locked
-//    if (!it->second->T_k0->isLocked()) {
-//      result.push_back(it->second->T_k0);
-//    }
-
-//    // Check if velocity is locked
-//    if (!it->second->varpi->isLocked()) {
-//      result.push_back(it->second->varpi);
-//    }
-//  }
-
-//  return result;
-//}
 
 } // se3
 } // steam

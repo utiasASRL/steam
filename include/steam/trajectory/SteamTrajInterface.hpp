@@ -10,8 +10,8 @@
 #include <Eigen/Core>
 
 #include <steam/common/Time.hpp>
-#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
-#include <steam/state/VectorSpaceStateVar.hpp>
+
+#include <steam/trajectory/SteamTrajVar.hpp>
 
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>
 #include <steam/problem/ParallelizedCostTermCollection.hpp>
@@ -28,28 +28,9 @@ class SteamTrajInterface
  public:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Structure to hold data associated with each knot
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  struct Knot {
-
-    /// Convenience typedefs
-    typedef boost::shared_ptr<Knot> Ptr;
-    typedef boost::shared_ptr<const Knot> ConstPtr;
-
-    // Pose
-    se3::TransformEvaluator::Ptr T_k_root;
-
-    // Velocity
-    VectorSpaceStateVar::Ptr varpi;
-
-    // Time
-    steam::Time time;
-  };
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
-  ///        Note, without providing Qc, the trajectory can be used safely for interpolation,
-  ///        but should not be used for estimation.
+  ///        Note that the weighting matrix, Qc, should be provided if prior factors are needed
+  ///        for estimation. Without Qc the interpolation methods can be used safely.
   //////////////////////////////////////////////////////////////////////////////////////////////
   SteamTrajInterface(bool allowExtrapolation = false);
 
@@ -61,12 +42,18 @@ class SteamTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0, const VectorSpaceStateVar::Ptr& varpi);
+  void add(const SteamTrajVar::Ptr& knot);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add a new knot
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr getEvaluator(const steam::Time& time) const;
+  TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get a unary velocity prior
@@ -76,7 +63,7 @@ class SteamTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void getBinaryPriorFactors(const ParallelizedCostTermCollection::Ptr& binary) const;
+  void getPriorFactors(const ParallelizedCostTermCollection::Ptr& factors) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get active state variables in the trajectory
@@ -99,7 +86,7 @@ class SteamTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Ordered map of knots
   //////////////////////////////////////////////////////////////////////////////////////////////
-  std::map<boost::int64_t, Knot::Ptr> knotMap_;
+  std::map<boost::int64_t, SteamTrajVar::Ptr> knotMap_;
 
 };
 

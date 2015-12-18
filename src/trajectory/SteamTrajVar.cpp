@@ -18,12 +18,17 @@ SteamTrajVar::SteamTrajVar(const steam::Time& time,
              const se3::TransformEvaluator::Ptr& T_k0,
              const VectorSpaceStateVar::Ptr& velocity)
   : time_(time), T_k0_(T_k0), velocity_(velocity) {
+
+  // Check velocity input
+  if (velocity->getPerturbDim() != 6) {
+    throw std::invalid_argument("invalid velocity size");
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get pose evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-const se3::TransformEvaluator::Ptr& SteamTrajVar::getPoseEval() const {
+const se3::TransformEvaluator::Ptr& SteamTrajVar::getPose() const {
   return T_k0_;
 }
 
@@ -37,7 +42,7 @@ const VectorSpaceStateVar::Ptr& SteamTrajVar::getVelocity() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get timestamp
 //////////////////////////////////////////////////////////////////////////////////////////////
-const steam::Time& SteamTrajVar::getTimestamp() const {
+const steam::Time& SteamTrajVar::getTime() const {
   return time_;
 }
 

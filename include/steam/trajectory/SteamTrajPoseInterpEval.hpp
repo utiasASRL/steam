@@ -26,15 +26,15 @@ class SteamTrajPoseInterpEval : public TransformEvaluator
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
   SteamTrajPoseInterpEval(const Time& time,
-                          const SteamTrajInterface::Knot::ConstPtr& knot1,
-                          const SteamTrajInterface::Knot::ConstPtr& knot2);
+                          const SteamTrajVar::ConstPtr& knot1,
+                          const SteamTrajVar::ConstPtr& knot2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
   static Ptr MakeShared(const Time& time,
-                        const SteamTrajInterface::Knot::ConstPtr& knot1,
-                        const SteamTrajInterface::Knot::ConstPtr& knot2);
+                        const SteamTrajVar::ConstPtr& knot1,
+                        const SteamTrajVar::ConstPtr& knot2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -63,32 +63,35 @@ class SteamTrajPoseInterpEval : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
-                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                               std::vector<Jacobian<> >* outJacobians) const;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::MatrixXd& lhs,
+      EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+      std::vector<Jacobian<> >* outJacobians) const;
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Fixed-size evaluations of the Jacobian tree
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<1,6> >* outJacobians) const;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,1,6>& lhs,
+      EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+      std::vector<Jacobian<1,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<2,6> >* outJacobians) const;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,2,6>& lhs,
+      EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+      std::vector<Jacobian<2,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<3,6> >* outJacobians) const;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,3,6>& lhs,
+      EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+      std::vector<Jacobian<3,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<4,6> >* outJacobians) const;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,4,6>& lhs,
+      EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+      std::vector<Jacobian<4,6> >* outJacobians) const;
 
-  virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
-                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                                std::vector<Jacobian<6,6> >* outJacobians) const;
+  virtual void appendBlockAutomaticJacobians(
+      const Eigen::Matrix<double,6,6>& lhs,
+      EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+      std::vector<Jacobian<6,6> >* outJacobians) const;
 
  private:
 
@@ -103,12 +106,12 @@ class SteamTrajPoseInterpEval : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief First (earlier) knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  SteamTrajInterface::Knot::ConstPtr knot1_;
+  SteamTrajVar::ConstPtr knot1_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Second (later) knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  SteamTrajInterface::Knot::ConstPtr knot2_;
+  SteamTrajVar::ConstPtr knot2_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interpolation coefficients
