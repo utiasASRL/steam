@@ -15,6 +15,7 @@
 
 // common
 #include <steam/common/Time.hpp>
+#include <steam/common/Timer.hpp>
 
 // evaluator
 #include <steam/evaluator/ErrorEvaluator.hpp>
