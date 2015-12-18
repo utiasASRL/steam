@@ -8,7 +8,7 @@
 
 #include <lgmath.hpp>
 
-#include <steam/trajectory/GpTrajectoryEval.hpp>
+#include <steam/trajectory/SteamTrajPoseInterpEval.hpp>
 #include <steam/trajectory/SteamTrajPriorFactor.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
@@ -110,7 +110,7 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time&
   }
 
   // Create interpolated evaluator
-  return GpTrajectoryEval::MakeShared(time, it1->second, it2->second);
+  return SteamTrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

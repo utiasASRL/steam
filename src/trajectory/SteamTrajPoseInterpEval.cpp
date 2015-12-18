@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file TransformEvaluators.cpp
+/// \file SteamTrajPoseInterpEval.cpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/trajectory/GpTrajectoryEval.hpp>
+#include <steam/trajectory/SteamTrajPoseInterpEval.hpp>
 
 #include <lgmath.hpp>
 
@@ -14,7 +14,7 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectoryEval::GpTrajectoryEval(const Time& time,
+SteamTrajPoseInterpEval::SteamTrajPoseInterpEval(const Time& time,
                                    const SteamTrajInterface::Knot::ConstPtr& knot1,
                                    const SteamTrajInterface::Knot::ConstPtr& knot2) :
   knot1_(knot1), knot2_(knot2) {
@@ -42,16 +42,16 @@ GpTrajectoryEval::GpTrajectoryEval(const Time& time,
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectoryEval::Ptr GpTrajectoryEval::MakeShared(const Time& time,
+SteamTrajPoseInterpEval::Ptr SteamTrajPoseInterpEval::MakeShared(const Time& time,
                                                    const SteamTrajInterface::Knot::ConstPtr& knot1,
                                                    const SteamTrajInterface::Knot::ConstPtr& knot2) {
-  return GpTrajectoryEval::Ptr(new GpTrajectoryEval(time, knot1, knot2));
+  return SteamTrajPoseInterpEval::Ptr(new SteamTrajPoseInterpEval(time, knot1, knot2));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool GpTrajectoryEval::isActive() const {
+bool SteamTrajPoseInterpEval::isActive() const {
   return knot1_->T_k_root->isActive()  ||
          !knot1_->varpi->isLocked() ||
          knot2_->T_k_root->isActive()  ||
@@ -61,7 +61,7 @@ bool GpTrajectoryEval::isActive() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Adds references (shared pointers) to active state variables to the map output
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::getActiveStateVariables(
+void SteamTrajPoseInterpEval::getActiveStateVariables(
     std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
 
   knot1_->T_k_root->getActiveStateVariables(outStates);
@@ -77,7 +77,7 @@ void GpTrajectoryEval::getActiveStateVariables(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
-lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {
+lgmath::se3::Transformation SteamTrajPoseInterpEval::evaluate() const {
 
   // Get relative matrix info
   lgmath::se3::Transformation T_21 = knot2_->T_k_root->evaluate()/knot1_->T_k_root->evaluate();
@@ -103,7 +103,7 @@ lgmath::se3::Transformation GpTrajectoryEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-EvalTreeNode<lgmath::se3::Transformation>* GpTrajectoryEval::evaluateTree() const {
+EvalTreeNode<lgmath::se3::Transformation>* SteamTrajPoseInterpEval::evaluateTree() const {
 
   // Evaluate sub-trees
   EvalTreeNode<lgmath::se3::Transformation>* transform1 = knot1_->T_k_root->evaluateTree();
@@ -142,7 +142,7 @@ EvalTreeNode<lgmath::se3::Transformation>* GpTrajectoryEval::evaluateTree() cons
 /// \brief Implementation for Block Automatic Differentiation
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
-void GpTrajectoryEval::appendJacobiansImpl(
+void SteamTrajPoseInterpEval::appendJacobiansImpl(
     const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
     std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
@@ -221,54 +221,60 @@ void GpTrajectoryEval::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
-                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian<> >* outJacobians) const {
+void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
+    const Eigen::MatrixXd& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
-                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian<1,6> >* outJacobians) const {
+void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
+    const Eigen::Matrix<double,1,6>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
-                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian<2,6> >* outJacobians) const {
+void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
+    const Eigen::Matrix<double,2,6>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
-                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian<3,6> >* outJacobians) const {
+void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
+    const Eigen::Matrix<double,3,6>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
-                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian<4,6> >* outJacobians) const {
+void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
+    const Eigen::Matrix<double,4,6>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Fixed-size evaluations of the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectoryEval::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
-                             EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
-                             std::vector<Jacobian<6,6> >* outJacobians) const {
+void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
+    const Eigen::Matrix<double,6,6>& lhs,
+    EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+    std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 

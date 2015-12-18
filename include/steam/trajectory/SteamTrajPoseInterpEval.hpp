@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectoryEval.hpp
+/// \file SteamTrajPoseInterpEval.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_GP_TRAJECTORY_EVAL_HPP
-#define STEAM_GP_TRAJECTORY_EVAL_HPP
+#ifndef STEAM_TRAJECTORY_POSE_INTERP_EVAL_HPP
+#define STEAM_TRAJECTORY_POSE_INTERP_EVAL_HPP
 
 #include <Eigen/Core>
 
@@ -18,16 +18,16 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Simple transform evaluator for a transformation state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
-class GpTrajectoryEval : public TransformEvaluator
+class SteamTrajPoseInterpEval : public TransformEvaluator
 {
  public:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectoryEval(const Time& time,
-                   const SteamTrajInterface::Knot::ConstPtr& knot1,
-                   const SteamTrajInterface::Knot::ConstPtr& knot2);
+  SteamTrajPoseInterpEval(const Time& time,
+                          const SteamTrajInterface::Knot::ConstPtr& knot1,
+                          const SteamTrajInterface::Knot::ConstPtr& knot2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
@@ -126,4 +126,4 @@ class GpTrajectoryEval : public TransformEvaluator
 } // se3
 } // steam
 
-#endif // STEAM_GP_TRAJECTORY_EVAL_HPP
+#endif // STEAM_TRAJECTORY_POSE_INTERP_EVAL_HPP
