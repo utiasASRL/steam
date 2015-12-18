@@ -1,18 +1,18 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectory.hpp
+/// \file SteamTrajInterface.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_GP_TRAJECTORY_HPP
-#define STEAM_GP_TRAJECTORY_HPP
+#ifndef STEAM_TRAJECTORY_INTERFACE_HPP
+#define STEAM_TRAJECTORY_INTERFACE_HPP
 
 #include <Eigen/Core>
 
 #include <steam/common/Time.hpp>
-#include <steam/state/LieGroupStateVar.hpp>
-#include <steam/state/VectorSpaceStateVar.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
+#include <steam/state/VectorSpaceStateVar.hpp>
+
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>
 #include <steam/problem/ParallelizedCostTermCollection.hpp>
 
@@ -23,7 +23,7 @@ namespace se3 {
 /// \brief The trajectory class wraps a set of state variables to provide an interface
 ///        that allows for continuous-time pose interpolation.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class GpTrajectory
+class SteamTrajInterface
 {
  public:
 
@@ -51,12 +51,12 @@ class GpTrajectory
   ///        Note, without providing Qc, the trajectory can be used safely for interpolation,
   ///        but should not be used for estimation.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory(bool allowExtrapolation = false);
+  SteamTrajInterface(bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation = false);
+  SteamTrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
@@ -106,4 +106,4 @@ class GpTrajectory
 } // se3
 } // steam
 
-#endif // STEAM_GP_TRAJECTORY_HPP
+#endif // STEAM_TRAJECTORY_INTERFACE_HPP

@@ -1,15 +1,15 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file TransformEvaluators.cpp
+/// \file SteamTrajInterface.cpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/trajectory/GpTrajectory.hpp>
+#include <steam/trajectory/SteamTrajInterface.hpp>
 
 #include <lgmath.hpp>
 
 #include <steam/trajectory/GpTrajectoryEval.hpp>
-#include <steam/trajectory/GpTrajectoryPrior.hpp>
+#include <steam/trajectory/SteamTrajPriorFactor.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
@@ -23,21 +23,21 @@ namespace se3 {
 ///        Note, without providing Qc, the trajectory can be used safely for interpolation,
 ///        but should not be used for estimation.
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectory::GpTrajectory(bool allowExtrapolation) :
+SteamTrajInterface::SteamTrajInterface(bool allowExtrapolation) :
   Qc_inv_(Eigen::Matrix<double,6,6>::Identity()), allowExtrapolation_(allowExtrapolation) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectory::GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation) :
+SteamTrajInterface::SteamTrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation) :
   Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a new knot
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectory::add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+void SteamTrajInterface::add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
                        const VectorSpaceStateVar::Ptr& varpi) {
 
   // Check velocity input
@@ -58,7 +58,7 @@ void GpTrajectory::add(const steam::Time& time, const se3::TransformEvaluator::P
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time) const {
+TransformEvaluator::ConstPtr SteamTrajInterface::getEvaluator(const steam::Time& time) const {
 
   // Check that map is not empty
   if (knotMap_.empty()) {
@@ -116,7 +116,7 @@ TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectory::getBinaryPriorFactors(const ParallelizedCostTermCollection<>::Ptr& binary) const {
+void SteamTrajInterface::getBinaryPriorFactors(const ParallelizedCostTermCollection<>::Ptr& binary) const {
 
   // If empty, return none
   if (knotMap_.empty()) {
@@ -155,7 +155,7 @@ void GpTrajectory::getBinaryPriorFactors(const ParallelizedCostTermCollection<>:
       steam::NoiseModelX::Ptr sharedGPNoiseModel(new steam::NoiseModelX(Qi_inv, steam::NoiseModelX::INFORMATION));
 
       // Create cost term
-      steam::se3::GpTrajectoryPrior::Ptr errorfunc(new steam::se3::GpTrajectoryPrior(knot1, knot2));
+      steam::se3::SteamTrajPriorFactor::Ptr errorfunc(new steam::se3::SteamTrajPriorFactor(knot1, knot2));
       steam::WeightedLeastSqCostTermX::Ptr cost(new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
       binary->add(cost);
     }
@@ -165,7 +165,7 @@ void GpTrajectory::getBinaryPriorFactors(const ParallelizedCostTermCollection<>:
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get active state variables in the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectory::getActiveStateVariables(
+void SteamTrajInterface::getActiveStateVariables(
     std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
 
   // Iterate over trajectory
@@ -185,7 +185,7 @@ void GpTrajectory::getActiveStateVariables(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get unlocked state variables in the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-//std::vector<steam::StateVariableBase::Ptr> GpTrajectory::getActiveStateVariables() const {
+//std::vector<steam::StateVariableBase::Ptr> SteamTrajInterface::getActiveStateVariables() const {
 
 //  std::vector<steam::StateVariableBase::Ptr> result;
 

@@ -1,15 +1,15 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectoryPrior.hpp
+/// \file SteamTrajPriorFactor.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_GP_TRAJECTORY_PRIOR_HPP
-#define STEAM_GP_TRAJECTORY_PRIOR_HPP
+#ifndef STEAM_TRAJECTORY_PRIOR_FACTOR_HPP
+#define STEAM_TRAJECTORY_PRIOR_FACTOR_HPP
 
 #include <Eigen/Core>
 
-#include <steam/trajectory/GpTrajectory.hpp>
+#include <steam/trajectory/SteamTrajInterface.hpp>
 #include <steam/evaluator/ErrorEvaluator.hpp>
 
 namespace steam {
@@ -18,19 +18,19 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Gaussian-process prior evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-class GpTrajectoryPrior : public ErrorEvaluatorX
+class SteamTrajPriorFactor : public ErrorEvaluatorX
 {
  public:
 
   /// Shared pointer typedefs for readability
-  typedef boost::shared_ptr<GpTrajectoryPrior> Ptr;
-  typedef boost::shared_ptr<const GpTrajectoryPrior> ConstPtr;
+  typedef boost::shared_ptr<SteamTrajPriorFactor> Ptr;
+  typedef boost::shared_ptr<const SteamTrajPriorFactor> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectoryPrior(const GpTrajectory::Knot::ConstPtr& knot1,
-                    const GpTrajectory::Knot::ConstPtr& knot2);
+  SteamTrajPriorFactor(const SteamTrajInterface::Knot::ConstPtr& knot1,
+                    const SteamTrajInterface::Knot::ConstPtr& knot2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -52,17 +52,17 @@ class GpTrajectoryPrior : public ErrorEvaluatorX
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief First (earlier) knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot1_;
+  SteamTrajInterface::Knot::ConstPtr knot1_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Second (later) knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot2_;
+  SteamTrajInterface::Knot::ConstPtr knot2_;
 
 };
 
 } // se3
 } // steam
 
-#endif // STEAM_GP_TRAJECTORY_PRIOR_HPP
+#endif // STEAM_TRAJECTORY_PRIOR_FACTOR_HPP
 

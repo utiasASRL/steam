@@ -15,8 +15,8 @@ namespace se3 {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 GpTrajectoryEval::GpTrajectoryEval(const Time& time,
-                                   const GpTrajectory::Knot::ConstPtr& knot1,
-                                   const GpTrajectory::Knot::ConstPtr& knot2) :
+                                   const SteamTrajInterface::Knot::ConstPtr& knot1,
+                                   const SteamTrajInterface::Knot::ConstPtr& knot2) :
   knot1_(knot1), knot2_(knot2) {
 
   // Calculate time constants
@@ -43,8 +43,8 @@ GpTrajectoryEval::GpTrajectoryEval(const Time& time,
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
 GpTrajectoryEval::Ptr GpTrajectoryEval::MakeShared(const Time& time,
-                                                   const GpTrajectory::Knot::ConstPtr& knot1,
-                                                   const GpTrajectory::Knot::ConstPtr& knot2) {
+                                                   const SteamTrajInterface::Knot::ConstPtr& knot1,
+                                                   const SteamTrajInterface::Knot::ConstPtr& knot2) {
   return GpTrajectoryEval::Ptr(new GpTrajectoryEval(time, knot1, knot2));
 }
 

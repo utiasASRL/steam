@@ -55,6 +55,6 @@
 #include <steam/state/LandmarkStateVar.hpp>
 
 // trajectory
-#include <steam/trajectory/GpTrajectory.hpp>
+#include <steam/trajectory/SteamTrajInterface.hpp>
 
 #endif // STEAM_ESTIMATION_LIBRARY_HPP

@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include <steam/trajectory/GpTrajectory.hpp>
+#include <steam/trajectory/SteamTrajInterface.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 
 namespace steam {
@@ -26,15 +26,15 @@ class GpTrajectoryEval : public TransformEvaluator
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
   GpTrajectoryEval(const Time& time,
-                   const GpTrajectory::Knot::ConstPtr& knot1,
-                   const GpTrajectory::Knot::ConstPtr& knot2);
+                   const SteamTrajInterface::Knot::ConstPtr& knot1,
+                   const SteamTrajInterface::Knot::ConstPtr& knot2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
   static Ptr MakeShared(const Time& time,
-                        const GpTrajectory::Knot::ConstPtr& knot1,
-                        const GpTrajectory::Knot::ConstPtr& knot2);
+                        const SteamTrajInterface::Knot::ConstPtr& knot1,
+                        const SteamTrajInterface::Knot::ConstPtr& knot2);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -103,12 +103,12 @@ class GpTrajectoryEval : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief First (earlier) knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot1_;
+  SteamTrajInterface::Knot::ConstPtr knot1_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Second (later) knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory::Knot::ConstPtr knot2_;
+  SteamTrajInterface::Knot::ConstPtr knot2_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interpolation coefficients

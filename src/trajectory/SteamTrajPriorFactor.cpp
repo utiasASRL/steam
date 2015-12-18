@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectoryPrior.cpp
+/// \file SteamTrajPriorFactor.cpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/trajectory/GpTrajectoryPrior.hpp>
+#include <steam/trajectory/SteamTrajPriorFactor.hpp>
 
 #include <lgmath.hpp>
 
@@ -14,15 +14,15 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-GpTrajectoryPrior::GpTrajectoryPrior(const GpTrajectory::Knot::ConstPtr& knot1,
-                                     const GpTrajectory::Knot::ConstPtr& knot2) :
+SteamTrajPriorFactor::SteamTrajPriorFactor(const SteamTrajInterface::Knot::ConstPtr& knot1,
+                                     const SteamTrajInterface::Knot::ConstPtr& knot2) :
   knot1_(knot1), knot2_(knot2) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool GpTrajectoryPrior::isActive() const {
+bool SteamTrajPriorFactor::isActive() const {
   return knot1_->T_k_root->isActive()  ||
          !knot1_->varpi->isLocked() ||
          knot2_->T_k_root->isActive()  ||
@@ -32,7 +32,7 @@ bool GpTrajectoryPrior::isActive() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the GP prior factor
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd GpTrajectoryPrior::evaluate() const {
+Eigen::VectorXd SteamTrajPriorFactor::evaluate() const {
 
   // Precompute values
   lgmath::se3::Transformation T_21 = knot2_->T_k_root->evaluate()/knot1_->T_k_root->evaluate();
@@ -49,7 +49,7 @@ Eigen::VectorXd GpTrajectoryPrior::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the GP prior factor and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXd GpTrajectoryPrior::evaluate(const Eigen::MatrixXd& lhs,
+Eigen::VectorXd SteamTrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
                                             std::vector<Jacobian<> >* jacs) const {
 
   // Check and initialize jacobian array
