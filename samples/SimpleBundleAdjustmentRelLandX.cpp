@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  steam::CostTermCollectionX::Ptr stereoCostTerms(new steam::CostTermCollectionX());
+  steam::ParallelizedCostTermCollection<>::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection<>());
 
   // Setup shared noise and loss function
   steam::NoiseModelX::Ptr sharedCameraNoiseModel(new steam::NoiseModelX(dataset.noise));
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
             dataset.meas[i].data, sharedIntrinsics, tf_cb_va, landVar));
 
     // Construct cost term
-    steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
+    steam::WeightedLeastSqCostTermX::Ptr cost(new steam::WeightedLeastSqCostTermX(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
     stereoCostTerms->add(cost);
   }
 
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
   }
 
   // Add cost terms
-  problem.addCostTermCollection(stereoCostTerms);
+  problem.addCostTerm(stereoCostTerms);
 
   ///
   /// Setup Solver and Optimize

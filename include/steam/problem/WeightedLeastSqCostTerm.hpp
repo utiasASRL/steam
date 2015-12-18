@@ -1,13 +1,15 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file CostTerm.hpp
+/// \file WeightedLeastSqCostTerm.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_COST_TERM_HPP
-#define STEAM_COST_TERM_HPP
+#ifndef STEAM_WEIGHTED_LSQ_COST_TERM_HPP
+#define STEAM_WEIGHTED_LSQ_COST_TERM_HPP
 
 #include <boost/shared_ptr.hpp>
+
+#include <steam/problem/CostTermBase.hpp>
 
 #include <steam/evaluator/ErrorEvaluator.hpp>
 #include <steam/problem/NoiseModel.hpp>
@@ -20,27 +22,47 @@ namespace steam {
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int MEAS_DIM, int MAX_STATE_SIZE>
-class CostTerm
+class WeightedLeastSqCostTerm : public CostTermBase
 {
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
-  typedef boost::shared_ptr<const CostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
+  typedef boost::shared_ptr<WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
+  typedef boost::shared_ptr<const WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CostTerm(const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
+  WeightedLeastSqCostTerm(const typename ErrorEvaluator<MEAS_DIM,MAX_STATE_SIZE>::ConstPtr& errorFunction,
            const typename NoiseModel<MEAS_DIM>::ConstPtr& noiseModel,
-           const LossFunction::ConstPtr& lossFunc);
+           const LossFunctionBase::ConstPtr& lossFunc);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the cost of this term. Error is first whitened by the noise model
   ///        and then passed through the loss function, as in:
   ///          cost = loss(sqrt(e^T * cov^{-1} * e))
   //////////////////////////////////////////////////////////////////////////////////////////////
-  double evaluate() const;
+  virtual double cost() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Returns the number of cost terms contained by this object (typically 1)
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual unsigned int numCostTerms() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Returns whether or not the implementation already uses multi-threading
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual bool isImplParallelized() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add the contribution of this cost term to the left-hand (Hessian) and right-hand
+  ///        (gradient vector) sides of the Gauss-Newton system of equations.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void buildGaussNewtonTerms(const StateVector& stateVector,
+                                     BlockSparseMatrix* approximateHessian,
+                                     BlockVector* gradientVector) const;
+
+private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the iteratively reweighted error vector and Jacobians. The error and
@@ -51,8 +73,6 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   Eigen::Matrix<double,MEAS_DIM,1> evalWeightedAndWhitened(
       std::vector<Jacobian<MEAS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
-
-private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Error evaluator
@@ -67,16 +87,16 @@ private:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Loss function
   //////////////////////////////////////////////////////////////////////////////////////////////
-  LossFunction::ConstPtr lossFunc_;
+  LossFunctionBase::ConstPtr lossFunc_;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Typedef for the general dynamic cost term
 //////////////////////////////////////////////////////////////////////////////////////////////
-typedef CostTerm<Eigen::Dynamic, Eigen::Dynamic> CostTermX;
+typedef WeightedLeastSqCostTerm<Eigen::Dynamic, Eigen::Dynamic> WeightedLeastSqCostTermX;
 
 } // steam
 
-#include <steam/problem/CostTerm-inl.hpp>
+#include <steam/problem/WeightedLeastSqCostTerm-inl.hpp>
 
-#endif // STEAM_COST_TERM_HPP
+#endif // STEAM_WEIGHTED_LSQ_COST_TERM_HPP

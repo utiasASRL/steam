@@ -116,7 +116,7 @@ TransformEvaluator::ConstPtr GpTrajectory::getEvaluator(const steam::Time& time)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void GpTrajectory::getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary) const {
+void GpTrajectory::getBinaryPriorFactors(const ParallelizedCostTermCollection<>::Ptr& binary) const {
 
   // If empty, return none
   if (knotMap_.empty()) {
@@ -156,7 +156,7 @@ void GpTrajectory::getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary)
 
       // Create cost term
       steam::se3::GpTrajectoryPrior::Ptr errorfunc(new steam::se3::GpTrajectoryPrior(knot1, knot2));
-      steam::CostTermX::Ptr cost(new steam::CostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
+      steam::WeightedLeastSqCostTermX::Ptr cost(new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
       binary->add(cost);
     }
   }

@@ -36,8 +36,8 @@
 #include <steam/evaluator/blockauto/EvalTreeNode.hpp>
 
 // problem
-#include <steam/problem/CostTerm.hpp>
-#include <steam/problem/CostTermCollection.hpp>
+#include <steam/problem/WeightedLeastSqCostTerm.hpp>
+#include <steam/problem/ParallelizedCostTermCollection.hpp>
 #include <steam/problem/NoiseModel.hpp>
 #include <steam/problem/LossFunctions.hpp>
 #include <steam/problem/OptimizationProblem.hpp>

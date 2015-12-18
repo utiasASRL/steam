@@ -28,18 +28,17 @@ void OptimizationProblem::addStateVariable(const StateVariableBase::Ptr& state)
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a cost term (should depend on active states that were added to the problem)
 //////////////////////////////////////////////////////////////////////////////////////////////
-void OptimizationProblem::addCostTerm(const CostTermX::ConstPtr& costTerm) {
-  dynamicCostTerms_.add(costTerm);
-}
+void OptimizationProblem::addCostTerm(const CostTermBase::ConstPtr& costTerm) {
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Add a collection of cost terms. This function is typically reserved for adding
-///        custom collections which contain fixed-size cost terms and evaluators. For general
-///        dynamic-size cost terms, use addCostTerm(). Note that the cost terms should depend
-///        on active states that were added to the problem.
-//////////////////////////////////////////////////////////////////////////////////////////////
-void OptimizationProblem::addCostTermCollection(const CostTermCollectionBase::ConstPtr& costTermColl) {
-  customCostTerms_.push_back(costTermColl);
+  if (!costTerm->isImplParallelized()) {
+
+    // Add single-threaded cost term to parallelizer
+    singleCostTerms_.add(costTerm);
+  } else {
+
+    // Add parallelized cost terms to diff collection
+    parallelizedCostTerms_.push_back(costTerm);
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,15 +49,11 @@ double OptimizationProblem::cost() const {
   double cost = 0;
 
   // Add cost of the default dynamic cost terms
-  if (dynamicCostTerms_.size() > 0) {
-    cost += dynamicCostTerms_.cost();
-  }
+  cost += singleCostTerms_.cost();
 
   // Add cost of the custom cost-term collections
-  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
-    if (customCostTerms_[c]->size() > 0) {
-      cost += customCostTerms_[c]->cost();
-    }
+  for (unsigned int c = 0; c < parallelizedCostTerms_.size(); c++) {
+    cost += parallelizedCostTerms_[c]->cost();
   }
 
   return cost;
@@ -76,15 +71,11 @@ void OptimizationProblem::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* app
   BlockVector b_(sqSizes);
 
   // Add terms from the default dynamic cost terms
-  if (dynamicCostTerms_.size() > 0) {
-    dynamicCostTerms_.buildGaussNewtonTerms(stateVec_, &A_, &b_);
-  }
+  singleCostTerms_.buildGaussNewtonTerms(stateVec_, &A_, &b_);
 
   // Add terms from the custom cost-term collections
-  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
-    if (customCostTerms_[c]->size() > 0) {
-      customCostTerms_[c]->buildGaussNewtonTerms(stateVec_, &A_, &b_);
-    }
+  for (unsigned int c = 0; c < parallelizedCostTerms_.size(); c++) {
+    parallelizedCostTerms_[c]->buildGaussNewtonTerms(stateVec_, &A_, &b_);
   }
 
   // Convert to Eigen Type - with the block-sparsity pattern
@@ -108,11 +99,11 @@ unsigned int OptimizationProblem::getNumberOfCostTerms() const {
   unsigned int size = 0;
 
   // Add number of the default dynamic cost terms
-  size += dynamicCostTerms_.size();
+  size += singleCostTerms_.numCostTerms();
 
   // Add number from the custom cost-term collections
-  for (unsigned int c = 0; c < customCostTerms_.size(); c++) {
-    size += customCostTerms_[c]->size();
+  for (unsigned int c = 0; c < parallelizedCostTerms_.size(); c++) {
+    size += parallelizedCostTerms_[c]->numCostTerms();
   }
 
   return size;

@@ -13,8 +13,8 @@
 #include <steam/state/LieGroupStateVar.hpp>
 #include <steam/state/VectorSpaceStateVar.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
-#include <steam/problem/CostTerm.hpp>
-#include <steam/problem/CostTermCollection.hpp>
+#include <steam/problem/WeightedLeastSqCostTerm.hpp>
+#include <steam/problem/ParallelizedCostTermCollection.hpp>
 
 namespace steam {
 namespace se3 {
@@ -76,7 +76,7 @@ class GpTrajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void getBinaryPriorFactors(const CostTermCollectionX::Ptr& binary) const;
+  void getBinaryPriorFactors(const ParallelizedCostTermCollection<>::Ptr& binary) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get active state variables in the trajectory

@@ -13,7 +13,6 @@
 #include <steam/solver/SolverBase.hpp>
 
 #include <steam/state/StateVector.hpp>
-#include <steam/problem/CostTerm.hpp>
 
 #include <steam/blockmat/BlockSparseMatrix.hpp>
 #include <steam/blockmat/BlockMatrix.hpp>
