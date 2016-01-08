@@ -132,14 +132,96 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
+///        should exist on a trajectory, adding a second will overwrite the first.
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::addPosePrior(const steam::Time& time,
+                                      const lgmath::se3::Transformation& pose,
+                                      const Eigen::Matrix<double,6,6>& cov) {
+
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][addPosePrior] map was empty.");
+  }
+
+  // Try to find knot at same time
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it = knotMap_.find(time.nanosecs());
+  if (it == knotMap_.end()) {
+    throw std::runtime_error("[GpTrajectory][addPosePrior] no knot at provided time.");
+  }
+
+  // Get reference
+  const SteamTrajVar::Ptr& knotRef = it->second;
+
+  // Check that the pose is not locked
+  if(!knotRef->getPose()->isActive()) {
+    throw std::runtime_error("[GpTrajectory][addPosePrior] tried to add prior to locked pose.");
+  }
+
+  // Set up loss function, noise model, and error function
+  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(cov));
+  steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(pose, knotRef->getPose()));
+
+  // Create cost term
+  posePriorFactor_ = steam::WeightedLeastSqCostTerm<6,6>::Ptr(
+        new steam::WeightedLeastSqCostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a unary velocity prior factor at a knot time. Note that only a single velocity
+///        prior should exist on a trajectory, adding a second will overwrite the first.
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::addVelocityPrior(const steam::Time& time,
+                                          const Eigen::Matrix<double,6,1>& velocity,
+                                          const Eigen::Matrix<double,6,6>& cov) {
+
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][addVelocityPrior] map was empty.");
+  }
+
+  // Try to find knot at same time
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it = knotMap_.find(time.nanosecs());
+  if (it == knotMap_.end()) {
+    throw std::runtime_error("[GpTrajectory][addVelocityPrior] no knot at provided time.");
+  }
+
+  // Get reference
+  const SteamTrajVar::Ptr& knotRef = it->second;
+
+  // Check that the pose is not locked
+  if(knotRef->getVelocity()->isLocked()) {
+    throw std::runtime_error("[GpTrajectory][addVelocityPrior] tried to add prior to locked pose.");
+  }
+
+  // Set up loss function, noise model, and error function
+  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(cov));
+  steam::VectorSpaceErrorEval<6,6>::Ptr errorfunc(new steam::VectorSpaceErrorEval<6,6>(velocity, knotRef->getVelocity()));
+
+  // Create cost term
+  velocityPriorFactor_ = steam::WeightedLeastSqCostTerm<6,6>::Ptr(
+        new steam::WeightedLeastSqCostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
-void SteamTrajInterface::getPriorFactors(
-    const ParallelizedCostTermCollection::Ptr& factors) const {
+void SteamTrajInterface::appendPriorCostTerms(
+    const ParallelizedCostTermCollection::Ptr& costTerms) const {
 
   // If empty, return none
   if (knotMap_.empty()) {
     return;
+  }
+
+  // Check for pose or velocity priors
+  if (posePriorFactor_) {
+    costTerms->add(posePriorFactor_);
+  }
+  if (velocityPriorFactor_) {
+    costTerms->add(velocityPriorFactor_);
   }
 
   // All prior factors will use an L2 loss function
@@ -179,7 +261,7 @@ void SteamTrajInterface::getPriorFactors(
             new steam::se3::SteamTrajPriorFactor(knot1, knot2));
       steam::WeightedLeastSqCostTermX::Ptr cost(
             new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
-      factors->add(cost);
+      costTerms->add(cost);
     }
   }
 }

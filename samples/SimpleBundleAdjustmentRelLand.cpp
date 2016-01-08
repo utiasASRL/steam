@@ -44,10 +44,12 @@ int main(int argc, char** argv) {
   ///
 
   // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
-  steam::se3::FixedTransformEvaluator::Ptr tf_identity = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
+  steam::se3::FixedTransformEvaluator::Ptr tf_identity =
+      steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
 
   // Fixed vehicle to camera transform
-  steam::se3::TransformEvaluator::Ptr tf_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
+  steam::se3::TransformEvaluator::Ptr tf_c_v =
+      steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
 
   // Ground truth
   std::vector<steam::se3::TransformStateVar::Ptr> poses_gt_k_0;
