@@ -39,19 +39,29 @@ int main(int argc, char** argv) {
   std::cout << "            ~" << double(dataset.meas.size())/dataset.frames_gt.size() << " meas per pose" << std::endl << std::endl;
 
   ///
-  /// Setup and Initialize States
+  /// Setup States
   ///
 
-  // fixed vehicle to camera transform
-  steam::se3::TransformEvaluator::Ptr pose_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
+  // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
+  steam::se3::FixedTransformEvaluator::Ptr tf_identity = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
+
+  // Fixed vehicle to camera transform
+  steam::se3::TransformEvaluator::Ptr tf_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
 
   // Ground truth
   std::vector<steam::se3::TransformStateVar::Ptr> poses_gt_k_0;
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_gt;
 
   // State variable containers (and related data)
-  std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
   std::vector<steam::se3::TransformStateVar::Ptr> relposes_ic_k_kp;
+  std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
+
+  // Record the frame in which the landmark is first seen in order to set up transforms correctly
+  std::map<unsigned, unsigned> landmark_map;
+
+  ///
+  /// Initialize States
+  ///
 
   // Setup ground-truth poses
   for (unsigned int i = 0; i < dataset.frames_gt.size(); i++) {
@@ -65,27 +75,50 @@ int main(int argc, char** argv) {
     landmarks_gt.push_back(temp);
   }
 
-  // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
-  steam::se3::FixedTransformEvaluator::Ptr tf_identity = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
-
   // Create all the relative transforms from the initial poses
   for (unsigned int i = 1; i < dataset.frames_ic.size(); i++) {
     steam::se3::TransformStateVar::Ptr transform_vk_vkp(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0/dataset.frames_ic[i-1].T_k0));
     relposes_ic_k_kp.push_back(transform_vk_vkp);
   }
 
-  // Size vector for landmarks -- initialize while going through measurements
+  // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size());
+  for (unsigned int i = 0; i < dataset.meas.size(); i++) {
 
-  // Record the frame in which the landmark is first seen in order to set up transforms correctly
-  std::map<unsigned, unsigned> landmark_map;
+    // Get pose reference
+    unsigned int frameIdx = dataset.meas[i].frameID;
+
+    // Get landmark reference
+    unsigned int landmarkIdx = dataset.meas[i].landID;
+
+    // Setup landmark if first time
+    if (!landmarks_ic[landmarkIdx]) {
+
+      // Get homogeneous point in inertial frame
+      Eigen::Vector4d p_0;
+      p_0.head<3>() = dataset.land_ic[landmarkIdx].point;
+      p_0[3] = 1.0;
+
+      // Get transform between first observation time and inertial frame
+      lgmath::se3::Transformation pose_vk_0 = dataset.frames_ic[frameIdx].T_k0/dataset.frames_ic[0].T_k0;
+
+      // Get point in 'local' frame
+      Eigen::Vector4d p_vehicle = pose_vk_0 * p_0;
+
+      // Insert the landmark
+      landmarks_ic[landmarkIdx] = steam::se3::LandmarkStateVar::Ptr(new steam::se3::LandmarkStateVar(p_vehicle.head<3>()));
+
+      // Keep a record of its 'parent' frame
+      landmark_map[landmarkIdx] = frameIdx;
+    }
+  }
 
   ///
   /// Setup Cost Terms
   ///
 
   // Steam cost terms
-  steam::CostTermCollection<4,6>::Ptr costTerms(new steam::CostTermCollection<4,6>());
+  steam::ParallelizedCostTermCollection<>::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection<>());
 
   // Setup shared noise and loss function
   steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
@@ -100,7 +133,6 @@ int main(int argc, char** argv) {
   sharedIntrinsics->cu = dataset.camParams.cu;
   sharedIntrinsics->cv = dataset.camParams.cv;
 
-
   // Generate cost terms for camera measurements
   for (unsigned int i = 0; i < dataset.meas.size(); i++) {
 
@@ -109,26 +141,9 @@ int main(int argc, char** argv) {
 
     // Get landmark reference
     unsigned int landmarkIdx = dataset.meas[i].landID;
-
-    // Setup landmark if first time
-    if (!landmarks_ic[landmarkIdx]) {
-
-      // Transform into local reference frame
-      Eigen::Vector4d p_v0; p_v0.head<3>() = dataset.land_ic[landmarkIdx].point; p_v0[3] = 1.0;
-      lgmath::se3::Transformation tf_l0 = dataset.frames_ic[frameIdx].T_k0/dataset.frames_ic[0].T_k0;
-      Eigen::Vector4d p_vl = tf_l0 * p_v0;
-
-      // Insert the landmark
-      landmarks_ic[landmarkIdx] = steam::se3::LandmarkStateVar::Ptr(new steam::se3::LandmarkStateVar(p_vl.head<3>()));
-
-      // Keep a record of its 'parent' frame
-      landmark_map[landmarkIdx] = frameIdx;
-    }
-
-    // Get landmark reference
     steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[landmarkIdx];
 
-    // Construct transform evaluator between two camera frames (a and b) that have observations
+    // Construct transform evaluator between two vehicle frames (a and b) that have observations
     steam::se3::TransformEvaluator::Ptr tf_vb_va;
     if(landmark_map[landmarkIdx] == frameIdx) {
 
@@ -148,15 +163,15 @@ int main(int argc, char** argv) {
     }
 
     // Compose with camera to vehicle transform
-    steam::se3::TransformEvaluator::Ptr pose_cb_va = steam::se3::compose(pose_c_v, tf_vb_va);
+    steam::se3::TransformEvaluator::Ptr tf_cb_va = steam::se3::compose(tf_c_v, tf_vb_va);
 
     // Construct error function
     steam::StereoCameraErrorEval::Ptr errorfunc(new steam::StereoCameraErrorEval(
-            dataset.meas[i].data, sharedIntrinsics, pose_cb_va, landVar));
+            dataset.meas[i].data, sharedIntrinsics, tf_cb_va, landVar));
 
     // Construct cost term
-    steam::CostTerm<4,6>::Ptr cost(new steam::CostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
-    costTerms->add(cost);
+    steam::WeightedLeastSqCostTerm<4,6>::Ptr cost(new steam::WeightedLeastSqCostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
+    stereoCostTerms->add(cost);
   }
 
   ///
@@ -177,7 +192,7 @@ int main(int argc, char** argv) {
   }
 
   // Add cost terms
-  problem.addCostTermCollection(costTerms);
+  problem.addCostTerm(stereoCostTerms);
 
   ///
   /// Setup Solver and Optimize

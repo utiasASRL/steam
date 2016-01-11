@@ -18,22 +18,26 @@
 
 // evaluator
 #include <steam/evaluator/ErrorEvaluator.hpp>
-#include <steam/evaluator/TransformEvalOperations.hpp>
-#include <steam/evaluator/TransformEvaluators.hpp>
-#include <steam/evaluator/BlockAutomaticEvaluator.hpp>
 
-// evaluator - common (sample functions)
-#include <steam/evaluator/common/StereoCameraErrorEval.hpp>
-#include <steam/evaluator/common/StereoCameraErrorEvalX.hpp>
-#include <steam/evaluator/common/TransformErrorEval.hpp>
-#include <steam/evaluator/common/VectorSpaceErrorEval.hpp>
+// evaluator - block automatic
+#include <steam/evaluator/blockauto/BlockAutomaticEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
 
-// evaluator - jacobian
-#include <steam/evaluator/jacobian/EvalTreeNode.hpp>
+// evaluator - samples (sample functions)
+#include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
+#include <steam/evaluator/samples/StereoCameraErrorEvalX.hpp>
+#include <steam/evaluator/samples/TransformErrorEval.hpp>
+#include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
+
+// evaluator - block auto diff
+#include <steam/evaluator/blockauto/EvalTreeNode.hpp>
 
 // problem
-#include <steam/problem/CostTerm.hpp>
-#include <steam/problem/CostTermCollection.hpp>
+#include <steam/problem/WeightedLeastSqCostTerm.hpp>
+#include <steam/problem/ParallelizedCostTermCollection.hpp>
 #include <steam/problem/NoiseModel.hpp>
 #include <steam/problem/LossFunctions.hpp>
 #include <steam/problem/OptimizationProblem.hpp>

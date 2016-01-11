@@ -119,7 +119,7 @@ void setupDivergenceProblem(steam::OptimizationProblem* problem) {
 
   // Setup cost term
   DivergenceErrorEval::Ptr errorfunc(new DivergenceErrorEval(stateVar));
-  steam::CostTermX::Ptr costTerm(new steam::CostTermX(errorfunc, sharedNoiseModel, sharedLossFunc));
+  steam::WeightedLeastSqCostTermX::Ptr costTerm(new steam::WeightedLeastSqCostTermX(errorfunc, sharedNoiseModel, sharedLossFunc));
 
   // Init problem
   problem->addStateVariable(stateVar);
