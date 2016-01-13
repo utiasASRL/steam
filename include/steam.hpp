@@ -15,6 +15,7 @@
 
 // common
 #include <steam/common/Time.hpp>
+#include <steam/common/Timer.hpp>
 
 // evaluator
 #include <steam/evaluator/ErrorEvaluator.hpp>
@@ -55,6 +56,6 @@
 #include <steam/state/LandmarkStateVar.hpp>
 
 // trajectory
-#include <steam/trajectory/GpTrajectory.hpp>
+#include <steam/trajectory/SteamTrajInterface.hpp>
 
 #endif // STEAM_ESTIMATION_LIBRARY_HPP

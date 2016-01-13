@@ -1,18 +1,18 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file GpTrajectory.hpp
+/// \file SteamTrajInterface.hpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_GP_TRAJECTORY_HPP
-#define STEAM_GP_TRAJECTORY_HPP
+#ifndef STEAM_TRAJECTORY_INTERFACE_HPP
+#define STEAM_TRAJECTORY_INTERFACE_HPP
 
 #include <Eigen/Core>
 
 #include <steam/common/Time.hpp>
-#include <steam/state/LieGroupStateVar.hpp>
-#include <steam/state/VectorSpaceStateVar.hpp>
-#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
+
+#include <steam/trajectory/SteamTrajVar.hpp>
+
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>
 #include <steam/problem/ParallelizedCostTermCollection.hpp>
 
@@ -23,60 +23,56 @@ namespace se3 {
 /// \brief The trajectory class wraps a set of state variables to provide an interface
 ///        that allows for continuous-time pose interpolation.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class GpTrajectory
+class SteamTrajInterface
 {
  public:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Structure to hold data associated with each knot
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  struct Knot {
-
-    /// Convenience typedefs
-    typedef boost::shared_ptr<Knot> Ptr;
-    typedef boost::shared_ptr<const Knot> ConstPtr;
-
-    // Pose
-    se3::TransformEvaluator::Ptr T_k_root;
-
-    // Velocity
-    VectorSpaceStateVar::Ptr varpi;
-
-    // Time
-    steam::Time time;
-  };
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
-  ///        Note, without providing Qc, the trajectory can be used safely for interpolation,
-  ///        but should not be used for estimation.
+  ///        Note that the weighting matrix, Qc, should be provided if prior factors are needed
+  ///        for estimation. Without Qc the interpolation methods can be used safely.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory(bool allowExtrapolation = false);
+  SteamTrajInterface(bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  GpTrajectory(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation = false);
+  SteamTrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv, bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0, const VectorSpaceStateVar::Ptr& varpi);
+  void add(const SteamTrajVar::Ptr& knot);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add a new knot
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr getEvaluator(const steam::Time& time) const;
+  TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get a unary velocity prior
+  /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
+  ///        should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  //void getVelocityPriorFactor(const steam::Time& time, CostTermCollection<6,6>::Ptr unary) const;
+  void addPosePrior(const steam::Time& time, const lgmath::se3::Transformation& pose,
+                    const Eigen::Matrix<double,6,6>& cov);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add a unary velocity prior factor at a knot time. Note that only a single velocity
+  ///        prior should exist on a trajectory, adding a second will overwrite the first.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& velocity,
+                        const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void getBinaryPriorFactors(const ParallelizedCostTermCollection<>::Ptr& binary) const;
+  void appendPriorCostTerms(const ParallelizedCostTermCollection::Ptr& costTerms) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get active state variables in the trajectory
@@ -97,13 +93,23 @@ class GpTrajectory
   bool allowExtrapolation_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Pose prior
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  steam::WeightedLeastSqCostTerm<6,6>::Ptr posePriorFactor_;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Velocity prior
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  steam::WeightedLeastSqCostTerm<6,6>::Ptr velocityPriorFactor_;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Ordered map of knots
   //////////////////////////////////////////////////////////////////////////////////////////////
-  std::map<boost::int64_t, Knot::Ptr> knotMap_;
+  std::map<boost::int64_t, SteamTrajVar::Ptr> knotMap_;
 
 };
 
 } // se3
 } // steam
 
-#endif // STEAM_GP_TRAJECTORY_HPP
+#endif // STEAM_TRAJECTORY_INTERFACE_HPP

@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file ParallelizedCostTermCollection-inl.hpp
+/// \file ParallelizedCostTermCollection.cpp
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -16,15 +16,14 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS>
-ParallelizedCostTermCollection<NUM_THREADS>::ParallelizedCostTermCollection() {
+ParallelizedCostTermCollection::ParallelizedCostTermCollection(unsigned int numThreads)
+  : numThreads_(numThreads) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a cost term
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS>
-void ParallelizedCostTermCollection<NUM_THREADS>::add(const CostTermBase::ConstPtr& costTerm) {
+void ParallelizedCostTermCollection::add(const CostTermBase::ConstPtr& costTerm) {
 
   if (costTerm->isImplParallelized()) {
     throw std::runtime_error("Do not add pre-parallelized cost "
@@ -36,11 +35,16 @@ void ParallelizedCostTermCollection<NUM_THREADS>::add(const CostTermBase::ConstP
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute the cost from the collection of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS>
-double ParallelizedCostTermCollection<NUM_THREADS>::cost() const {
+double ParallelizedCostTermCollection::cost() const {
 
+  // Init
   double cost = 0;
-  #pragma omp parallel num_threads(NUM_THREADS)
+
+  // Set number of OpenMP threads
+  omp_set_num_threads(numThreads_);
+
+  // Parallelize for the cost terms
+  #pragma omp parallel
   {
     #pragma omp for reduction(+:cost)
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
@@ -53,16 +57,14 @@ double ParallelizedCostTermCollection<NUM_THREADS>::cost() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns the number of cost terms contained by this object
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS>
-unsigned int ParallelizedCostTermCollection<NUM_THREADS>::numCostTerms() const {
+unsigned int ParallelizedCostTermCollection::numCostTerms() const {
   return costTerms_.size();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not the implementation already uses multi-threading
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS>
-bool ParallelizedCostTermCollection<NUM_THREADS>::isImplParallelized() const {
+bool ParallelizedCostTermCollection::isImplParallelized() const {
   return true;
 }
 
@@ -70,8 +72,7 @@ bool ParallelizedCostTermCollection<NUM_THREADS>::isImplParallelized() const {
 /// \brief Build the left-hand and right-hand sides of the Gauss-Newton system of equations
 ///        using the cost terms in this collection.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS>
-void ParallelizedCostTermCollection<NUM_THREADS>::buildGaussNewtonTerms(
+void ParallelizedCostTermCollection::buildGaussNewtonTerms(
     const StateVector& stateVector,
     BlockSparseMatrix* approximateHessian,
     BlockVector* gradientVector) const {
@@ -79,8 +80,11 @@ void ParallelizedCostTermCollection<NUM_THREADS>::buildGaussNewtonTerms(
   // Locally disable any internal eigen multithreading -- we do our own OpenMP
   Eigen::setNbThreads(1);
 
-  // For each cost term
-  #pragma omp parallel num_threads(NUM_THREADS)
+  // Set number of OpenMP threads
+  omp_set_num_threads(numThreads_);
+
+  // Parallelize for the cost terms
+  #pragma omp parallel
   {
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {

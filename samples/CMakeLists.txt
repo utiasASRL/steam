@@ -33,6 +33,10 @@ target_link_libraries(SimpleBundleAdjustmentFullRel steam ${DEPEND_LIBS})
 add_executable(SimpleBundleAdjustmentRelLandX ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBundleAdjustmentRelLandX.cpp)
 target_link_libraries(SimpleBundleAdjustmentRelLandX steam ${DEPEND_LIBS})
 
+# simple example of trajectory interface for prior
+add_executable(SimpleTrajectoryPrior ${CMAKE_CURRENT_SOURCE_DIR}/SimpleTrajectoryPrior.cpp)
+target_link_libraries(SimpleTrajectoryPrior steam ${DEPEND_LIBS})
+
 
 # bundle adjustment example with hardcoded GP factors
 #add_executable(NaiveGPandBA ${CMAKE_CURRENT_SOURCE_DIR}/NaiveGPandBA.cpp)
