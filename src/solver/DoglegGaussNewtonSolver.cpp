@@ -135,7 +135,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     }
 
     // Calculate the predicted reduction; note that a positive value denotes a reduction in cost
-    double proposedCost = this->getProblem().proposeUpdate(dogLegStep);
+    double proposedCost = this->proposeUpdate(dogLegStep);
     double actualReduc = this->getPrevCost() - proposedCost;
     double predictedReduc = this->predictedReduction(approximateHessian, gradientVector, dogLegStep);
     actualToPredictedRatio = actualReduc/predictedReduc;
@@ -144,7 +144,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     if (actualToPredictedRatio > params_.ratioThresholdShrink) {
 
       // Good enough ratio to accept proposed state
-      this->getProblem().acceptProposedState();
+      this->acceptProposedState();
       *newCost = proposedCost;
       if (actualToPredictedRatio > params_.ratioThresholdGrow) {
         // Ratio is strong enough to increase trust region size
@@ -157,7 +157,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
       // Cost did not reduce enough, or possibly increased,
       // reject proposed state and reduce the size of the trust region
-      this->getProblem().rejectProposedState(); // Restore old state vector
+      this->rejectProposedState(); // Restore old state vector
       trustRegionSize *= params_.shrinkCoeff; // Reduce step size (backtrack)
       numTrDecreases++; // Count number of shrinks for logging
     }

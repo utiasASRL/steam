@@ -54,8 +54,8 @@ bool VanillaGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
   // Apply update
   timer.reset();
-  *newCost = this->getProblem().proposeUpdate(perturbation);
-  this->getProblem().acceptProposedState();
+  *newCost = this->proposeUpdate(perturbation);
+  this->acceptProposedState();
   updateTime = timer.milliseconds();
 
   // Print report line if verbose option enabled
