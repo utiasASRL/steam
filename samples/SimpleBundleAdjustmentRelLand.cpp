@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
   steam::OptimizationProblem problem;
 
   // Add pose variables
-  for (unsigned int i = 1; i < poses_ic_k_0.size(); i++) {
+  for (unsigned int i = 0; i < poses_ic_k_0.size(); i++) {
     problem.addStateVariable(poses_ic_k_0[i]);
   }
 

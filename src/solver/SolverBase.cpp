@@ -47,7 +47,7 @@ void SolverBase::iterate() {
 
   // Check is solver has already converged
   if (solverConverged_) {
-    std::cout << "[STEAM WARN] Requested an interation when solver has already converged, iteration ignored.";
+    std::cout << "[STEAM WARN] Requested an iteration when solver has already converged, iteration ignored.";
     return;
   }
 
