@@ -126,7 +126,7 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     if (decompSuccess) {
 
       // Calculate the predicted reduction; note that a positive value denotes a reduction in cost
-      proposedCost = this->getProblem().proposeUpdate(levMarqStep);
+      proposedCost = this->proposeUpdate(levMarqStep);
       double actualReduc = this->getPrevCost() - proposedCost;
       double predictedReduc = this->predictedReduction(approximateHessian_, gradientVector, levMarqStep);
       actualToPredictedRatio = actualReduc/predictedReduc;
@@ -136,7 +136,7 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     if (actualToPredictedRatio > params_.ratioThreshold && decompSuccess) {
 
       // Good enough ratio to accept proposed state
-      this->getProblem().acceptProposedState();
+      this->acceptProposedState();
       *newCost = proposedCost;
       diagCoeff = std::max(diagCoeff*params_.shrinkCoeff, 1e-7); // move towards gauss newton
 
@@ -149,7 +149,7 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
       // Reject proposed state and reduce the size of the trust region
       if (decompSuccess) {
         // Restore old state vector
-        this->getProblem().rejectProposedState();
+        this->rejectProposedState();
       }
       diagCoeff = std::min(diagCoeff*params_.growCoeff, 1e7); // Move towards gradient descent
       numTrDecreases++; // Count number of shrinks for logging

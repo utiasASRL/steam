@@ -16,8 +16,21 @@ namespace steam {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 SolverBase::SolverBase(OptimizationProblem* problem) : problem_(problem),
-    currIteration_(0), solverConverged_(false), term_(TERMINATE_NOT_YET_TERMINATED) {
+    firstBackup_(true), pendingProposedState_(false),
+    currIteration_(0), solverConverged_(false),
+    term_(TERMINATE_NOT_YET_TERMINATED) {
+
+  // Set current cost from initial problem
   currCost_ = prevCost_ = problem_->cost();
+
+  // Set up state vector -- add all states that are not locked to vector
+  const std::vector<StateVariableBase::Ptr>& stateRef = problem_->getStateVariables();
+  for (unsigned int i = 0; i < stateRef.size(); i++) {
+    const StateVariableBase::Ptr& stateVarRef = stateRef.at(i);
+    if (!stateVarRef->isLocked()) {
+      stateVec_.addStateVariable(stateVarRef);
+    }
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,7 +55,7 @@ void SolverBase::iterate() {
   if (this->getSolverBaseParams().verbose && currIteration_ == 0) {
     std::cout << "Begin Optimization" << std::endl;
     std::cout << "------------------" << std::endl;
-    std::cout << "Number of States: " << problem_->getStateVector().getNumberOfStates() << std::endl;
+    std::cout << "Number of States: " << this->getStateVector().getNumberOfStates() << std::endl;
     std::cout << "Number of Cost Terms: " << problem_->getNumberOfCostTerms() << std::endl;
     std::cout << "Initial Cost: " << currCost_ << std::endl;
   }
@@ -138,6 +151,71 @@ OptimizationProblem& SolverBase::getProblem() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 const OptimizationProblem& SolverBase::getProblem() const {
   return *problem_;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get a reference to the state vector
+//////////////////////////////////////////////////////////////////////////////////////////////
+const StateVector& SolverBase::getStateVector() const {
+  return stateVec_;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Propose an update to the state vector.
+//////////////////////////////////////////////////////////////////////////////////////////////
+double SolverBase::proposeUpdate(const Eigen::VectorXd& stateStep) {
+
+  // Check that an update is not already pending
+  if (pendingProposedState_) {
+    throw std::runtime_error("There is already a pending update, accept "
+                             "or reject before proposing a new one.");
+  }
+
+  // Make copy of state vector
+  if (firstBackup_) {
+    stateVectorBackup_ = stateVec_;
+    firstBackup_ = false;
+  } else {
+    stateVectorBackup_.copyValues(stateVec_);
+  }
+
+  // Update copy with perturbation
+  stateVec_.update(stateStep);
+  pendingProposedState_ = true;
+
+  // Test new cost
+  return problem_->cost();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Confirm the proposed state update
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SolverBase::acceptProposedState() {
+
+  // Check that an update has been proposed
+  if (!pendingProposedState_) {
+    throw std::runtime_error("You must call proposeUpdate before accept.");
+  }
+
+  // Switch flag, accepting the update
+  pendingProposedState_ = false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Reject the proposed state update and revert to the previous values
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SolverBase::rejectProposedState() {
+
+  // Check that an update has been proposed
+  if (!pendingProposedState_) {
+    throw std::runtime_error("You must call proposeUpdate before rejecting.");
+  }
+
+  // Revert to previous state
+  stateVec_.copyValues(stateVectorBackup_);
+
+  // Switch flag, ready for new proposal
+  pendingProposedState_ = false;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -106,7 +106,7 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Setup a fresh problem with unsolve variables
 //////////////////////////////////////////////////////////////////////////////////////////////
-void setupDivergenceProblem(steam::OptimizationProblem* problem) {
+steam::OptimizationProblem setupDivergenceProblem() {
 
   // Create vector state variable
   Eigen::VectorXd initial(1);
@@ -122,8 +122,10 @@ void setupDivergenceProblem(steam::OptimizationProblem* problem) {
   steam::WeightedLeastSqCostTermX::Ptr costTerm(new steam::WeightedLeastSqCostTermX(errorfunc, sharedNoiseModel, sharedLossFunc));
 
   // Init problem
-  problem->addStateVariable(stateVar);
-  problem->addCostTerm(costTerm);
+  steam::OptimizationProblem problem;
+  problem.addStateVariable(stateVar);
+  problem.addCostTerm(costTerm);
+  return problem;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,8 +135,7 @@ int main(int argc, char **argv) {
 
   // Solve using Vanilla Gauss-Newton Solver
   {
-    steam::OptimizationProblem problem;
-    setupDivergenceProblem(&problem);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::VanillaGaussNewtonSolver::Params params; params.maxIterations = 100;
     steam::VanillaGaussNewtonSolver solver(&problem, params);
     solver.optimize();
@@ -144,8 +145,7 @@ int main(int argc, char **argv) {
 
   // Solve using Line Search Gauss-Newton Solver
   {
-    steam::OptimizationProblem problem;
-    setupDivergenceProblem(&problem);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::LineSearchGaussNewtonSolver::Params params; params.maxIterations = 100;
     steam::LineSearchGaussNewtonSolver solver(&problem);
     solver.optimize();
@@ -155,8 +155,7 @@ int main(int argc, char **argv) {
 
   // Solve using Levenberg–Marquardt Solver
   {
-    steam::OptimizationProblem problem;
-    setupDivergenceProblem(&problem);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::LevMarqGaussNewtonSolver::Params params; params.maxIterations = 100;
     steam::LevMarqGaussNewtonSolver solver(&problem);
     solver.optimize();
@@ -166,8 +165,7 @@ int main(int argc, char **argv) {
 
   // Solve using Powell's Dogleg Solver
   {
-    steam::OptimizationProblem problem;
-    setupDivergenceProblem(&problem);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::DoglegGaussNewtonSolver::Params params; params.maxIterations = 100;
     steam::DoglegGaussNewtonSolver solver(&problem);
     solver.optimize();
