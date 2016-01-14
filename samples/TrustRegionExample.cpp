@@ -125,6 +125,7 @@ steam::OptimizationProblem setupDivergenceProblem() {
   steam::OptimizationProblem problem;
   problem.addStateVariable(stateVar);
   problem.addCostTerm(costTerm);
+
   return problem;
 }
 
@@ -147,7 +148,7 @@ int main(int argc, char **argv) {
   {
     steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::LineSearchGaussNewtonSolver::Params params; params.maxIterations = 100;
-    steam::LineSearchGaussNewtonSolver solver(&problem);
+    steam::LineSearchGaussNewtonSolver solver(&problem, params);
     solver.optimize();
     std::cout << "Line Search GN Terminates from: " << solver.getTerminationCause()
               << " after " << solver.getCurrIteration() << " iterations." << std::endl;
@@ -157,7 +158,7 @@ int main(int argc, char **argv) {
   {
     steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::LevMarqGaussNewtonSolver::Params params; params.maxIterations = 100;
-    steam::LevMarqGaussNewtonSolver solver(&problem);
+    steam::LevMarqGaussNewtonSolver solver(&problem, params);
     solver.optimize();
     std::cout << "Levenberg–Marquardt Terminates from: " << solver.getTerminationCause()
               << " after " << solver.getCurrIteration() << " iterations." << std::endl;
@@ -167,7 +168,7 @@ int main(int argc, char **argv) {
   {
     steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::DoglegGaussNewtonSolver::Params params; params.maxIterations = 100;
-    steam::DoglegGaussNewtonSolver solver(&problem);
+    steam::DoglegGaussNewtonSolver solver(&problem, params);
     solver.optimize();
     std::cout << "Powell's Dogleg Terminates from: " << solver.getTerminationCause()
               << " after " << solver.getCurrIteration() << " iterations." << std::endl;

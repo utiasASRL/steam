@@ -77,7 +77,8 @@ class SolverBase
     TERMINATE_MAX_ITERATIONS,
     TERMINATE_CONVERGED_ABSOLUTE_ERROR,
     TERMINATE_CONVERGED_ABSOLUTE_CHANGE,
-    TERMINATE_CONVERGED_RELATIVE_CHANGE
+    TERMINATE_CONVERGED_RELATIVE_CHANGE,
+    TERMINATE_CONVERGED_ZERO_GRADIENT
   };
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +155,7 @@ class SolverBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Build the system, solve for a step size and direction, and update the state
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual bool linearizeSolveAndUpdate(double* newCost) = 0;
+  virtual bool linearizeSolveAndUpdate(double* newCost, double* gradNorm) = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Casts parameters to base type (for SolverBase class)

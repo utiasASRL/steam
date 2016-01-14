@@ -74,7 +74,7 @@ void LevMarqGaussNewtonSolver::solveCovariances() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
+bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost, double* gradNorm) {
 
   if (newCost == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input "
@@ -99,6 +99,7 @@ bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // Construct system of equations
   timer.reset();
   this->buildGaussNewtonTerms(&approximateHessian_, &gradientVector);
+  *gradNorm = gradientVector.norm();
   buildTime = timer.milliseconds();
 
   // Perform LM Search

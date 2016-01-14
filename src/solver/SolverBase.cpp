@@ -67,10 +67,14 @@ void SolverBase::iterate() {
   prevCost_ = currCost_;
 
   // Perform an iteration of the implemented solver-type
-  bool stepSuccess = linearizeSolveAndUpdate(&currCost_);
+  double gradientNorm = 0.0;
+  bool stepSuccess = linearizeSolveAndUpdate(&currCost_, &gradientNorm);
 
   // Check termination criteria
-  if (!stepSuccess) {
+  if (!stepSuccess && fabs(gradientNorm) < 1e-6) {
+    term_ = TERMINATE_CONVERGED_ZERO_GRADIENT;
+    solverConverged_ = true;
+  } else if (!stepSuccess) {
     term_ = TERMINATE_STEP_UNSUCCESSFUL;
     solverConverged_ = true;
     throw unsuccessful_step("The steam solver terminated due to being unable to produce a "
@@ -229,6 +233,7 @@ std::ostream& operator<<(std::ostream& out, const SolverBase::Termination& T) {
     case SolverBase::TERMINATE_CONVERGED_ABSOLUTE_ERROR  : out << "CONVERGED ABSOLUTE ERROR"; break;
     case SolverBase::TERMINATE_CONVERGED_ABSOLUTE_CHANGE : out << "CONVERGED ABSOLUTE CHANGE"; break;
     case SolverBase::TERMINATE_CONVERGED_RELATIVE_CHANGE : out << "CONVERGED RELATIVE CHANGE"; break;
+    case SolverBase::TERMINATE_CONVERGED_ZERO_GRADIENT   : out << "CONVERGED GRADIENT IS ZERO"; break;
   }
   return out;
 }
