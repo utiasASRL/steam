@@ -153,7 +153,7 @@ void GaussNewtonSolverBase::factorizeHessian(const Eigen::SparseMatrix<double>& 
 
   // Check if the factorization succeeded
   if (hessianSolver_.info() != Eigen::Success) {
-    throw decomp_failure("During steam solve, Eigen LLT decomposition failed."
+    throw decomp_failure("During steam solve, Eigen LLT decomposition failed. "
                          "It is possible that the matrix was ill-conditioned, in which case "
                          "adding a prior may help. On the other hand, it is also possible that "
                          "the problem you've constructed is not positive semi-definite.");

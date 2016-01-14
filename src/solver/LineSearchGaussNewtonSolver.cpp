@@ -22,7 +22,7 @@ LineSearchGaussNewtonSolver::LineSearchGaussNewtonSolver(OptimizationProblem* pr
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
+bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost, double* gradNorm) {
 
   if (newCost == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input "
@@ -49,6 +49,7 @@ bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // Construct system of equations
   timer.reset();
   this->buildGaussNewtonTerms(&approximateHessian, &gradientVector);
+  *gradNorm = gradientVector.norm();
   buildTime = timer.milliseconds();
 
   // Solve system
