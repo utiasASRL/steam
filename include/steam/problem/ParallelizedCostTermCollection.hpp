@@ -30,19 +30,18 @@ namespace steam {
 /// \brief Class that fully defines a nonlinear cost term (or 'factor').
 ///        Cost terms are composed of an error function, loss function and noise model.
 //////////////////////////////////////////////////////////////////////////////////////////////
-template<int NUM_THREADS = STEAM_DEFAULT_NUM_OPENMP_THREADS>
 class ParallelizedCostTermCollection : public CostTermBase
 {
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ParallelizedCostTermCollection<NUM_THREADS> > Ptr;
-  typedef boost::shared_ptr<const ParallelizedCostTermCollection<NUM_THREADS> > ConstPtr;
+  typedef boost::shared_ptr<ParallelizedCostTermCollection> Ptr;
+  typedef boost::shared_ptr<const ParallelizedCostTermCollection> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  ParallelizedCostTermCollection();
+  ParallelizedCostTermCollection(unsigned int numThreads = STEAM_DEFAULT_NUM_OPENMP_THREADS);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a cost term
@@ -75,13 +74,16 @@ class ParallelizedCostTermCollection : public CostTermBase
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Number of threads
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  const unsigned int numThreads_;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Collection of nonlinear cost-term factors
   //////////////////////////////////////////////////////////////////////////////////////////////
   std::vector<CostTermBase::ConstPtr> costTerms_;
 };
 
 } // steam
-
-#include <steam/problem/ParallelizedCostTermCollection-inl.hpp>
 
 #endif // STEAM_PARALLELIZED_COST_TERM_COLLECTION_HPP

@@ -22,7 +22,7 @@ LineSearchGaussNewtonSolver::LineSearchGaussNewtonSolver(OptimizationProblem* pr
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
+bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost, double* gradNorm) {
 
   if (newCost == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input "
@@ -49,6 +49,7 @@ bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // Construct system of equations
   timer.reset();
   this->buildGaussNewtonTerms(&approximateHessian, &gradientVector);
+  *gradNorm = gradientVector.norm();
   buildTime = timer.milliseconds();
 
   // Solve system
@@ -64,15 +65,15 @@ bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   unsigned int nBacktrack = 0;
   for (; nBacktrack < params_.maxBacktrackSteps; nBacktrack++) {
     // Test new cost
-    double proposedCost = this->getProblem().proposeUpdate(backtrackCoeff*perturbation);
+    double proposedCost = this->proposeUpdate(backtrackCoeff*perturbation);
     if (proposedCost <= this->getPrevCost()) {
       // cost went down (or is the same, x = 0)
-      this->getProblem().acceptProposedState();
+      this->acceptProposedState();
       *newCost = proposedCost;
       break;
     } else {
       // cost went up
-      this->getProblem().rejectProposedState(); // restore old state vector
+      this->rejectProposedState(); // restore old state vector
       backtrackCoeff = params_.backtrackMultiplier*backtrackCoeff; // reduce step size (backtrack)
     }
   }

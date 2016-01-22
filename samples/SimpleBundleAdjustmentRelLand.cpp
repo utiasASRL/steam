@@ -18,7 +18,7 @@
 int main(int argc, char** argv) {
 
   ///
-  /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)
+  /// Parse Dataset
   ///
 
   // Get filename
@@ -44,10 +44,12 @@ int main(int argc, char** argv) {
   ///
 
   // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
-  steam::se3::FixedTransformEvaluator::Ptr tf_identity = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
+  steam::se3::FixedTransformEvaluator::Ptr tf_identity =
+      steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
 
   // Fixed vehicle to camera transform
-  steam::se3::TransformEvaluator::Ptr tf_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
+  steam::se3::TransformEvaluator::Ptr tf_c_v =
+      steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
 
   // Ground truth
   std::vector<steam::se3::TransformStateVar::Ptr> poses_gt_k_0;
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
   ///
 
   // steam cost terms
-  steam::ParallelizedCostTermCollection<>::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection<>());
+  steam::ParallelizedCostTermCollection::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection());
 
   // Setup shared noise and loss function
   steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
@@ -183,7 +185,7 @@ int main(int argc, char** argv) {
   steam::OptimizationProblem problem;
 
   // Add pose variables
-  for (unsigned int i = 1; i < poses_ic_k_0.size(); i++) {
+  for (unsigned int i = 0; i < poses_ic_k_0.size(); i++) {
     problem.addStateVariable(poses_ic_k_0[i]);
   }
 

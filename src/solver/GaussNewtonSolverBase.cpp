@@ -62,7 +62,7 @@ BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam:
   }
 
   // Creating indexing
-  BlockMatrixIndexing indexing(this->getProblem().getStateVector().getStateBlockSizes());
+  BlockMatrixIndexing indexing(this->getStateVector().getStateBlockSizes());
   const BlockDimIndexing& blkRowIndexing = indexing.rowIndexing();
   const BlockDimIndexing& blkColIndexing = indexing.colIndexing();
 
@@ -73,11 +73,11 @@ BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam:
   // Look up block indexes
   std::vector<unsigned int> blkRowIndices; blkRowIndices.resize(numRowKeys);
   for (unsigned int i = 0; i < numRowKeys; i++) {
-    blkRowIndices[i] = this->getProblem().getStateVector().getStateBlockIndex(rowKeys[i]);
+    blkRowIndices[i] = this->getStateVector().getStateBlockIndex(rowKeys[i]);
   }
   std::vector<unsigned int> blkColIndices; blkColIndices.resize(numColKeys);
   for (unsigned int i = 0; i < numColKeys; i++) {
-    blkColIndices[i] = this->getProblem().getStateVector().getStateBlockIndex(colKeys[i]);
+    blkColIndices[i] = this->getStateVector().getStateBlockIndex(colKeys[i]);
   }
 
   // Look up block size of state variables
@@ -128,7 +128,7 @@ BlockMatrix GaussNewtonSolverBase::queryCovarianceBlock(const std::vector<steam:
 //////////////////////////////////////////////////////////////////////////////////////////////
 void GaussNewtonSolverBase::buildGaussNewtonTerms(Eigen::SparseMatrix<double>* approximateHessian,
                                                   Eigen::VectorXd* gradientVector) {
-  this->getProblem().buildGaussNewtonTerms(approximateHessian, gradientVector);
+  this->getProblem().buildGaussNewtonTerms(this->getStateVector(), approximateHessian, gradientVector);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -153,7 +153,7 @@ void GaussNewtonSolverBase::factorizeHessian(const Eigen::SparseMatrix<double>& 
 
   // Check if the factorization succeeded
   if (hessianSolver_.info() != Eigen::Success) {
-    throw decomp_failure("During steam solve, Eigen LLT decomposition failed."
+    throw decomp_failure("During steam solve, Eigen LLT decomposition failed. "
                          "It is possible that the matrix was ill-conditioned, in which case "
                          "adding a prior may help. On the other hand, it is also possible that "
                          "the problem you've constructed is not positive semi-definite.");

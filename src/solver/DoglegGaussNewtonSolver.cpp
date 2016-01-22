@@ -24,7 +24,7 @@ DoglegGaussNewtonSolver::DoglegGaussNewtonSolver(OptimizationProblem* problem, c
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Build the system, solve for a step size and direction, and update the state
 //////////////////////////////////////////////////////////////////////////////////////////////
-bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
+bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost, double* gradNorm) {
 
   if (newCost == NULL) {
     throw std::invalid_argument("Null pointer provided to return-input "
@@ -54,6 +54,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   // Construct system of equations
   timer.reset();
   this->buildGaussNewtonTerms(&approximateHessian, &gradientVector);
+  *gradNorm = gradientVector.norm();
   buildTime = timer.milliseconds();
 
   // Solve system
@@ -64,14 +65,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   double gradDescentNorm = gradDescentStep.norm();
 
   // Get Gauss-Newton step
-  Eigen::VectorXd gaussNewtonStep;
-  bool haveGnStep = true;
-  try {
-    gaussNewtonStep = this->solveGaussNewton(approximateHessian, gradientVector);
-  } catch (const decomp_failure& e) {
-    haveGnStep = false;
-    trustRegionSize = std::min(trustRegionSize, gradDescentNorm);
-  }
+  Eigen::VectorXd gaussNewtonStep = this->solveGaussNewton(approximateHessian, gradientVector);
   double gaussNewtonNorm = gaussNewtonStep.norm();
 
   solveTime = timer.milliseconds();
@@ -81,11 +75,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
   // Initialize trust region size (if first time)
   if (trustRegionSize == 0.0) {
-    if (haveGnStep) {
-      trustRegionSize = gaussNewtonNorm;
-    } else {
-      trustRegionSize = gradDescentNorm;
-    }
+    trustRegionSize = gaussNewtonNorm;
   }
 
   // Perform dogleg step
@@ -95,7 +85,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
   for (; nBacktrack < params_.maxShrinkSteps; nBacktrack++) {
 
     // Get step
-    if (gaussNewtonNorm <= trustRegionSize && haveGnStep) {
+    if (gaussNewtonNorm <= trustRegionSize) {
 
       // Trust region larger than Gauss Newton step
       dogLegStep = gaussNewtonStep;
@@ -106,16 +96,12 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
       dogLegStep = (trustRegionSize/gradDescentNorm)*gradDescentStep;
 
       // For verbose
-      if (haveGnStep) {
-        doglegSegment = "Grad Descent";
-      } else {
-        doglegSegment = "Forced GD";
-      }
+      doglegSegment = "Grad Descent";
 
     } else {
 
       // Trust region lies between the GD and GN steps, use interpolation
-      if (gaussNewtonStep.rows() != gradDescentStep.rows() || !haveGnStep) {
+      if (gaussNewtonStep.rows() != gradDescentStep.rows()) {
         throw std::logic_error("Gauss-Newton and gradient descent dimensions did not match.");
       }
 
@@ -135,7 +121,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     }
 
     // Calculate the predicted reduction; note that a positive value denotes a reduction in cost
-    double proposedCost = this->getProblem().proposeUpdate(dogLegStep);
+    double proposedCost = this->proposeUpdate(dogLegStep);
     double actualReduc = this->getPrevCost() - proposedCost;
     double predictedReduc = this->predictedReduction(approximateHessian, gradientVector, dogLegStep);
     actualToPredictedRatio = actualReduc/predictedReduc;
@@ -144,7 +130,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
     if (actualToPredictedRatio > params_.ratioThresholdShrink) {
 
       // Good enough ratio to accept proposed state
-      this->getProblem().acceptProposedState();
+      this->acceptProposedState();
       *newCost = proposedCost;
       if (actualToPredictedRatio > params_.ratioThresholdGrow) {
         // Ratio is strong enough to increase trust region size
@@ -157,7 +143,7 @@ bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double* newCost) {
 
       // Cost did not reduce enough, or possibly increased,
       // reject proposed state and reduce the size of the trust region
-      this->getProblem().rejectProposedState(); // Restore old state vector
+      this->rejectProposedState(); // Restore old state vector
       trustRegionSize *= params_.shrinkCoeff; // Reduce step size (backtrack)
       numTrDecreases++; // Count number of shrinks for logging
     }
