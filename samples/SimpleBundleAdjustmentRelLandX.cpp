@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \file SimpleBundleAdjustmentRelLand.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///        with relative landmarks.
+///        with relative landmarks. Uses dynamic-size matrices (rather than fixed).
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@
 int main(int argc, char** argv) {
 
   ///
-  /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)
+  /// Parse Dataset
   ///
 
   // Get filename
