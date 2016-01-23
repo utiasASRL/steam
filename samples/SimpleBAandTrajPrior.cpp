@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBundleAdjustmentRelLand.cpp
+/// \file SimpleBAandTrajPrior.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///        with relative landmarks.
+///        with relative landmarks and trajectory smoothing factors.
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -13,9 +13,39 @@
 #include <steam/data/ParseBA.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Structure to store trajectory state variables
+//////////////////////////////////////////////////////////////////////////////////////////////
+struct TrajStateVar {
+  steam::Time time;
+  steam::se3::TransformStateVar::Ptr pose;
+  steam::VectorSpaceStateVar::Ptr velocity;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves simple bundle adjustment problems
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv) {
+
+  ///
+  /// Setup Traj Prior
+  ///
+
+
+  // Smoothing factor diagonal -- in this example, we penalize accelerations in each dimension
+  //                              except for the forward and yaw (this should be fairly typical)
+  double lin_acc_stddev_x = 1.00; // body-centric (e.g. x is usually forward)
+  double lin_acc_stddev_y = 0.01; // body-centric (e.g. y is usually side-slip)
+  double lin_acc_stddev_z = 0.01; // body-centric (e.g. z is usually 'jump')
+  double ang_acc_stddev_x = 0.01; // ~roll
+  double ang_acc_stddev_y = 0.01; // ~pitch
+  double ang_acc_stddev_z = 1.00; // ~yaw
+  Eigen::Array<double,1,6> Qc_diag;
+  Qc_diag << lin_acc_stddev_x, lin_acc_stddev_y, lin_acc_stddev_z,
+             ang_acc_stddev_x, ang_acc_stddev_y, ang_acc_stddev_z;
+
+  // Make Qc_inv
+  Eigen::Matrix<double,6,6> Qc_inv; Qc_inv.setZero();
+  Qc_inv.diagonal() = 1.0/Qc_diag;
 
   ///
   /// Parse Dataset
@@ -36,6 +66,7 @@ int main(int argc, char** argv) {
   // Load dataset
   steam::data::SimpleBaDataset dataset = steam::data::parseSimpleBaDataset(filename);
   std::cout << "Problem has: " << dataset.frames_gt.size() << " poses" << std::endl;
+  std::cout << "             " << dataset.frames_gt.size() << " velocities" << std::endl;
   std::cout << "             " << dataset.land_gt.size() << " landmarks" << std::endl;
   std::cout << "            ~" << double(dataset.meas.size())/dataset.frames_gt.size() << " meas per pose" << std::endl << std::endl;
 
@@ -56,7 +87,8 @@ int main(int argc, char** argv) {
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_gt;
 
   // State variable containers (and related data)
-  std::vector<steam::se3::TransformStateVar::Ptr> poses_ic_k_0;
+  std::vector<TrajStateVar> traj_states_ic;
+  //std::vector<steam::se3::TransformStateVar::Ptr> poses_ic_k_0;
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
 
   // Record the frame in which the landmark is first seen in order to set up transforms correctly
@@ -78,15 +110,30 @@ int main(int argc, char** argv) {
     landmarks_gt.push_back(temp);
   }
 
-  // Setup poses with initial condition
+  // Zero velocity
+  Eigen::Matrix<double,6,1> initVelocity; initVelocity.setZero();
+
+  // Setup state variables using initial condition
   for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
-    steam::se3::TransformStateVar::Ptr temp(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
-    poses_ic_k_0.push_back(temp);
+    TrajStateVar temp;
+    temp.time = steam::Time(dataset.frames_ic[i].time);
+    temp.pose = steam::se3::TransformStateVar::Ptr(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
+    temp.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+    traj_states_ic.push_back(temp);
+  }
+
+  // Setup Trajectory
+  steam::se3::SteamTrajInterface traj(Qc_inv);
+  for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
+    TrajStateVar& state = traj_states_ic.at(i);
+    steam::se3::TransformStateEvaluator::Ptr temp =
+        steam::se3::TransformStateEvaluator::MakeShared(state.pose);
+    traj.add(state.time, temp, state.velocity);
   }
 
   // Lock first pose (otherwise entire solution is 'floating')
   //  **Note: alternatively we could add a prior to the first pose.
-  poses_ic_k_0[0]->setLock(true);
+  traj_states_ic[0].pose->setLock(true);
 
   // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size());
@@ -160,8 +207,8 @@ int main(int argc, char** argv) {
     } else {
 
       unsigned int firstObsIndex = landmark_map[landmarkIdx];
-      steam::se3::TransformEvaluator::Ptr pose_va_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[firstObsIndex]);
-      steam::se3::TransformEvaluator::Ptr pose_vb_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[frameIdx]);
+      steam::se3::TransformEvaluator::Ptr pose_va_0 = steam::se3::TransformStateEvaluator::MakeShared(traj_states_ic[firstObsIndex].pose);
+      steam::se3::TransformEvaluator::Ptr pose_vb_0 = steam::se3::TransformStateEvaluator::MakeShared(traj_states_ic[frameIdx].pose);
       tf_vb_va = steam::se3::composeInverse(pose_vb_0, pose_va_0);
     }
 
@@ -177,6 +224,10 @@ int main(int argc, char** argv) {
     stereoCostTerms->add(cost);
   }
 
+  // Trajectory prior smoothing terms
+  steam::ParallelizedCostTermCollection::Ptr smoothingCostTerms(new steam::ParallelizedCostTermCollection());
+  traj.appendPriorCostTerms(smoothingCostTerms);
+
   ///
   /// Make Optimization Problem
   ///
@@ -184,9 +235,11 @@ int main(int argc, char** argv) {
   // Initialize problem
   steam::OptimizationProblem problem;
 
-  // Add pose variables
-  for (unsigned int i = 0; i < poses_ic_k_0.size(); i++) {
-    problem.addStateVariable(poses_ic_k_0[i]);
+  // Add state variables
+  for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
+    const TrajStateVar& state = traj_states_ic.at(i);
+    problem.addStateVariable(state.pose);
+    problem.addStateVariable(state.velocity);
   }
 
   // Add landmark variables
@@ -196,6 +249,7 @@ int main(int argc, char** argv) {
 
   // Add cost terms
   problem.addCostTerm(stereoCostTerms);
+  problem.addCostTerm(smoothingCostTerms);
 
   ///
   /// Setup Solver and Optimize
