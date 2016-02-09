@@ -114,7 +114,7 @@ steam::OptimizationProblem setupDivergenceProblem() {
   steam::VectorSpaceStateVar::Ptr stateVar(new steam::VectorSpaceStateVar(initial));
 
   // Setup shared noise and loss function
-  steam::NoiseModelX::Ptr sharedNoiseModel(new steam::NoiseModelX(Eigen::MatrixXd::Identity(2,2)));
+  steam::BaseNoiseModelX::Ptr sharedNoiseModel(new steam::StaticNoiseModelX(Eigen::MatrixXd::Identity(2,2)));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup cost term
