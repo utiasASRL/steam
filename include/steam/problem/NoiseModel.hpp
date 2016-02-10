@@ -113,6 +113,36 @@ private:
   Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> sqrtInformation_;
 };
 
+// TODO: alter this code so that it takes in an error evaluator base.
+// 1. This will compute the covariance based on some steam variables, etc.
+// 2. upon evaluation it will call setbycovariance.
+// 3. when a user calls getsqrtinfo, getwhitenederrnorm, or whitenerror, it will
+// 4. check to see if the error eval has changed, if not then proceed if so then
+//    evaluate, reset, and proceed.
+template <int MEAS_DIM>
+class DynamicNoiseModel : public StaticNoiseModel<MEAS_DIM>
+{
+ public:
+  DynamicNoiseModel();
+  ~DynamicNoiseModel();
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get a reference to the square root information matrix
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& getSqrtInformation() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get the norm of the whitened error vector, sqrt(rawError^T * info * rawError)
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual double getWhitenedErrorNorm(const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get the whitened error vector, sqrtInformation*rawError
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual Eigen::Matrix<double,MEAS_DIM,1> whitenError(
+      const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const;
+};
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Typedef for the general dynamic noise model
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,6 +154,7 @@ typedef BaseNoiseModel<Eigen::Dynamic> BaseNoiseModelX;
 typedef StaticNoiseModel<Eigen::Dynamic> StaticNoiseModelX;
 
 } // steam
+
 
 #include <steam/problem/NoiseModel-inl.hpp>
 
