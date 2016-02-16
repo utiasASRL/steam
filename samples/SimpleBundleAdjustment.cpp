@@ -17,7 +17,7 @@
 int main(int argc, char** argv) {
 
   ///
-  /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)
+  /// Parse Dataset
   ///
 
   // Get filename
