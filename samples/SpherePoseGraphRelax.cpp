@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
 
   // Setup shared noise and loss functions
-  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(measCollection[0].sqrtInformation, steam::StaticNoiseModel<6>::SQRT_INFORMATION));
+  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(measCollection[0].sqrtInformation, steam::SQRT_INFORMATION));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Turn measurements into cost terms

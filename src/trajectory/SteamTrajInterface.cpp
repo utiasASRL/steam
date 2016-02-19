@@ -254,7 +254,7 @@ void SteamTrajInterface::appendPriorCostTerms(
       Qi_inv.block<6,6>(6,0) = Qi_inv.block<6,6>(0,6) = -6.0 * one_over_dt2 * Qc_inv_;
       Qi_inv.block<6,6>(6,6) = 4.0 * one_over_dt  * Qc_inv_;
       steam::BaseNoiseModelX::Ptr sharedGPNoiseModel(
-            new steam::StaticNoiseModelX(Qi_inv, steam::StaticNoiseModelX::INFORMATION));
+            new steam::StaticNoiseModelX(Qi_inv, steam::INFORMATION));
 
       // Create cost term
       steam::se3::SteamTrajPriorFactor::Ptr errorfunc(

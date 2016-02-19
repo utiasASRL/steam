@@ -12,7 +12,7 @@ namespace steam {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 StereoCameraErrorEval::StereoCameraErrorEval(const Eigen::Vector4d& meas,
-                                     const CameraIntrinsics::ConstPtr& intrinsics,
+                                     const stereo::CameraIntrinsics::ConstPtr& intrinsics,
                                      const se3::TransformEvaluator::ConstPtr& T_cam_landmark,
                                      const se3::LandmarkStateVar::Ptr& landmark)
   : meas_(meas), intrinsics_(intrinsics), eval_(se3::compose(T_cam_landmark, landmark)) {

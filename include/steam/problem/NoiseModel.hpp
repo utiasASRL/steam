@@ -12,16 +12,39 @@
 
 namespace steam {
 
+/// Enumeration of ways to set the noise
+enum MatrixType { COVARIANCE, INFORMATION, SQRT_INFORMATION };
+
 template <int MEAS_DIM>
 class BaseNoiseModel 
 {
  public:
-  BaseNoiseModel() = default;
+
+
+  BaseNoiseModel()=default;
+  BaseNoiseModel(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix,
+             MatrixType type = COVARIANCE);
+
   ~BaseNoiseModel() = default;
 
   /// Convenience typedefs
   typedef boost::shared_ptr<BaseNoiseModel<MEAS_DIM> > Ptr;
   typedef boost::shared_ptr<const BaseNoiseModel<MEAS_DIM> > ConstPtr;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Set by covariance matrix
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void setByCovariance(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Set by information matrix
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void setByInformation(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) const ;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Set by square root of information matrix
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void setBySqrtInformation(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) const ;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get a reference to the square root information matrix
@@ -39,7 +62,22 @@ class BaseNoiseModel
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual Eigen::Matrix<double,MEAS_DIM,1> whitenError(
       const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const = 0;
+
  protected:
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Assert that the matrix is positive definite
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void assertPositiveDefiniteMatrix(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief The square root information (found by performing an LLT decomposition on the
+  ///        information matrix (inverse covariance matrix). This triangular matrix is
+  ///        stored directly for faster error whitening.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  mutable Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> sqrtInformation_;
+
+ private:
 
 };
 
@@ -48,9 +86,6 @@ template <int MEAS_DIM>
 class StaticNoiseModel : public BaseNoiseModel<MEAS_DIM>
 {
  public:
-
-  /// Enumeration of ways to set the noise
-  enum MatrixType { COVARIANCE, INFORMATION, SQRT_INFORMATION };
 
   /// Convenience typedefs
   typedef boost::shared_ptr<StaticNoiseModel<MEAS_DIM> > Ptr;
@@ -67,20 +102,6 @@ class StaticNoiseModel : public BaseNoiseModel<MEAS_DIM>
   StaticNoiseModel(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix,
              MatrixType type = COVARIANCE);
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Set by covariance matrix
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  void setByCovariance(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix);
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Set by information matrix
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  void setByInformation(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix);
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Set by square root of information matrix
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  void setBySqrtInformation(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get a reference to the square root information matrix
@@ -100,17 +121,20 @@ class StaticNoiseModel : public BaseNoiseModel<MEAS_DIM>
 
 private:
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Assert that the matrix is positive definite
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  void assertPositiveDefiniteMatrix(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix);
+};
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief The square root information (found by performing an LLT decomposition on the
-  ///        information matrix (inverse covariance matrix). This triangular matrix is
-  ///        stored directly for faster error whitening.
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> sqrtInformation_;
+template <int MEAS_DIM>
+class NoiseEvaluator {
+public:
+  /// Convenience typedefs
+  typedef boost::shared_ptr<NoiseEvaluator<MEAS_DIM> > Ptr;
+  typedef boost::shared_ptr<const NoiseEvaluator<MEAS_DIM> > ConstPtr;
+
+  NoiseEvaluator()=default;
+  ~NoiseEvaluator()=default;
+
+  virtual Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> evaluateCovariance() = 0;
+
 };
 
 // TODO: alter this code so that it takes in an error evaluator base.
@@ -120,11 +144,11 @@ private:
 // 4. check to see if the error eval has changed, if not then proceed if so then
 //    evaluate, reset, and proceed.
 template <int MEAS_DIM>
-class DynamicNoiseModel : public StaticNoiseModel<MEAS_DIM>
+class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
 {
  public:
-  DynamicNoiseModel();
-  ~DynamicNoiseModel();
+  DynamicNoiseModel(boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval);
+  ~DynamicNoiseModel()=default;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get a reference to the square root information matrix
@@ -141,6 +165,9 @@ class DynamicNoiseModel : public StaticNoiseModel<MEAS_DIM>
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual Eigen::Matrix<double,MEAS_DIM,1> whitenError(
       const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const;
+
+ private:
+  boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval_;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

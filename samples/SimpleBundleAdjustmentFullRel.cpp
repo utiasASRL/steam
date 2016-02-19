@@ -125,8 +125,8 @@ int main(int argc, char** argv) {
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
-  steam::StereoCameraErrorEval::CameraIntrinsics::Ptr sharedIntrinsics(
-        new steam::StereoCameraErrorEval::CameraIntrinsics());
+  steam::stereo::CameraIntrinsics::Ptr sharedIntrinsics(
+        new steam::stereo::CameraIntrinsics());
   sharedIntrinsics->b  = dataset.camParams.b;
   sharedIntrinsics->fu = dataset.camParams.fu;
   sharedIntrinsics->fv = dataset.camParams.fv;
