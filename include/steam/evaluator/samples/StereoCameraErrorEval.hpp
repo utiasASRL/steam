@@ -50,9 +50,9 @@ class StereoLandmarkNoiseEvaluator : public NoiseEvaluator<4> {
       dialated_phi_.setZero();
       dialated_phi_.block(0,0,3,3) = landmark_cov;
       meas_noise_ = meas_noise;
-      camera_jacobian_j_ = cameraModelJacobian(landmark_mean);
+      mean_ = landmark_mean;
       T_cam_landmark_ = T_cam_landmark;
-     // LOG(INFO) << "landmark mean\n" << landmark_mean.hnormalized() << "\n";
+ //     LOG(INFO) << "landmark mean\n" << landmark_mean.hnormalized() << "\n";
     }
     ~StereoLandmarkNoiseEvaluator()=default;
   
@@ -62,10 +62,14 @@ class StereoLandmarkNoiseEvaluator : public NoiseEvaluator<4> {
     if(recalculate) {
       const auto &T_l_p = T_cam_landmark_->evaluate();
       // 2. Calculate G
+      
+      camera_jacobian_j_ = cameraModelJacobian(T_l_p*mean_);
       auto lm_noise = camera_jacobian_j_ * T_l_p.matrix() * dialated_phi_ * 
                        T_l_p.matrix().transpose() * camera_jacobian_j_.transpose();
-     // std::cout << "Measurement noise: \n" << meas_noise_ << "\nLandmark noise:\n" << lm_noise << "\n";
-      last_computed_cov_ = meas_noise_;// + lm_noise;
+    //  LOG(INFO) << "DPhiDt\n" << dialated_phi_ << "\n";
+    //  LOG(INFO) << "Measurement noise: \n" << meas_noise_ << "\nLandmark noise:\n" << lm_noise << "\n";
+      last_computed_cov_ = meas_noise_ + lm_noise;
+
     }
     return last_computed_cov_;
   }
@@ -94,12 +98,14 @@ class StereoLandmarkNoiseEvaluator : public NoiseEvaluator<4> {
            0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0;
     return jac;
   }
+
     se3::LandmarkStateVar::Ptr landmark_;
     stereo::CameraIntrinsics::ConstPtr intrinsics_;
     se3::TransformEvaluator::ConstPtr T_cam_landmark_;
 
     Eigen::Matrix4d dialated_phi_;
     Eigen::Matrix4d camera_jacobian_j_;
+    Eigen::Vector4d mean_;
     Eigen::Matrix4d meas_noise_;
 
     Eigen::Matrix<double,4,4> last_computed_cov_;
