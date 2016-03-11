@@ -52,7 +52,7 @@ class StereoLandmarkNoiseEvaluator : public NoiseEvaluator<4> {
       meas_noise_ = meas_noise;
       mean_ = landmark_mean;
       T_cam_landmark_ = T_cam_landmark;
- //     LOG(INFO) << "landmark mean\n" << landmark_mean.hnormalized() << "\n";
+     // LOG(INFO) << "landmark mean\n" << landmark_mean.hnormalized() << "\n";
     }
     ~StereoLandmarkNoiseEvaluator()=default;
   
@@ -66,7 +66,7 @@ class StereoLandmarkNoiseEvaluator : public NoiseEvaluator<4> {
       camera_jacobian_j_ = cameraModelJacobian(T_l_p*mean_);
       auto lm_noise = camera_jacobian_j_ * T_l_p.matrix() * dialated_phi_ * 
                        T_l_p.matrix().transpose() * camera_jacobian_j_.transpose();
-    //  LOG(INFO) << "DPhiDt\n" << dialated_phi_ << "\n";
+     // LOG(INFO) << "DPhiDt\n" << dialated_phi_ << "\n";
     //  LOG(INFO) << "Measurement noise: \n" << meas_noise_ << "\nLandmark noise:\n" << lm_noise << "\n";
       last_computed_cov_ = meas_noise_ + lm_noise;
 

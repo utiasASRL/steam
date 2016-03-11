@@ -130,7 +130,7 @@ void BaseNoiseModel<MEAS_DIM>::assertPositiveDefiniteMatrix(
 
   // Check the minimum eigen value
   if (eigsolver.eigenvalues().minCoeff() <= 0) {
-    std::stringstream ss; ss << "Covariance must be positive definite. "
+    std::stringstream ss; ss << "Covariance \n" << matrix << "\n must be positive definite. "
                              << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff();
     throw std::invalid_argument(ss.str());
   }
