@@ -2,6 +2,12 @@
 ### Header
 ################################################################################
 cmake_minimum_required(VERSION 2.8)
+
+# Allow CMake 3.0+ to run without warnings
+if(NOT CMAKE_MAJOR_VERSION LESS 3)
+  cmake_policy(SET CMP0048 NEW)
+endif()
+
 project(catch_tests)
 
 ################################################################################

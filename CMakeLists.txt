@@ -2,6 +2,12 @@
 ### Header
 ################################################################################
 cmake_minimum_required(VERSION 2.8)
+
+# Allow CMake 3.0+ to run without warnings
+if(NOT CMAKE_MAJOR_VERSION LESS 3)
+  cmake_policy(SET CMP0048 OLD)
+endif()
+
 project(steam)
 
 ################################################################################
@@ -32,6 +38,11 @@ set(PROJECT_VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION})
 ################################################################################
 ### Installation Paths
 ################################################################################
+
+# Allow CMake 3.0+ to run without warnings (as of 3.0+, setting install locations per target is deprecated)
+if(NOT CMAKE_MAJOR_VERSION LESS 3)
+  cmake_policy(SET CMP0026 OLD)
+endif()
 
 # Offer the user the choice of overriding the installation directories
 set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
@@ -128,7 +139,7 @@ add_subdirectory(samples)
 # Turn tests on and off using the CMake GUI
 set(TESTS_ON true CACHE BOOL "Configure unit testing (uses Catch unit tests)")
 if(TESTS_ON)
-    enable_testing(true) 
+    enable_testing(true)
     add_subdirectory(tests)
 endif(TESTS_ON)
 
