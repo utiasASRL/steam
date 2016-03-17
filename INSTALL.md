@@ -1,5 +1,4 @@
-Dependencies
-------------
+# Dependencies
 
 First Install [lgmath and eigen](https://github.com/utiasASRL/lgmath)
 
