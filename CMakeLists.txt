@@ -2,13 +2,39 @@
 ### Header
 ################################################################################
 cmake_minimum_required(VERSION 2.8)
+
+# Allow CMake 3.0+ to run without warnings
+if(NOT CMAKE_MAJOR_VERSION LESS 3)
+  cmake_policy(SET CMP0048 OLD)
+endif()
+
 project(steam)
+
+
+################################################################################
+### Compiler Setup
+################################################################################
+if (CMAKE_COMPILER_IS_GNUCC)
+  execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+  if (GCC_VERSION VERSION_GREATER 4.8 OR GCC_VERSION VERSION_EQUAL 4.8)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(DEPEND_LIBS "boost_system")
+    message(STATUS "C++11 capable compiler detected")
+  else()
+    # gcc46 does not support C++11, and the linker is too old to know about AVX instructions
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -mno-avx")
+    message(STATUS "C++11 support not available; defaulting to C++0x")
+  endif()
+else()
+  message(WARNING "Cannot detect correct settings for your compiler")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
 
 ################################################################################
 ### Misc
 ################################################################################
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -std=c++0x")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -mno-avx")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wno-unused-function")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # if it does not exist, add a cmake directory
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -32,6 +58,11 @@ set(PROJECT_VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION})
 ################################################################################
 ### Installation Paths
 ################################################################################
+
+# Allow CMake 3.0+ to run without warnings (as of 3.0+, setting install locations per target is deprecated)
+if(NOT CMAKE_MAJOR_VERSION LESS 3)
+  cmake_policy(SET CMP0026 OLD)
+endif()
 
 # Offer the user the choice of overriding the installation directories
 set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
@@ -128,7 +159,7 @@ add_subdirectory(samples)
 # Turn tests on and off using the CMake GUI
 set(TESTS_ON true CACHE BOOL "Configure unit testing (uses Catch unit tests)")
 if(TESTS_ON)
-    enable_testing(true) 
+    enable_testing(true)
     add_subdirectory(tests)
 endif(TESTS_ON)
 
