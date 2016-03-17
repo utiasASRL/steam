@@ -59,6 +59,9 @@ endforeach()
 # initialize
 set(EXTERNAL_LIBS "")
 
+#find Boost
+find_package(Boost REQUIRED COMPONENTS system)
+
 # find Eigen
 find_package(Eigen3 3.2.2 REQUIRED)
 if(EIGEN3_FOUND)
@@ -81,7 +84,7 @@ endif(OPENMP_FOUND)
 # find Lie Group Math
 find_package(LGMath REQUIRED)
 include_directories(${LGMath_INCLUDE_DIRS})
-set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${LGMath_LIBRARIES})
+set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${LGMath_LIBRARIES} ${Boost_LIBRARIES})
 
 ################################################################################
 ### Configure Source Files and Include Directories
