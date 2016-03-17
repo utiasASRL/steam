@@ -3,16 +3,6 @@ Dependencies
 
 First Install [lgmath and eigen](https://github.com/utiasASRL/lgmath)
 
-Install
--------
-```
-mkdir build && cd build
-cmake ..
-sudo make install
-```
-
-
-
 # Install
 In your development folder,
 ```
