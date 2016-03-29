@@ -114,6 +114,11 @@ find_package(LGMath REQUIRED)
 include_directories(${LGMath_INCLUDE_DIRS})
 set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${LGMath_LIBRARIES})
 
+# find Boost
+find_package(Boost REQUIRED system)
+include_directories(${Boost_INCLUDE_DIRS})
+set(DEPEND_LIBS ${Boost_LIBRARIES})
+
 ################################################################################
 ### Configure Source Files and Include Directories
 ################################################################################
