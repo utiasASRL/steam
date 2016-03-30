@@ -41,7 +41,7 @@ void PositionEvaluator::getActiveStateVariables(
 /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double, 3, 1> PositionEvaluator::evaluate() const {
-  return transform_->evaluate().vec().head<3>();
+  return transform_->evaluate().r_ba_ina();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ EvalTreeNode<Eigen::Matrix<double, 3, 1> > *PositionEvaluator::evaluateTree() co
 
   // Make new root node -- note we get memory from the pool
   EvalTreeNode<Eigen::Matrix<double, 3, 1> > *root = EvalTreeNode<Eigen::Matrix<double, 3, 1> >::pool.getObj();
-  root->setValue(transform->getValue().vec().head<3>());
+  root->setValue(transform->getValue().r_ba_ina());
 
   // Add children
   root->addChild(transform);
@@ -78,8 +78,10 @@ void PositionEvaluator::appendJacobiansImpl(
 
   // Check if transform is active
   if (transform_->isActive()) {
-    Eigen::Matrix<double, LHS_DIM, 6> newLhs = lhs * lgmath::se3::vec2jacinv(t1->getValue().vec()).topRows<3>();
-    transform_->appendBlockAutomaticJacobians(newLhs, t1, outJacobians);
+    auto tf = t1->getValue();
+    Eigen::Matrix<double, 3, 6> newLhs;
+    newLhs << -tf.C_ba().transpose(), Eigen::Matrix3d::Zero();  //lgmath::so3::hat(tf.r_ab_inb());
+    transform_->appendBlockAutomaticJacobians(lhs * newLhs, t1, outJacobians);
   }
 }
 

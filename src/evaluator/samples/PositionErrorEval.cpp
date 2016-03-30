@@ -14,47 +14,17 @@ namespace steam {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor - error is difference between 'T' and zero
 //////////////////////////////////////////////////////////////////////////////////////////////
-PositionErrorEval::PositionErrorEval(const se3::TransformEvaluator::ConstPtr &T) {
-  errorEvaluator_.reset(new se3::PositionEvaluator(T));
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Convenience constructor - error between meas_T_21 and T_21
-//////////////////////////////////////////////////////////////////////////////////////////////
-PositionErrorEval::PositionErrorEval(const lgmath::se3::Transformation &meas_T_21,
-                                     const se3::TransformEvaluator::ConstPtr &T_21) {
-
-  // Construct the evaluator using the convenient transform evaluators
-  se3::FixedTransformEvaluator::ConstPtr meas = se3::FixedTransformEvaluator::MakeShared(meas_T_21);
-  errorEvaluator_.reset(new se3::PositionEvaluator(se3::compose(meas, se3::inverse(T_21))));
+PositionErrorEval::PositionErrorEval(const se3::TransformEvaluator::ConstPtr &T) : meas_(0,0,0)  {
+  positionEvaluator_.reset(new se3::PositionEvaluator(T));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Convenience constructor - linear error between meas_r_21_in1 and T_21
 //////////////////////////////////////////////////////////////////////////////////////////////
 PositionErrorEval::PositionErrorEval(const Eigen::Vector3d &meas_r_21_in1,
-                                     const se3::TransformEvaluator::ConstPtr &T_21) {
+                                     const se3::TransformEvaluator::ConstPtr &T_21) : meas_(meas_r_21_in1) {
 
-  // Build a transform that expresses a frame at point meas_r_21.
-  lgmath::se3::Transformation meas_T_21(Eigen::Matrix3d::Identity(), meas_r_21_in1);
-
-  // Construct the evaluator using the convenient transform evaluators
-  se3::FixedTransformEvaluator::ConstPtr meas = se3::FixedTransformEvaluator::MakeShared(meas_T_21);
-  errorEvaluator_.reset(new se3::PositionEvaluator(se3::compose(meas, se3::inverse(T_21))));
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Convenience constructor - error between meas_T_21 and T_20*inv(T_10)
-//////////////////////////////////////////////////////////////////////////////////////////////
-PositionErrorEval::PositionErrorEval(const lgmath::se3::Transformation &meas_T_21,
-                                     const se3::TransformStateVar::Ptr &T_20,
-                                     const se3::TransformStateVar::Ptr &T_10) {
-
-  // Construct the evaluator using the convenient transform evaluators
-  se3::FixedTransformEvaluator::ConstPtr meas = se3::FixedTransformEvaluator::MakeShared(meas_T_21);
-  se3::TransformStateEvaluator::ConstPtr t10 = se3::TransformStateEvaluator::MakeShared(T_10);
-  se3::TransformStateEvaluator::ConstPtr t20 = se3::TransformStateEvaluator::MakeShared(T_20);
-  errorEvaluator_.reset(new se3::PositionEvaluator(se3::compose(se3::compose(meas, t10), se3::inverse(t20))));
+  positionEvaluator_.reset(new se3::PositionEvaluator(T_21));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,30 +32,25 @@ PositionErrorEval::PositionErrorEval(const lgmath::se3::Transformation &meas_T_2
 //////////////////////////////////////////////////////////////////////////////////////////////
 PositionErrorEval::PositionErrorEval(const Eigen::Vector3d &meas_r_21_in1,
                                      const se3::TransformStateVar::Ptr &T_20,
-                                     const se3::TransformStateVar::Ptr &T_10) {
+                                     const se3::TransformStateVar::Ptr &T_10) : meas_(meas_r_21_in1) {
 
-  // Build a transform that expresses a frame at point meas_r_21.
-  lgmath::se3::Transformation meas_T_21(Eigen::Matrix3d::Identity(), meas_r_21_in1);
-
-  // Construct the evaluator using the convenient transform evaluators
-  se3::FixedTransformEvaluator::ConstPtr meas = se3::FixedTransformEvaluator::MakeShared(meas_T_21);
   se3::TransformStateEvaluator::ConstPtr t10 = se3::TransformStateEvaluator::MakeShared(T_10);
   se3::TransformStateEvaluator::ConstPtr t20 = se3::TransformStateEvaluator::MakeShared(T_20);
-  errorEvaluator_.reset(new se3::PositionEvaluator(se3::compose(se3::compose(meas, t10), se3::inverse(t20))));
+  positionEvaluator_.reset(new se3::PositionEvaluator(se3::compose(t20, se3::inverse(t10))));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool PositionErrorEval::isActive() const {
-  return errorEvaluator_->isActive();
+  return positionEvaluator_->isActive();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 3-d measurement error
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double, 3, 1> PositionErrorEval::evaluate() const {
-  return errorEvaluator_->evaluate();
+  return positionEvaluator_->evaluate() - meas_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,14 +67,13 @@ Eigen::Matrix<double, 3, 1> PositionErrorEval::evaluate(const Eigen::Matrix<doub
 
   // Get evaluation tree
   EvalTreeHandle<Eigen::Matrix<double, 3, 1> > blkAutoEvalPosOfTransformDiff =
-      errorEvaluator_->getBlockAutomaticEvaluation();
+      positionEvaluator_->getBlockAutomaticEvaluation();
 
   // Get evaluation from tree
-  Eigen::Matrix<double, 3, 1> error = blkAutoEvalPosOfTransformDiff.getValue();
+  Eigen::Matrix<double, 3, 1> error = blkAutoEvalPosOfTransformDiff.getValue() - meas_;
 
   // Get Jacobians
-  errorEvaluator_->appendBlockAutomaticJacobians(lhs,
-                                                 blkAutoEvalPosOfTransformDiff.getRoot(), jacs);
+  positionEvaluator_->appendBlockAutomaticJacobians(lhs, blkAutoEvalPosOfTransformDiff.getRoot(), jacs);
 
   // Return evaluation
   return error;
