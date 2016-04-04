@@ -120,7 +120,7 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
   const Eigen::Vector4d& pointInCamFrame = blkAutoEvalPointInCameraFrame.getValue();
 
   // Get Jacobians
-  Eigen::Matrix4d newLhs = (-1)*lhs*cameraModelJacobian(pointInCamFrame);
+  Eigen::Matrix4d newLhs = (-1)*lhs*stereo::cameraModelJacobian(intrinsics_, pointInCamFrame);
   eval_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalPointInCameraFrame.getRoot(), jacs);
 
   // Return evaluation
@@ -147,30 +147,6 @@ Eigen::Vector4d StereoCameraErrorEval::cameraModel(const Eigen::Vector4d& point)
                    intrinsics_->fu *  xr * one_over_z + intrinsics_->cu,
                    intrinsics_->fv *  y  * one_over_z + intrinsics_->cv;
   return projectedMeas;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Camera model Jacobian
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix4d StereoCameraErrorEval::cameraModelJacobian(const Eigen::Vector4d& point) const {
-
-  // Precompute values
-  const double x = point[0];
-  const double y = point[1];
-  const double z = point[2];
-  const double w = point[3];
-  const double xr = x - w * intrinsics_->b;
-  const double one_over_z = 1.0/z;
-  const double one_over_z2 = one_over_z*one_over_z;
-
-  // Construct Jacobian with respect to x, y, z, and scalar w
-  const double dw = -intrinsics_->fu * intrinsics_->b * one_over_z;
-  Eigen::Matrix4d jac;
-  jac << intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * x  * one_over_z2, 0.0,
-         0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0,
-         intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * xr * one_over_z2,  dw,
-         0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0;
-  return jac;
 }
 
 } // steam
