@@ -43,7 +43,7 @@ struct CameraIntrinsics {
 /// @param The homogeneous point the jacobian is being evaluated at.
 /// @return the jacobian of the camera model, evaluated at the given point.
 //////////////////////////////////////////////////////////////////////////////////////////////
-inline Eigen::Matrix4d cameraModelJacobian(const CameraIntrinsics::ConstPtr &intrinsics, const Eigen::Vector4d& point);
+Eigen::Matrix4d cameraModelJacobian(const CameraIntrinsics::ConstPtr &intrinsics, const Eigen::Vector4d& point);
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
