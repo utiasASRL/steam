@@ -13,103 +13,94 @@
 namespace steam {
 
 namespace stereo {
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Simple structure to hold the basic camera intrinsics
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  struct CameraIntrinsics {
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// @brief Simple structure to hold the stereo camera intrinsics
+//////////////////////////////////////////////////////////////////////////////////////////////
+struct CameraIntrinsics {
+  /// Convenience typedefs
+  typedef boost::shared_ptr<CameraIntrinsics> Ptr;
+  typedef boost::shared_ptr<const CameraIntrinsics> ConstPtr;
 
-    /// Convenience typedefs
-    typedef boost::shared_ptr<CameraIntrinsics> Ptr;
-    typedef boost::shared_ptr<const CameraIntrinsics> ConstPtr;
+  /// \brief Stereo baseline
+  double b;
 
-    /// \brief Stereo baseline
-    double b;
+  /// \brief Focal length in the u-coordinate (horizontal)
+  double fu;
 
-    /// \brief Focal length in the u-coordinate (horizontal)
-    double fu;
+  /// \brief Focal length in the v-coordinate (vertical)
+  double fv;
 
-    /// \brief Focal length in the v-coordinate (vertical)
-    double fv;
+  /// \brief Focal center offset in the u-coordinate (horizontal)
+  double cu;
 
-    /// \brief Focal center offset in the u-coordinate (horizontal)
-    double cu;
+  /// \brief Focal center offset in the v-coordinate (vertical)
+  double cv;
+};
 
-    /// \brief Focal center offset in the v-coordinate (vertical)
-    double cv;
-  };
-}
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// @brief Calculates the stereo Camera model Jacobian
+/// @param The stereo camera intrinsic properties.
+/// @param The homogeneous point the jacobian is being evaluated at.
+/// @return the jacobian of the camera model, evaluated at the given point.
+//////////////////////////////////////////////////////////////////////////////////////////////
+inline Eigen::Matrix4d cameraModelJacobian(const CameraIntrinsics::ConstPtr &intrinsics, const Eigen::Vector4d& point);
 
-class StereoLandmarkNoiseEvaluator : public NoiseEvaluator<4> {
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// @brief Evaluates the noise of an uncertain map landmark, which has been reprojected into the
+///        a query coordinate frame using a steam transform evaluator.
+//////////////////////////////////////////////////////////////////////////////////////////////
+class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
   public:
-    StereoLandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_mean,
-                                 const Eigen::Matrix3d& landmark_cov,
-                                 const Eigen::Matrix4d& meas_noise,
-                                 const stereo::CameraIntrinsics::ConstPtr& intrinsics,
-                                 const se3::TransformEvaluator::ConstPtr& T_cam_landmark) {
-      intrinsics_ = intrinsics;
-      dialated_phi_.setZero();
-      dialated_phi_.block(0,0,3,3) = landmark_cov;
-      meas_noise_ = meas_noise;
-      mean_ = landmark_mean;
-      T_cam_landmark_ = T_cam_landmark;
-     // LOG(INFO) << "landmark mean\n" << landmark_mean.hnormalized() << "\n";
-    }
-    ~StereoLandmarkNoiseEvaluator()=default;
+
+    /// @brief Constructor
+    /// @param The landmark mean, in the query frame.
+    /// @param The landmark covariance, in the query frame.
+    /// @param The noise on the landmark measurement.
+    /// @param The stereo camera intrinsics.
+    /// @param The steam transform evaluator that takes points from the landmark frame
+    ///        into the query frame.
+    LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_mean,
+                           const Eigen::Matrix3d& landmark_cov,
+                           const Eigen::Matrix4d& meas_noise,
+                           const CameraIntrinsics::ConstPtr& intrinsics,
+                           const se3::TransformEvaluator::ConstPtr& T_cam_landmark);
+
+    /// @brief Default destructor
+    ~LandmarkNoiseEvaluator()=default;
   
-  virtual Eigen::Matrix<double,4,4> evaluateCovariance() {
-    // TODO: Check to see if we need to recaulculate;
-    bool recalculate = true;
-    if(recalculate) {
-      const auto &T_l_p = T_cam_landmark_->evaluate();
-      // 2. Calculate G
-      
-      camera_jacobian_j_ = cameraModelJacobian(T_l_p*mean_);
-      auto lm_noise = camera_jacobian_j_ * T_l_p.matrix() * dialated_phi_ * 
-                       T_l_p.matrix().transpose() * camera_jacobian_j_.transpose();
-     // LOG(INFO) << "DPhiDt\n" << dialated_phi_ << "\n";
-    //  LOG(INFO) << "Measurement noise: \n" << meas_noise_ << "\nLandmark noise:\n" << lm_noise << "\n";
-      last_computed_cov_ = meas_noise_ + lm_noise;
+  /// @brief Evaluates the reprojection covariance 
+  /// @return the 4x4 covariance of the landmark reprojected into the query stereo
+  ///         camera frame.
+  virtual Eigen::Matrix<double,4,4> evaluateCovariance();
 
-    }
-    return last_computed_cov_;
-  }
   private:
+    
+    /// @brief The stereo camera intrinsics.
+    CameraIntrinsics::ConstPtr intrinsics_;
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Camera model Jacobian
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::Matrix4d cameraModelJacobian(const Eigen::Vector4d& point) const {
-
-    // Precompute values
-    const double x = point[0];
-    const double y = point[1];
-    const double z = point[2];
-    const double w = point[3];
-    const double xr = x - w * intrinsics_->b;
-    const double one_over_z = 1.0/z;
-    const double one_over_z2 = one_over_z*one_over_z;
-
-    // Construct Jacobian with respect to x, y, z, and scalar w
-    const double dw = -intrinsics_->fu * intrinsics_->b * one_over_z;
-    Eigen::Matrix4d jac;
-    jac << intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * x  * one_over_z2, 0.0,
-           0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0,
-           intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * xr * one_over_z2,  dw,
-           0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0;
-    return jac;
-  }
-
-    se3::LandmarkStateVar::Ptr landmark_;
-    stereo::CameraIntrinsics::ConstPtr intrinsics_;
+    /// @brief The steam transform evaluator that takes points from the landmark frame
+    ///        into the query frame.
     se3::TransformEvaluator::ConstPtr T_cam_landmark_;
 
+    /// @brief The 3x3 landmark covariance (phi) dialated into a 3x3 matrix.
+    /// @details dialated_phi_ = D*phi*D^T, where D is a 4x3 dialation matrix.
     Eigen::Matrix4d dialated_phi_;
+
+    /// @brief The stereo camarea jacobian, evaluated at landmark mean, j.
     Eigen::Matrix4d camera_jacobian_j_;
+
+    /// @brief the landmark mean.
     Eigen::Vector4d mean_;
+
+    /// @brief The landmark covariance.
     Eigen::Matrix4d meas_noise_;
 
+    // @brief the last computed covariance
     Eigen::Matrix<double,4,4> last_computed_cov_;
 };
+
+} // end namespace stereo
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Stereo camera error function evaluator
@@ -154,7 +145,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Camera model Jacobian
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::Matrix4d cameraModelJacobian() const { return cameraModelJacobian(meas_); };
+  Eigen::Matrix4d cameraModelJacobian() const { return stereo::cameraModelJacobian(intrinsics_, meas_); };
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
