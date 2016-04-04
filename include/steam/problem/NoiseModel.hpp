@@ -12,19 +12,44 @@
 
 namespace steam {
 
+/// @class NoiseEvaluator evaluates uncertainty based on a derived model.
+template <int MEAS_DIM>
+class NoiseEvaluator {
+public:
+  /// Convenience typedefs
+  typedef boost::shared_ptr<NoiseEvaluator<MEAS_DIM> > Ptr;
+  typedef boost::shared_ptr<const NoiseEvaluator<MEAS_DIM> > ConstPtr;
+  
+  /// @brief Default constructor.
+  NoiseEvaluator()=default;
+
+  /// @brief Default destructor.
+  ~NoiseEvaluator()=default;
+
+  /// @brief Evaluates the uncertainty based on a derived model.
+  /// @return the uncertainty, in the form of a covariance matrix.
+  virtual Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> evaluateCovariance() = 0;
+};
+
 /// Enumeration of ways to set the noise
 enum MatrixType { COVARIANCE, INFORMATION, SQRT_INFORMATION };
 
+/// @class BaseNoiseModel Base class for the steam noise models
 template <int MEAS_DIM>
 class BaseNoiseModel 
 {
  public:
 
-
+  /// @brief Default constructor.
   BaseNoiseModel()=default;
+
+  /// @brief Constructor
+  /// @brief A noise matrix, determined by the type parameter.
+  /// @brief The type of noise matrix set in the previous paramter.
   BaseNoiseModel(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix,
              MatrixType type = COVARIANCE);
 
+  /// @brief Deault destructor
   ~BaseNoiseModel() = default;
 
   /// Convenience typedefs
@@ -81,7 +106,8 @@ class BaseNoiseModel
 
 };
 
-/// Noise Model
+/// @class StaticNoiseModel Noise model for uncertainties that do not change during the 
+///        steam optimization problem.
 template <int MEAS_DIM>
 class StaticNoiseModel : public BaseNoiseModel<MEAS_DIM>
 {
@@ -123,31 +149,17 @@ private:
 
 };
 
-template <int MEAS_DIM>
-class NoiseEvaluator {
-public:
-  /// Convenience typedefs
-  typedef boost::shared_ptr<NoiseEvaluator<MEAS_DIM> > Ptr;
-  typedef boost::shared_ptr<const NoiseEvaluator<MEAS_DIM> > ConstPtr;
-
-  NoiseEvaluator()=default;
-  ~NoiseEvaluator()=default;
-
-  virtual Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> evaluateCovariance() = 0;
-
-};
-
-// TODO: alter this code so that it takes in an error evaluator base.
-// 1. This will compute the covariance based on some steam variables, etc.
-// 2. upon evaluation it will call setbycovariance.
-// 3. when a user calls getsqrtinfo, getwhitenederrnorm, or whitenerror, it will
-// 4. check to see if the error eval has changed, if not then proceed if so then
-//    evaluate, reset, and proceed.
+/// @brief DynamicNoiseModel Noise model for uncertainties that change during the steam optimization
+///        problem.
 template <int MEAS_DIM>
 class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
 {
  public:
+  /// @brief Constructor
+  /// @param eval a pointer to a noise evaluator.
   DynamicNoiseModel(boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval);
+
+  /// @brief Deault destructor.
   ~DynamicNoiseModel()=default;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,18 +179,24 @@ class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
       const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const;
 
  private:
+  /// @brief A pointer to a noise evaluator.
   boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval_;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Typedef for the general dynamic noise model
+/// \brief Typedef for the general base noise model
 //////////////////////////////////////////////////////////////////////////////////////////////
 typedef BaseNoiseModel<Eigen::Dynamic> BaseNoiseModelX;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Typedef for the general dynamic noise model
+/// \brief Typedef for the general static noise model
 //////////////////////////////////////////////////////////////////////////////////////////////
 typedef StaticNoiseModel<Eigen::Dynamic> StaticNoiseModelX;
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Typedef for the general dynamic noise model
+//////////////////////////////////////////////////////////////////////////////////////////////
+typedef DynamicNoiseModel<Eigen::Dynamic> DynamicNoiseModelX;
 
 } // steam
 

@@ -64,7 +64,7 @@ class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
                            const Eigen::Matrix3d& landmark_cov,
                            const Eigen::Matrix4d& meas_noise,
                            const CameraIntrinsics::ConstPtr& intrinsics,
-                           const se3::TransformEvaluator::ConstPtr& T_cam_landmark);
+                           const se3::TransformEvaluator::ConstPtr& T_query_map);
 
     /// @brief Default destructor
     ~LandmarkNoiseEvaluator()=default;
@@ -79,9 +79,15 @@ class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
     /// @brief The stereo camera intrinsics.
     CameraIntrinsics::ConstPtr intrinsics_;
 
+    /// @brief The landmark covariance.
+    Eigen::Matrix4d meas_noise_;
+
+    /// @brief the landmark mean.
+    Eigen::Vector4d mean_;
+
     /// @brief The steam transform evaluator that takes points from the landmark frame
     ///        into the query frame.
-    se3::TransformEvaluator::ConstPtr T_cam_landmark_;
+    se3::TransformEvaluator::ConstPtr T_query_map_;
 
     /// @brief The 3x3 landmark covariance (phi) dialated into a 3x3 matrix.
     /// @details dialated_phi_ = D*phi*D^T, where D is a 4x3 dialation matrix.
@@ -89,12 +95,6 @@ class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
 
     /// @brief The stereo camarea jacobian, evaluated at landmark mean, j.
     Eigen::Matrix4d camera_jacobian_j_;
-
-    /// @brief the landmark mean.
-    Eigen::Vector4d mean_;
-
-    /// @brief The landmark covariance.
-    Eigen::Matrix4d meas_noise_;
 
     // @brief the last computed covariance
     Eigen::Matrix<double,4,4> last_computed_cov_;

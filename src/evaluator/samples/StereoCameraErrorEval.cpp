@@ -40,27 +40,36 @@ LandmarkNoiseEvaluator::LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_m
                              const Eigen::Matrix3d& landmark_cov,
                              const Eigen::Matrix4d& meas_noise,
                              const CameraIntrinsics::ConstPtr& intrinsics,
-                             const se3::TransformEvaluator::ConstPtr& T_cam_landmark) {
-  intrinsics_ = intrinsics;
+                             const se3::TransformEvaluator::ConstPtr& T_query_map) : 
+intrinsics_(intrinsics),
+meas_noise_(meas_noise),
+mean_(landmark_mean),
+T_query_map_(T_query_map) {
+  // compute the dialated phi;
   dialated_phi_.setZero();
   dialated_phi_.block(0,0,3,3) = landmark_cov;
-  meas_noise_ = meas_noise;
-  mean_ = landmark_mean;
-  T_cam_landmark_ = T_cam_landmark;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// @brief evaluatecovariance
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::evaluateCovariance() {
-  // TODO: Check to see if we need to recaulculate;
-  const auto &T_l_p = T_cam_landmark_->evaluate();
-  // 2. Calculate G
+  // TODO: Check to see if we need to recaulculate (add a change flag to steam variables.)
 
+  // evaluate the steam transform evaluator
+  const auto &T_l_p = T_query_map_->evaluate();
+
+  // compute the camera model jacobian based on the transformed mean.
   camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_,T_l_p*mean_);
+
+  // Compute the new landmark noise
   auto lm_noise = camera_jacobian_j_ * T_l_p.matrix() * dialated_phi_ * 
                    T_l_p.matrix().transpose() * camera_jacobian_j_.transpose();
+
+  // Add the measurement noise.
   last_computed_cov_ = meas_noise_ + lm_noise;
+
+  // return the new noise.
   return last_computed_cov_;
 }
 
