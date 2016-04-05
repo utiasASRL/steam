@@ -9,6 +9,7 @@
 
 #include <Eigen/Dense>
 #include <boost/shared_ptr.hpp>
+#include <mutex>
 
 namespace steam {
 
@@ -20,15 +21,25 @@ public:
   typedef boost::shared_ptr<NoiseEvaluator<MEAS_DIM> > Ptr;
   typedef boost::shared_ptr<const NoiseEvaluator<MEAS_DIM> > ConstPtr;
   
-  /// @brief Default constructor.
+  /// \brief Default constructor.
   NoiseEvaluator()=default;
 
-  /// @brief Default destructor.
-  ~NoiseEvaluator()=default;
+  /// \brief Default destructor.
+  virtual ~NoiseEvaluator()=default;
 
-  /// @brief Evaluates the uncertainty based on a derived model.
-  /// @return the uncertainty, in the form of a covariance matrix.
-  virtual Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> evaluateCovariance() = 0;
+  /// \brief mutex locked public exposure of the virtual evaluate() function.
+  virtual Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> evaluateCovariance() {
+    std::lock_guard<std::mutex> lock(eval_mutex_);
+    return evaluate();
+  }
+
+protected:
+  /// \brief Evaluates the uncertainty based on a derived model.
+  /// \return the uncertainty, in the form of a covariance matrix.
+  virtual Eigen::Matrix<double,MEAS_DIM,MEAS_DIM> evaluate()=0;
+
+private:
+  std::mutex eval_mutex_;
 };
 
 /// Enumeration of ways to set the noise
@@ -40,17 +51,17 @@ class BaseNoiseModel
 {
  public:
 
-  /// @brief Default constructor.
+  /// \brief Default constructor.
   BaseNoiseModel()=default;
 
-  /// @brief Constructor
-  /// @brief A noise matrix, determined by the type parameter.
-  /// @brief The type of noise matrix set in the previous paramter.
+  /// \brief Constructor
+  /// \brief A noise matrix, determined by the type parameter.
+  /// \brief The type of noise matrix set in the previous paramter.
   BaseNoiseModel(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix,
              MatrixType type = COVARIANCE);
 
-  /// @brief Deault destructor
-  ~BaseNoiseModel() = default;
+  /// \brief Deault destructor
+  virtual ~BaseNoiseModel() = default;
 
   /// Convenience typedefs
   typedef boost::shared_ptr<BaseNoiseModel<MEAS_DIM> > Ptr;
@@ -149,17 +160,17 @@ private:
 
 };
 
-/// @brief DynamicNoiseModel Noise model for uncertainties that change during the steam optimization
+/// \brief DynamicNoiseModel Noise model for uncertainties that change during the steam optimization
 ///        problem.
 template <int MEAS_DIM>
 class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
 {
  public:
-  /// @brief Constructor
-  /// @param eval a pointer to a noise evaluator.
+  /// \brief Constructor
+  /// \param eval a pointer to a noise evaluator.
   DynamicNoiseModel(boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval);
 
-  /// @brief Deault destructor.
+  /// \brief Deault destructor.
   ~DynamicNoiseModel()=default;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +190,7 @@ class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
       const Eigen::Matrix<double,MEAS_DIM,1>& rawError) const;
 
  private:
-  /// @brief A pointer to a noise evaluator.
+  /// \brief A pointer to a noise evaluator.
   boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval_;
 };
 

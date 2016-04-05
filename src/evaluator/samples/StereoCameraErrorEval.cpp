@@ -53,7 +53,7 @@ T_query_map_(T_query_map) {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// @brief evaluatecovariance
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::evaluateCovariance() {
+Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::evaluate() {
   // TODO: Check to see if we need to recaulculate (add a change flag to steam variables.)
 
   // evaluate the steam transform evaluator

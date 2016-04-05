@@ -14,7 +14,7 @@ namespace steam {
 
 namespace stereo {
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// @brief Simple structure to hold the stereo camera intrinsics
+/// \brief Simple structure to hold the stereo camera intrinsics
 //////////////////////////////////////////////////////////////////////////////////////////////
 struct CameraIntrinsics {
   /// Convenience typedefs
@@ -38,66 +38,66 @@ struct CameraIntrinsics {
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// @brief Calculates the stereo Camera model Jacobian
-/// @param The stereo camera intrinsic properties.
-/// @param The homogeneous point the jacobian is being evaluated at.
-/// @return the jacobian of the camera model, evaluated at the given point.
+/// \brief Calculates the stereo Camera model Jacobian
+/// \param The stereo camera intrinsic properties.
+/// \param The homogeneous point the jacobian is being evaluated at.
+/// \return the jacobian of the camera model, evaluated at the given point.
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix4d cameraModelJacobian(const CameraIntrinsics::ConstPtr &intrinsics, const Eigen::Vector4d& point);
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// @brief Evaluates the noise of an uncertain map landmark, which has been reprojected into the
+/// \brief Evaluates the noise of an uncertain map landmark, which has been reprojected into the
 ///        a query coordinate frame using a steam transform evaluator.
 //////////////////////////////////////////////////////////////////////////////////////////////
 class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
-  public:
+ public:
 
-    /// @brief Constructor
-    /// @param The landmark mean, in the query frame.
-    /// @param The landmark covariance, in the query frame.
-    /// @param The noise on the landmark measurement.
-    /// @param The stereo camera intrinsics.
-    /// @param The steam transform evaluator that takes points from the landmark frame
-    ///        into the query frame.
-    LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_mean,
-                           const Eigen::Matrix3d& landmark_cov,
-                           const Eigen::Matrix4d& meas_noise,
-                           const CameraIntrinsics::ConstPtr& intrinsics,
-                           const se3::TransformEvaluator::ConstPtr& T_query_map);
+  /// \brief Constructor
+  /// \param The landmark mean, in the query frame.
+  /// \param The landmark covariance, in the query frame.
+  /// \param The noise on the landmark measurement.
+  /// \param The stereo camera intrinsics.
+  /// \param The steam transform evaluator that takes points from the landmark frame
+  ///        into the query frame.
+  LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_mean,
+                         const Eigen::Matrix3d& landmark_cov,
+                         const Eigen::Matrix4d& meas_noise,
+                         const CameraIntrinsics::ConstPtr& intrinsics,
+                         const se3::TransformEvaluator::ConstPtr& T_query_map);
 
-    /// @brief Default destructor
-    ~LandmarkNoiseEvaluator()=default;
+  /// \brief Default destructor
+  ~LandmarkNoiseEvaluator()=default;
   
-  /// @brief Evaluates the reprojection covariance 
+  /// \brief Evaluates the reprojection covariance 
   /// @return the 4x4 covariance of the landmark reprojected into the query stereo
   ///         camera frame.
-  virtual Eigen::Matrix<double,4,4> evaluateCovariance();
+  virtual Eigen::Matrix<double,4,4> evaluate();
 
-  private:
-    
-    /// @brief The stereo camera intrinsics.
-    CameraIntrinsics::ConstPtr intrinsics_;
+ private:
+ 
+  /// \brief The stereo camera intrinsics.
+  CameraIntrinsics::ConstPtr intrinsics_;
 
-    /// @brief The landmark covariance.
-    Eigen::Matrix4d meas_noise_;
+  /// \brief The landmark covariance.
+  Eigen::Matrix4d meas_noise_;
 
-    /// @brief the landmark mean.
-    Eigen::Vector4d mean_;
+  /// \brief the landmark mean.
+  Eigen::Vector4d mean_;
 
-    /// @brief The steam transform evaluator that takes points from the landmark frame
-    ///        into the query frame.
-    se3::TransformEvaluator::ConstPtr T_query_map_;
+  /// \brief The steam transform evaluator that takes points from the landmark frame
+  ///        into the query frame.
+  se3::TransformEvaluator::ConstPtr T_query_map_;
 
-    /// @brief The 3x3 landmark covariance (phi) dialated into a 3x3 matrix.
-    /// @details dialated_phi_ = D*phi*D^T, where D is a 4x3 dialation matrix.
-    Eigen::Matrix4d dialated_phi_;
+  /// \brief The 3x3 landmark covariance (phi) dialated into a 3x3 matrix.
+  /// @details dialated_phi_ = D*phi*D^T, where D is a 4x3 dialation matrix.
+  Eigen::Matrix4d dialated_phi_;
 
-    /// @brief The stereo camarea jacobian, evaluated at landmark mean, j.
-    Eigen::Matrix4d camera_jacobian_j_;
+  /// \brief The stereo camarea jacobian, evaluated at landmark mean, j.
+  Eigen::Matrix4d camera_jacobian_j_;
 
-    // @brief the last computed covariance
-    Eigen::Matrix<double,4,4> last_computed_cov_;
+  // \brief the last computed covariance
+  Eigen::Matrix<double,4,4> last_computed_cov_;
 };
 
 } // end namespace stereo
