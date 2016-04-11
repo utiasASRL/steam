@@ -8,11 +8,78 @@
 
 namespace steam {
 
+namespace stereo {
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// @brief Camera model Jacobian
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Matrix4d cameraModelJacobian(const CameraIntrinsics::ConstPtr &intrinsics, const Eigen::Vector4d& point) {
+  // Precompute values
+  const double x = point[0];
+  const double y = point[1];
+  const double z = point[2];
+  const double w = point[3];
+  const double xr = x - w * intrinsics->b;
+  const double one_over_z = 1.0/z;
+  const double one_over_z2 = one_over_z*one_over_z;
+
+  // Construct Jacobian with respect to x, y, z, and scalar w
+  const double dw = -intrinsics->fu * intrinsics->b * one_over_z;
+  Eigen::Matrix4d jac;
+  jac << intrinsics->fu * one_over_z, 0.0, -intrinsics->fu * x  * one_over_z2, 0.0,
+         0.0, intrinsics->fv * one_over_z, -intrinsics->fv * y  * one_over_z2, 0.0,
+         intrinsics->fu * one_over_z, 0.0, -intrinsics->fu * xr * one_over_z2,  dw,
+         0.0, intrinsics->fv * one_over_z, -intrinsics->fv * y  * one_over_z2, 0.0;
+  return jac;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// @brief Constructor
+//////////////////////////////////////////////////////////////////////////////////////////////
+LandmarkNoiseEvaluator::LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_mean,
+                             const Eigen::Matrix3d& landmark_cov,
+                             const Eigen::Matrix4d& meas_noise,
+                             const CameraIntrinsics::ConstPtr& intrinsics,
+                             const se3::TransformEvaluator::ConstPtr& T_query_map) : 
+intrinsics_(intrinsics),
+meas_noise_(meas_noise),
+mean_(landmark_mean),
+T_query_map_(T_query_map) {
+  // compute the dialated phi;
+  dialated_phi_.setZero();
+  dialated_phi_.block(0,0,3,3) = landmark_cov;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// @brief evaluatecovariance
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::evaluate() {
+  // TODO: Check to see if we need to recaulculate (add a change flag to steam variables.)
+
+  // evaluate the steam transform evaluator
+  const auto &T_l_p = T_query_map_->evaluate();
+
+  // compute the camera model jacobian based on the transformed mean.
+  camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_,T_l_p*mean_);
+
+  // Compute the new landmark noise
+  auto lm_noise = camera_jacobian_j_ * T_l_p.matrix() * dialated_phi_ * 
+                   T_l_p.matrix().transpose() * camera_jacobian_j_.transpose();
+
+  // Add the measurement noise.
+  last_computed_cov_ = meas_noise_ + lm_noise;
+
+  // return the new noise.
+  return last_computed_cov_;
+}
+
+} // end namespace stereo
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 StereoCameraErrorEval::StereoCameraErrorEval(const Eigen::Vector4d& meas,
-                                     const CameraIntrinsics::ConstPtr& intrinsics,
+                                     const stereo::CameraIntrinsics::ConstPtr& intrinsics,
                                      const se3::TransformEvaluator::ConstPtr& T_cam_landmark,
                                      const se3::LandmarkStateVar::Ptr& landmark)
   : meas_(meas), intrinsics_(intrinsics), eval_(se3::compose(T_cam_landmark, landmark)) {
@@ -53,7 +120,7 @@ Eigen::Vector4d StereoCameraErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
   const Eigen::Vector4d& pointInCamFrame = blkAutoEvalPointInCameraFrame.getValue();
 
   // Get Jacobians
-  Eigen::Matrix4d newLhs = (-1)*lhs*cameraModelJacobian(pointInCamFrame);
+  Eigen::Matrix4d newLhs = (-1)*lhs*stereo::cameraModelJacobian(intrinsics_, pointInCamFrame);
   eval_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalPointInCameraFrame.getRoot(), jacs);
 
   // Return evaluation
@@ -80,30 +147,6 @@ Eigen::Vector4d StereoCameraErrorEval::cameraModel(const Eigen::Vector4d& point)
                    intrinsics_->fu *  xr * one_over_z + intrinsics_->cu,
                    intrinsics_->fv *  y  * one_over_z + intrinsics_->cv;
   return projectedMeas;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Camera model Jacobian
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix4d StereoCameraErrorEval::cameraModelJacobian(const Eigen::Vector4d& point) const {
-
-  // Precompute values
-  const double x = point[0];
-  const double y = point[1];
-  const double z = point[2];
-  const double w = point[3];
-  const double xr = x - w * intrinsics_->b;
-  const double one_over_z = 1.0/z;
-  const double one_over_z2 = one_over_z*one_over_z;
-
-  // Construct Jacobian with respect to x, y, z, and scalar w
-  const double dw = -intrinsics_->fu * intrinsics_->b * one_over_z;
-  Eigen::Matrix4d jac;
-  jac << intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * x  * one_over_z2, 0.0,
-         0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0,
-         intrinsics_->fu * one_over_z, 0.0, -intrinsics_->fu * xr * one_over_z2,  dw,
-         0.0, intrinsics_->fv * one_over_z, -intrinsics_->fv * y  * one_over_z2, 0.0;
-  return jac;
 }
 
 } // steam

@@ -37,7 +37,7 @@ add_executable(steam_unit_tests
   ${CMAKE_CURRENT_SOURCE_DIR}/time_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/pattern_test.cpp
 )
-target_link_libraries(steam_unit_tests steam boost_system ${DEPEND_LIBS})
+target_link_libraries(steam_unit_tests steam ${DEPEND_LIBS})
 
 # Add cmake unit tests
 add_test(NAME steam_unit_tests COMMAND steam_unit_tests)

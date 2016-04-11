@@ -10,10 +10,30 @@ endif()
 
 project(steam)
 
+
+################################################################################
+### Compiler Setup
+################################################################################
+if (CMAKE_COMPILER_IS_GNUCC)
+  execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+  if (GCC_VERSION VERSION_GREATER 4.8 OR GCC_VERSION VERSION_EQUAL 4.8)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(DEPEND_LIBS "boost_system")
+    message(STATUS "C++11 capable compiler detected")
+  else()
+    # gcc46 does not support C++11, and the linker is too old to know about AVX instructions
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -mno-avx")
+    message(STATUS "C++11 support not available; defaulting to C++0x")
+  endif()
+else()
+  message(WARNING "Cannot detect correct settings for your compiler")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+
 ################################################################################
 ### Misc
 ################################################################################
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wno-unused-function -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wno-unused-function")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # if it does not exist, add a cmake directory
@@ -93,6 +113,11 @@ endif(OPENMP_FOUND)
 find_package(LGMath REQUIRED)
 include_directories(${LGMath_INCLUDE_DIRS})
 set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${LGMath_LIBRARIES})
+
+# find Boost
+find_package(Boost REQUIRED system)
+include_directories(${Boost_INCLUDE_DIRS})
+set(DEPEND_LIBS ${Boost_LIBRARIES})
 
 ################################################################################
 ### Configure Source Files and Include Directories
