@@ -121,12 +121,12 @@ int main(int argc, char** argv) {
   steam::ParallelizedCostTermCollection::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection());
 
   // Setup shared noise and loss function
-  steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
+  steam::BaseNoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::StaticNoiseModel<4>(dataset.noise));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
-  steam::StereoCameraErrorEval::CameraIntrinsics::Ptr sharedIntrinsics(
-        new steam::StereoCameraErrorEval::CameraIntrinsics());
+  steam::stereo::CameraIntrinsics::Ptr sharedIntrinsics(
+        new steam::stereo::CameraIntrinsics());
   sharedIntrinsics->b  = dataset.camParams.b;
   sharedIntrinsics->fu = dataset.camParams.fu;
   sharedIntrinsics->fv = dataset.camParams.fv;

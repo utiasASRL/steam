@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 
   // Make Qc_inv
   Eigen::Matrix<double,6,6> Qc_inv; Qc_inv.setZero();
-  Qc_inv.diagonal() = 1.0/Qc_diag;
+    Qc_inv.diagonal() = 1.0/Qc_diag;
 
   ///
   /// Parse Dataset
@@ -119,6 +119,7 @@ int main(int argc, char** argv) {
     temp.time = steam::Time(dataset.frames_ic[i].time);
     temp.pose = steam::se3::TransformStateVar::Ptr(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
     temp.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+    std::cout << i << " : " << dataset.frames_ic[i].time << " " << dataset.frames_ic[i].T_k0;
     traj_states_ic.push_back(temp);
   }
 
@@ -175,12 +176,12 @@ int main(int argc, char** argv) {
   steam::ParallelizedCostTermCollection::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection());
 
   // Setup shared noise and loss function
-  steam::NoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::NoiseModel<4>(dataset.noise));
+  steam::BaseNoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::StaticNoiseModel<4>(dataset.noise));
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
-  steam::StereoCameraErrorEval::CameraIntrinsics::Ptr sharedIntrinsics(
-        new steam::StereoCameraErrorEval::CameraIntrinsics());
+  steam::stereo::CameraIntrinsics::Ptr sharedIntrinsics(
+        new steam::stereo::CameraIntrinsics());
   sharedIntrinsics->b  = dataset.camParams.b;
   sharedIntrinsics->fu = dataset.camParams.fu;
   sharedIntrinsics->fv = dataset.camParams.fv;
@@ -266,5 +267,10 @@ int main(int argc, char** argv) {
   // Optimize
   solver.optimize();
 
+  // Setup Trajectory
+  for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
+    TrajStateVar& state = traj_states_ic.at(i);
+   // std::cout << i << ": \n " << state.velocity->getValue() << "\n";
+  }
   return 0;
 }

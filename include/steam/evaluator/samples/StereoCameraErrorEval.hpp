@@ -8,8 +8,99 @@
 #define STEAM_STEREO_CAMERA_ERROR_EVALUATOR_HPP
 
 #include <steam.hpp>
+#include <steam/problem/NoiseModel.hpp>
 
 namespace steam {
+
+namespace stereo {
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Simple structure to hold the stereo camera intrinsics
+//////////////////////////////////////////////////////////////////////////////////////////////
+struct CameraIntrinsics {
+  /// Convenience typedefs
+  typedef boost::shared_ptr<CameraIntrinsics> Ptr;
+  typedef boost::shared_ptr<const CameraIntrinsics> ConstPtr;
+
+  /// \brief Stereo baseline
+  double b;
+
+  /// \brief Focal length in the u-coordinate (horizontal)
+  double fu;
+
+  /// \brief Focal length in the v-coordinate (vertical)
+  double fv;
+
+  /// \brief Focal center offset in the u-coordinate (horizontal)
+  double cu;
+
+  /// \brief Focal center offset in the v-coordinate (vertical)
+  double cv;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Calculates the stereo Camera model Jacobian
+/// \param The stereo camera intrinsic properties.
+/// \param The homogeneous point the jacobian is being evaluated at.
+/// \return the jacobian of the camera model, evaluated at the given point.
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Matrix4d cameraModelJacobian(const CameraIntrinsics::ConstPtr &intrinsics, const Eigen::Vector4d& point);
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Evaluates the noise of an uncertain map landmark, which has been reprojected into the
+///        a query coordinate frame using a steam transform evaluator.
+//////////////////////////////////////////////////////////////////////////////////////////////
+class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
+ public:
+
+  /// \brief Constructor
+  /// \param The landmark mean, in the query frame.
+  /// \param The landmark covariance, in the query frame.
+  /// \param The noise on the landmark measurement.
+  /// \param The stereo camera intrinsics.
+  /// \param The steam transform evaluator that takes points from the landmark frame
+  ///        into the query frame.
+  LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_mean,
+                         const Eigen::Matrix3d& landmark_cov,
+                         const Eigen::Matrix4d& meas_noise,
+                         const CameraIntrinsics::ConstPtr& intrinsics,
+                         const se3::TransformEvaluator::ConstPtr& T_query_map);
+
+  /// \brief Default destructor
+  ~LandmarkNoiseEvaluator()=default;
+  
+  /// \brief Evaluates the reprojection covariance 
+  /// @return the 4x4 covariance of the landmark reprojected into the query stereo
+  ///         camera frame.
+  virtual Eigen::Matrix<double,4,4> evaluate();
+
+ private:
+ 
+  /// \brief The stereo camera intrinsics.
+  CameraIntrinsics::ConstPtr intrinsics_;
+
+  /// \brief The landmark covariance.
+  Eigen::Matrix4d meas_noise_;
+
+  /// \brief the landmark mean.
+  Eigen::Vector4d mean_;
+
+  /// \brief The steam transform evaluator that takes points from the landmark frame
+  ///        into the query frame.
+  se3::TransformEvaluator::ConstPtr T_query_map_;
+
+  /// \brief The 3x3 landmark covariance (phi) dialated into a 3x3 matrix.
+  /// @details dialated_phi_ = D*phi*D^T, where D is a 4x3 dialation matrix.
+  Eigen::Matrix4d dialated_phi_;
+
+  /// \brief The stereo camarea jacobian, evaluated at landmark mean, j.
+  Eigen::Matrix4d camera_jacobian_j_;
+
+  // \brief the last computed covariance
+  Eigen::Matrix<double,4,4> last_computed_cov_;
+};
+
+} // end namespace stereo
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Stereo camera error function evaluator
@@ -23,31 +114,6 @@ class StereoCameraErrorEval : public ErrorEvaluator<4,6>::type
 {
 public:
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Simple structure to hold the basic camera intrinsics
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  struct CameraIntrinsics {
-
-    /// Convenience typedefs
-    typedef boost::shared_ptr<CameraIntrinsics> Ptr;
-    typedef boost::shared_ptr<const CameraIntrinsics> ConstPtr;
-
-    /// \brief Stereo baseline
-    double b;
-
-    /// \brief Focal length in the u-coordinate (horizontal)
-    double fu;
-
-    /// \brief Focal length in the v-coordinate (vertical)
-    double fv;
-
-    /// \brief Focal center offset in the u-coordinate (horizontal)
-    double cu;
-
-    /// \brief Focal center offset in the v-coordinate (vertical)
-    double cv;
-  };
-
   /// Convenience typedefs
   typedef boost::shared_ptr<StereoCameraErrorEval> Ptr;
   typedef boost::shared_ptr<const StereoCameraErrorEval> ConstPtr;
@@ -56,7 +122,7 @@ public:
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
   StereoCameraErrorEval(const Eigen::Vector4d& meas,
-                        const CameraIntrinsics::ConstPtr& intrinsics,
+                        const stereo::CameraIntrinsics::ConstPtr& intrinsics,
                         const se3::TransformEvaluator::ConstPtr& T_cam_landmark,
                         const se3::LandmarkStateVar::Ptr& landmark);
 
@@ -76,17 +142,16 @@ public:
   virtual Eigen::Vector4d evaluate(const Eigen::Matrix4d& lhs,
                                    std::vector<Jacobian<4,6> >* jacs) const;
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Camera model Jacobian
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  Eigen::Matrix4d cameraModelJacobian() const { return stereo::cameraModelJacobian(intrinsics_, meas_); };
 private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Camera model
   //////////////////////////////////////////////////////////////////////////////////////////////
   Eigen::Vector4d cameraModel(const Eigen::Vector4d& point) const;
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Camera model Jacobian
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::Matrix4d cameraModelJacobian(const Eigen::Vector4d& point) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Measurement coordinates extracted from images (ul vl ur vr)
@@ -96,7 +161,7 @@ private:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Camera instrinsics
   //////////////////////////////////////////////////////////////////////////////////////////////
-  CameraIntrinsics::ConstPtr intrinsics_;
+  stereo::CameraIntrinsics::ConstPtr intrinsics_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Point evaluator (evaluates the point transformed into the camera frame)

@@ -160,7 +160,7 @@ void SteamTrajInterface::addPosePrior(const steam::Time& time,
 
   // Set up loss function, noise model, and error function
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
-  steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(cov));
+  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(cov));
   steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(pose, knotRef->getPose()));
 
   // Create cost term
@@ -197,7 +197,7 @@ void SteamTrajInterface::addVelocityPrior(const steam::Time& time,
 
   // Set up loss function, noise model, and error function
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
-  steam::NoiseModel<6>::Ptr sharedNoiseModel(new steam::NoiseModel<6>(cov));
+  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(cov));
   steam::VectorSpaceErrorEval<6,6>::Ptr errorfunc(new steam::VectorSpaceErrorEval<6,6>(velocity, knotRef->getVelocity()));
 
   // Create cost term
@@ -253,8 +253,8 @@ void SteamTrajInterface::appendPriorCostTerms(
       Qi_inv.block<6,6>(0,0) = 12.0 * one_over_dt3 * Qc_inv_;
       Qi_inv.block<6,6>(6,0) = Qi_inv.block<6,6>(0,6) = -6.0 * one_over_dt2 * Qc_inv_;
       Qi_inv.block<6,6>(6,6) = 4.0 * one_over_dt  * Qc_inv_;
-      steam::NoiseModelX::Ptr sharedGPNoiseModel(
-            new steam::NoiseModelX(Qi_inv, steam::NoiseModelX::INFORMATION));
+      steam::BaseNoiseModelX::Ptr sharedGPNoiseModel(
+            new steam::StaticNoiseModelX(Qi_inv, steam::INFORMATION));
 
       // Create cost term
       steam::se3::SteamTrajPriorFactor::Ptr errorfunc(
