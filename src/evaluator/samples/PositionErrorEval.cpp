@@ -20,6 +20,8 @@ PositionErrorEval::PositionErrorEval(const se3::TransformEvaluator::ConstPtr &T)
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Convenience constructor - linear error between meas_r_21_in1 and T_21
+/// \param meas_r_21_in1 Position of frame 2 wrt frame 1, expressed in frame 1
+/// \param T_21 Transformation from frame 1 to frame 2
 //////////////////////////////////////////////////////////////////////////////////////////////
 PositionErrorEval::PositionErrorEval(const Eigen::Vector3d &meas_r_21_in1,
                                      const se3::TransformEvaluator::ConstPtr &T_21) : meas_(meas_r_21_in1) {
@@ -29,6 +31,9 @@ PositionErrorEval::PositionErrorEval(const Eigen::Vector3d &meas_r_21_in1,
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Convenience constructor - error between meas_r_21_in1 and T_20*inv(T_10)
+/// \param meas_r_21_in1 Position of frame 2 wrt frame 1, expressed in frame 1
+/// \param T_20 Transformation from the world frame (0) to frame 2
+/// \param T_10 Transformation from the world frame (0) to frame 1
 //////////////////////////////////////////////////////////////////////////////////////////////
 PositionErrorEval::PositionErrorEval(const Eigen::Vector3d &meas_r_21_in1,
                                      const se3::TransformStateVar::Ptr &T_20,
