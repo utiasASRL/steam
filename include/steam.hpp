@@ -23,6 +23,7 @@
 // evaluator - block automatic
 #include <steam/evaluator/blockauto/BlockAutomaticEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/PositionEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
@@ -31,6 +32,7 @@
 #include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
 #include <steam/evaluator/samples/StereoCameraErrorEvalX.hpp>
 #include <steam/evaluator/samples/TransformErrorEval.hpp>
+#include <steam/evaluator/samples/PositionErrorEval.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
 // evaluator - block auto diff
