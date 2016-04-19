@@ -5,6 +5,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <steam/evaluator/samples/TetherLengthErrorEval.hpp>
+//added for debugging only
+#include <iostream>
 
 namespace steam {
 
@@ -74,6 +76,7 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate(const Eigen::Matrix<do
 
   // Get Jacobians
   Eigen::Matrix<double,1,6> tether_err_jac = TetherModelJacobian(decomposed_tf);
+  //TODO Is negative one needed
   auto newLhs = -1*lhs*tether_err_jac;
   T_b_a_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalT_b_a.getRoot(), jacs);
   
@@ -89,7 +92,6 @@ Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedT
   auto &x = decomposed_tf.translation(0);
   auto &y = decomposed_tf.translation(1);
   auto &z = decomposed_tf.translation(2);
-  // TODO this is a repreat of above do we need to call this again
   auto &yaw = decomposed_tf.yaw;
   auto &distance = decomposed_tf.distance;
   double meas_distance_sq = pow(tether_meas_a_,2) + pow(tether_meas_b_,2);
@@ -102,7 +104,10 @@ Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedT
   double dz = -z/distance;
   double dr = (x * y * sin(yaw))/meas_distance;
 
-  // TODO Construct Jacobian with respect to x, y, z, and rotation (yaw)
+  // DEBUGGING: Print Statement
+  std::cout << "\n\nTetherLengthErrorEval:\nModel:\t" << decomposed_tf.distance << "\nMeas:\t" << meas_distance << "\nError:\t" << (meas_distance - decomposed_tf.distance) << "\nJacs\n  dx:\t" << dx << "\n  dy:\t" << dy << "\n  dz:\t" << dz << "\n  dr:\t" << dr << "\n\n";
+
+  // Construct Jacobian with respect to x, y, z, and rotation (yaw)
   Eigen::Matrix<double,1,6> jac;
   jac << dx, dy, dz, 0.0, 0.0, dr;
   return jac;
