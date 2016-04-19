@@ -28,6 +28,7 @@
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
 
 // evaluator - samples (sample functions)
+#include <steam/evaluator/samples/TetherLengthErrorEval.hpp>
 #include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
 #include <steam/evaluator/samples/StereoCameraErrorEvalX.hpp>
 #include <steam/evaluator/samples/TransformErrorEval.hpp>

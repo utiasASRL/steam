@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
   // Setup camera intrinsics
+  //steam::TetherLengthErrorEval::Ptr tether_eval();
   steam::StereoCameraErrorEval::CameraIntrinsics::Ptr sharedIntrinsics(
         new steam::StereoCameraErrorEval::CameraIntrinsics());
   sharedIntrinsics->b  = dataset.camParams.b;
