@@ -76,8 +76,7 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate(const Eigen::Matrix<do
 
   // Get Jacobians
   Eigen::Matrix<double,1,6> tether_err_jac = TetherModelJacobian(decomposed_tf);
-  //TODO Is negative one needed
-  auto newLhs = -1*lhs*tether_err_jac;
+  auto newLhs = lhs*tether_err_jac;
   T_b_a_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalT_b_a.getRoot(), jacs);
   
   // Return Evaluation
@@ -85,7 +84,7 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate(const Eigen::Matrix<do
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Error Model Jacobian
+/// \brief Error Jacobian (includes measured distance since it contains part of the state)
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedTF &decomposed_tf) const {
   // Precompute components
@@ -98,14 +97,14 @@ Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedT
   meas_distance_sq -= ( 2.0 * tether_meas_a_ * tether_meas_b_ * cos(yaw) );
   double meas_distance = sqrt(meas_distance_sq);
   
-  // Precompute Partial Derivatives
+  // Precompute Partial Derivatives (dx,dy,dz already are negative since it is a subtracted value)
   double dx = -x/distance;
   double dy = -y/distance;
   double dz = -z/distance;
-  double dr = (x * y * sin(yaw))/meas_distance;
+  double dr = (tether_meas_a_ * tether_meas_b_ * sin(yaw))/meas_distance;
 
   // DEBUGGING: Print Statement
-  std::cout << "\n\nTetherLengthErrorEval:\nModel:\t" << decomposed_tf.distance << "\nMeas:\t" << meas_distance << "\nError:\t" << (meas_distance - decomposed_tf.distance) << "\nJacs\n  dx:\t" << dx << "\n  dy:\t" << dy << "\n  dz:\t" << dz << "\n  dr:\t" << dr << "\n\n";
+  //std::cout << "\n\nTetherLengthErrorEval:\nModel:\t" << decomposed_tf.distance << "\nMeas:\t" << meas_distance << "\nError:\t" << (meas_distance - decomposed_tf.distance) << "\nJacs\n  dx:\t" << dx << "\n  dy:\t" << dy << "\n  dz:\t" << dz << "\n\n";
 
   // Construct Jacobian with respect to x, y, z, and rotation (yaw)
   Eigen::Matrix<double,1,6> jac;
