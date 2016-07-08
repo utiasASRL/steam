@@ -15,25 +15,36 @@ sudo make install
 2. __lgmath__ (Lie group math library). Follow the procedure from utiasASRL privite repository [INSTALL.md](https://github.com/utiasASRL/lgmath/blob/develop/INSTALL.md).
  
 
-## Compilation and Install
+## Compilation
 In your development folder,
 ```
-mkdir steam && cd steam
-git clone https://github.com/utiasASRL/steam.git src
+git clone https://github.com/utiasASRL/steam.git
 mkdir build && cd build
-cmake ../src
+cmake ..
+make
+```
+
+If you've installed a local version of Eigen, you will have to specify by changing the variable to something like this:
+```
+EIGEN3_INCLUDE_DIR=usr/local/include/eigen3 
+```
+
+## Unit Tests 
+Just run
+```
+make test
+```
+to confirm that everything is alright.
+
+## Installation
+Once you validate that the unit tests pass, you can proceed to install the library:
+```
 sudo make install
 ```
 
-## Enable Unit Tests 
-(Optional)
-
-1. Open CMake App
-1. Enable TESTS_ON
-1. cd build && make
+The default location is `/usr/local/`.
 
 ## Uninstall
-(Optional)
 
 ```
 cd build
