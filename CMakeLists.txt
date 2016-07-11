@@ -150,6 +150,7 @@ install(TARGETS steam
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
   DESTINATION ${INSTALL_INCLUDE_DIR}/steam 
   FILES_MATCHING PATTERN "*.hpp"
+  PATTERN "steam/data" EXCLUDE
 )
 
 ##### Sample Executables
