@@ -1,0 +1,71 @@
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \file PointToPointErrorEval.hpp
+///
+/// \author Francois Pomerleau, ASRL
+/// \brief This evaluator was develop in the context of ICP (Iterative Closest Point) 
+///        implementation.
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifndef STEAM_POINT_TO_POINT_ERROR_EVALUATOR_HPP
+#define STEAM_POINT_TO_POINT_ERROR_EVALUATOR_HPP
+
+#include <steam.hpp>
+
+namespace steam {
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief The distance between two points living in their respective frame is used as our
+///        error function.
+///
+//////////////////////////////////////////////////////////////////////////////////////////////
+class PointToPointErrorEval : public ErrorEvaluator<3,6>::type
+{
+public:
+
+  /// Convenience typedefs
+  typedef boost::shared_ptr<PointToPointErrorEval> Ptr;
+  typedef boost::shared_ptr<const PointToPointErrorEval> ConstPtr;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Constructor
+	/// \param point1    A point express in euclidean coordinates (i.e., [x, y, z]) expressed
+	///                  in frame 1.
+	/// \param T_world_1 Transformation matrix from frame 1 to frame world.
+	/// \param point2    A point express in euclidean coordinates (i.e., [x, y, z]) expressed
+	///                  in frame 2.
+	/// \param T_world_2 Transformation matrix from frame 2 to frame world.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  PointToPointErrorEval(const Eigen::Vector3d& point1,
+                        const se3::TransformEvaluator::ConstPtr& T_world_1,
+												const Eigen::Vector3d& point2,
+                        const se3::TransformEvaluator::ConstPtr& T_world_2
+												);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Returns whether or not an evaluator contains unlocked state variables
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual bool isActive() const; //TODO: check if we need to define that
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the 3-d measurement error (x, y, z)
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual Eigen::Vector3d evaluate() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Evaluate the 3-d measurement error (x, y, z) and Jacobians
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual Eigen::Vector3d evaluate(const Eigen::Matrix3d& lhs,
+                                   std::vector<Jacobian<3,6> >* jacs) const;
+
+private:
+  
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Point evaluator (evaluates the point transformed into the camera frame)
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  se3::ComposeLandmarkEvaluator::ConstPtr eval_;
+
+};
+
+} // steam
+
+#endif // STEAM_STEREO_CAMERA_ERROR_EVALUATOR_HPP
