@@ -18,7 +18,7 @@ namespace steam {
 ///        error function.
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////
-class PointToPointErrorEval : public ErrorEvaluator<3,6>::type
+class PointToPointErrorEval : public ErrorEvaluator<4,6>::type
 {
 public:
 
@@ -28,17 +28,17 @@ public:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
-	/// \param point1    A point express in euclidean coordinates (i.e., [x, y, z]) expressed
-	///                  in frame 1.
-	/// \param T_world_1 Transformation matrix from frame 1 to frame world.
-	/// \param point2    A point express in euclidean coordinates (i.e., [x, y, z]) expressed
-	///                  in frame 2.
-	/// \param T_world_2 Transformation matrix from frame 2 to frame world.
+	/// \param ref_a     A point from the reference point cloud (static) expressed in homogeneous 
+	///                  coordinates (i.e., [x, y, z, 1]) and in the frame a.
+	/// \param T_a_world Transformation matrix from frame world to frame a.
+	/// \param read_b    A point from the reading point cloud expressed in homogeneous 
+	///                  coordinates (i.e., [x, y, z, 1]) and in the frame b.
+	/// \param T_b_world Transformation matrix from frame world to frame b.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  PointToPointErrorEval(const Eigen::Vector3d& point1,
-                        const se3::TransformEvaluator::ConstPtr& T_world_1,
-												const Eigen::Vector3d& point2,
-                        const se3::TransformEvaluator::ConstPtr& T_world_2
+  PointToPointErrorEval(const Eigen::Vector4d& ref_a,
+                        const se3::TransformEvaluator::ConstPtr& T_a_world,
+												const Eigen::Vector4d& read_b,
+                        const se3::TransformEvaluator::ConstPtr& T_b_world
 												);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,25 +47,27 @@ public:
   virtual bool isActive() const; //TODO: check if we need to define that
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the 3-d measurement error (x, y, z)
+  /// \brief Evaluate the 4-d measurement error (x, y, z, 0)
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Vector3d evaluate() const;
+  virtual Eigen::Vector4d evaluate() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Evaluate the 3-d measurement error (x, y, z) and Jacobians
+  /// \brief Evaluate the 4-d measurement error (x, y, z, 0) and Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Vector3d evaluate(const Eigen::Matrix3d& lhs,
-                                   std::vector<Jacobian<3,6> >* jacs) const;
+  virtual Eigen::Vector4d evaluate(const Eigen::Matrix4d& lhs,
+                                   std::vector<Jacobian<4,6> >* jacs) const;
 
 private:
   
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Point evaluator (evaluates the point transformed into the camera frame)
   //////////////////////////////////////////////////////////////////////////////////////////////
-  se3::ComposeLandmarkEvaluator::ConstPtr eval_;
+	Eigen::Vector4d ref_a_;
+  se3::ComposeInverseTransformEvaluator::ConstPtr T_ab_;
+	Eigen::Vector4d read_b_;
 
 };
 
 } // steam
 
-#endif // STEAM_STEREO_CAMERA_ERROR_EVALUATOR_HPP
+#endif // STEAM_POINT_TO_POINT_ERROR_EVALUATOR_HPP
