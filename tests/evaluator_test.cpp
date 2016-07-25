@@ -41,18 +41,23 @@ void solveSimpleProblem(Eigen::Matrix<double, 6, 1> T_components)
 	//---------------------------------------
 
 	// Build a fixed point cloud (reference) with 3 points
-	const Eigen::Vector4d ref_0 = initVector4d(0, 0, 0);
-	const Eigen::Vector4d ref_1 = initVector4d(1, 0, 0);
-	const Eigen::Vector4d ref_2 = initVector4d(0, 1, 0);
+	// expressed in frame a
+	const Eigen::Vector4d ref_a_0 = initVector4d(0, 0, 0);
+	const Eigen::Vector4d ref_a_1 = initVector4d(1, 0, 0);
+	const Eigen::Vector4d ref_a_2 = initVector4d(0, 1, 0);
 
-	// Build a transformation matrix with a translation on x-axis
-	lgmath::se3::Transformation T_gt(T_components);
+	// Build a ground truth (gt) transformation matrix 
+	// from frame b to frame a
+	const lgmath::se3::Transformation Tgt_a_b(T_components);
+	// and its inverse
+	const lgmath::se3::Transformation Tgt_b_a = Tgt_a_b.inverse();
+  
 
 	// Move the reference point cloud to generate a
-	// second point cloud called reading
-	Eigen::Vector4d read_0 = T_gt.matrix() * ref_0;
-	Eigen::Vector4d read_1 = T_gt.matrix() * ref_1;
-	Eigen::Vector4d read_2 = T_gt.matrix() * ref_2;
+	// second point cloud called read (reading)
+	Eigen::Vector4d read_b_0 = Tgt_b_a.matrix() * ref_a_0;
+	Eigen::Vector4d read_b_1 = Tgt_b_a.matrix() * ref_a_1;
+	Eigen::Vector4d read_b_2 = Tgt_b_a.matrix() * ref_a_2;
 	
 	//---------------------------------------
 	// 1- Steam state variables
@@ -74,25 +79,33 @@ void solveSimpleProblem(Eigen::Matrix<double, 6, 1> T_components)
 	// steam cost terms
 	steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
 
+	// Convert our states to Transform Evaluators
+	// T_a_a is silly (most be identity) but it's there for completness
+	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
+	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
+
+	// Define our error funtion
+	typedef steam::PointToPointErrorEval Error;
+	
+	// Build the alignment errors
+	Error::Ptr error_0(new Error(ref_a_0, T_a_a, read_b_0, T_a_b));
+	Error::Ptr error_1(new Error(ref_a_1, T_a_a, read_b_1, T_a_b));
+	Error::Ptr error_2(new Error(ref_a_2, T_a_a, read_b_2, T_a_b));
+
+		
 	// Set the NoiseModel (R_i) to identity
 	steam::BaseNoiseModel<4>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<4>(Eigen::Matrix4d::Identity()));
 
 	// Set the LossFunction to L2 (least-squared)
 	steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
-	// Convert our states to Evaluators
-	auto stateReferenceEvaluator = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
-	auto stateReadingEvaluator = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
-	
-	// Build the alignment errors
-	steam::PointToPointErrorEval::Ptr error_0(new steam::PointToPointErrorEval(ref_0, stateReferenceEvaluator, read_0, stateReadingEvaluator));
-	steam::PointToPointErrorEval::Ptr error_1(new steam::PointToPointErrorEval(ref_1, stateReferenceEvaluator, read_1, stateReadingEvaluator));
-	steam::PointToPointErrorEval::Ptr error_2(new steam::PointToPointErrorEval(ref_2, stateReferenceEvaluator, read_2, stateReadingEvaluator));
+	// Define our cost term
+	typedef steam::WeightedLeastSqCostTerm<4,6> Cost;
 
 	// Build the cost terms
-	steam::WeightedLeastSqCostTerm<4,6>::Ptr cost_0(new steam::WeightedLeastSqCostTerm<4,6>(error_0, sharedNoiseModel, sharedLossFunc));
-	steam::WeightedLeastSqCostTerm<4,6>::Ptr cost_1(new steam::WeightedLeastSqCostTerm<4,6>(error_1, sharedNoiseModel, sharedLossFunc));
-	steam::WeightedLeastSqCostTerm<4,6>::Ptr cost_2(new steam::WeightedLeastSqCostTerm<4,6>(error_2, sharedNoiseModel, sharedLossFunc));
+	Cost::Ptr cost_0(new Cost(error_0, sharedNoiseModel, sharedLossFunc));
+	Cost::Ptr cost_1(new Cost(error_1, sharedNoiseModel, sharedLossFunc));
+	Cost::Ptr cost_2(new Cost(error_2, sharedNoiseModel, sharedLossFunc));
 	
 	// Add our individual cost terms to the collection 
 	costTerms->add(cost_0);
@@ -140,14 +153,14 @@ void solveSimpleProblem(Eigen::Matrix<double, 6, 1> T_components)
 	INFO("Minimized transformation:" << "\n" <<
 		 stateReading->getValue().matrix() << "\n" <<
 		 "is different than original transformation:" << "\n" <<
-		 T_gt.matrix() << "\n" << 
+		 Tgt_b_a.matrix() << "\n" << 
 		 "difference being:" << "\n" <<
-		 stateReading->getValue().matrix() - T_gt.matrix()
+		 stateReading->getValue().matrix() - Tgt_b_a.matrix()
 		 );
 
 	// Confirm that our state is the same as our ground truth transformation
 	CHECK(lgmath::common::nearEqual(stateReading->getValue().matrix(), 
-								  	T_gt.matrix(),
+								  	Tgt_b_a.matrix(),
 								  	1e-3
 								  	));
 
