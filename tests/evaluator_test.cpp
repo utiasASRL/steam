@@ -13,7 +13,7 @@
 #include <lgmath/CommonMath.hpp>
 
 // Helper function to initialize a 3D point in homogeneous coordinates 
-Eigen::Vector4d initVector4d(double x, double y, double z)
+Eigen::Vector4d initVector4d(const double x, const double y, const double z)
 {
 	Eigen::Vector4d v;
 	v << x, y, z, 1.0;
@@ -23,7 +23,7 @@ Eigen::Vector4d initVector4d(double x, double y, double z)
 
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
-void solveSimpleProblem_constructor1(Eigen::Matrix<double, 6, 1> T_components)
+void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const int constructor_type)
 {
 	//---------------------------------------
 	// General structure:
@@ -88,11 +88,27 @@ void solveSimpleProblem_constructor1(Eigen::Matrix<double, 6, 1> T_components)
 	// Define our error funtion
 	typedef steam::PointToPointErrorEval Error;
 	
-	// Build the alignment errors
-	Error::Ptr error_0(new Error(ref_a_0, T_a_a, read_b_0, T_b_a));
-	Error::Ptr error_1(new Error(ref_a_1, T_a_a, read_b_1, T_b_a));
-	Error::Ptr error_2(new Error(ref_a_2, T_a_a, read_b_2, T_b_a));
+	//-------------
+	// This is specific to the unit test
 
+	// Build the alignment errors
+	Error::Ptr error_0;
+	Error::Ptr error_1;
+	Error::Ptr error_2;
+
+	if(constructor_type == 0)
+	{
+		error_0.reset(new Error(ref_a_0, T_a_a, read_b_0, T_b_a));
+		error_1.reset(new Error(ref_a_1, T_a_a, read_b_1, T_b_a));
+		error_2.reset(new Error(ref_a_2, T_a_a, read_b_2, T_b_a));
+	}
+	else if(constructor_type == 1)
+	{
+		error_0.reset(new Error(ref_a_0, read_b_0, T_a_b));
+		error_1.reset(new Error(ref_a_1, read_b_1, T_a_b));
+		error_2.reset(new Error(ref_a_2, read_b_2, T_a_b));
+	}
+	//-------------
 		
 	// Set the NoiseModel (R_i) to identity
 	steam::BaseNoiseModel<4>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<4>(Eigen::Matrix4d::Identity()));
@@ -172,7 +188,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 	
 	Eigen::Matrix<double, 6, 1> T_components;
 
-	SECTION("Simple translation")
+	SECTION("Simple translation - constructor 0")
 	{
 		T_components << 1.0, // translation x
 						0.0, // translation y
@@ -181,10 +197,10 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 
-		solveSimpleProblem_constructor1(T_components);
+		solveSimpleProblem(T_components, 0);
 	}
 	
-	SECTION("Simple rotation")
+	SECTION("Simple rotation - constructor 0")
 	{
 		T_components << 0.0, // translation x
 						0.0, // translation y
@@ -193,10 +209,10 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 
-		solveSimpleProblem_constructor1(T_components);
+		solveSimpleProblem(T_components, 0);
 	}
 	
-	SECTION("Random transformation (1000)")
+	SECTION("Random transformation (1000) - constructor 0")
 	{
 		srand((unsigned int) time(0));
 
@@ -204,10 +220,46 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 		{
 			// random numbers in interval [-1, 1]
 			T_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblem_constructor1(T_components);
+			solveSimpleProblem(T_components, 0);
 		}
 
 	}
+	
+	SECTION("Simple translation - constructor 1")
+	{
+		T_components << 1.0, // translation x
+						0.0, // translation y
+						0.0, // translation z
+						0.0, // rotation around x-axis
+						0.0, // rotation around y-axis
+						0.0; // rotation around z-axis
 
+		solveSimpleProblem(T_components, 1);
+	}
+	
+	SECTION("Simple rotation - constructor 1")
+	{
+		T_components << 0.0, // translation x
+						0.0, // translation y
+						0.0, // translation z
+						1.0, // rotation around x-axis
+						0.0, // rotation around y-axis
+						0.0; // rotation around z-axis
+
+		solveSimpleProblem(T_components, 1);
+	}
+	
+	SECTION("Random transformation (1000) - constructor 1")
+	{
+		srand((unsigned int) time(0));
+
+		for(int i=0; i<1000; i++)
+		{
+			// random numbers in interval [-1, 1]
+			T_components = Eigen::Matrix<double, 6, 1>::Random();
+			solveSimpleProblem(T_components, 1);
+		}
+
+	}
 
 } // TEST_CASE
