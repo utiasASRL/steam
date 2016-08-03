@@ -25,6 +25,7 @@
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/PositionEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/InverseTransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
 
