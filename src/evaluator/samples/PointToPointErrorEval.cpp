@@ -21,15 +21,28 @@ PointToPointErrorEval::PointToPointErrorEval(
 		const Eigen::Vector4d& read_b,
 		const se3::TransformEvaluator::ConstPtr& T_b_world
 		): ref_a_(ref_a), 
-		   T_ab_(se3::ComposeInverseTransformEvaluator::MakeShared(T_a_world, T_b_world)),
+		   T_a_b_(se3::ComposeInverseTransformEvaluator::MakeShared(T_a_world, T_b_world)),
 		   read_b_(read_b)	{
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Constructor
+//////////////////////////////////////////////////////////////////////////////////////////////
+PointToPointErrorEval::PointToPointErrorEval(
+		const Eigen::Vector4d& ref_a,
+		const Eigen::Vector4d& read_b,
+		const se3::TransformEvaluator::ConstPtr& T_a_b
+		): ref_a_(ref_a),
+		   T_a_b_(T_a_b),
+		   read_b_(read_b){
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Returns whether or not an evaluator contains unlocked state variables
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool PointToPointErrorEval::isActive() const {
-	return T_ab_->isActive();
+	return T_a_b_->isActive();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,7 +51,7 @@ bool PointToPointErrorEval::isActive() const {
 Eigen::Vector4d PointToPointErrorEval::evaluate() const {
 
 	// Return error (between measurement and point estimate projected in camera frame)
-	return ref_a_ - (T_ab_->evaluate() * read_b_);
+	return ref_a_ - (T_a_b_->evaluate() * read_b_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,10 +67,10 @@ Eigen::Vector4d PointToPointErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
 
 	// Get evaluation tree
 	EvalTreeHandle<lgmath::se3::Transformation> blkAutoTransform =
-		T_ab_->getBlockAutomaticEvaluation();
+		T_a_b_->getBlockAutomaticEvaluation();
 
 	// Get evaluation from tree
-	//TODO: why just not using T_ab_->evaluate() instead?
+	//TODO: why just not using T_a_b_->evaluate() instead?
 	const lgmath::se3::Transformation T_ab = blkAutoTransform.getValue();
 	const Eigen::Vector4d read_a = T_ab * read_b_;
 
@@ -65,7 +78,7 @@ Eigen::Vector4d PointToPointErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
 	//TODO: why point2fs(...) doesn't take Vector4d as input?
 	//TODO: why is the newLhs not the same shape as lhs (input)?
 	Eigen::Matrix<double, 4, 6> newLhs = -lhs*lgmath::se3::point2fs(read_a.head<3>());
-	T_ab_->appendBlockAutomaticJacobians(newLhs, blkAutoTransform.getRoot(), jacs);
+	T_a_b_->appendBlockAutomaticJacobians(newLhs, blkAutoTransform.getRoot(), jacs);
 
 	// Return evaluation
 	return ref_a_ - read_a;
