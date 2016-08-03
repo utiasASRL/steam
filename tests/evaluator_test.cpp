@@ -23,7 +23,7 @@ Eigen::Vector4d initVector4d(double x, double y, double z)
 
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
-void solveSimpleProblem(Eigen::Matrix<double, 6, 1> T_components)
+void solveSimpleProblem_constructor1(Eigen::Matrix<double, 6, 1> T_components)
 {
 	//---------------------------------------
 	// General structure:
@@ -181,7 +181,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 
-		solveSimpleProblem(T_components);
+		solveSimpleProblem_constructor1(T_components);
 	}
 	
 	SECTION("Simple rotation")
@@ -193,7 +193,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 
-		solveSimpleProblem(T_components);
+		solveSimpleProblem_constructor1(T_components);
 	}
 	
 	SECTION("Random transformation (1000)")
@@ -204,7 +204,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 		{
 			// random numbers in interval [-1, 1]
 			T_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblem(T_components);
+			solveSimpleProblem_constructor1(T_components);
 		}
 
 	}
