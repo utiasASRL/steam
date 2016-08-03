@@ -9,7 +9,7 @@
 
 
 #include "catch.hpp"
-#include "steam/steam.hpp"
+#include "steam.hpp"
 #include <lgmath/CommonMath.hpp>
 
 // Helper function to initialize a 3D point in homogeneous coordinates 
@@ -83,14 +83,15 @@ void solveSimpleProblem(Eigen::Matrix<double, 6, 1> T_components)
 	// T_a_a is silly (most be identity) but it's there for completness
 	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
 	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
+	auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
 
 	// Define our error funtion
 	typedef steam::PointToPointErrorEval Error;
 	
 	// Build the alignment errors
-	Error::Ptr error_0(new Error(ref_a_0, T_a_a, read_b_0, T_a_b));
-	Error::Ptr error_1(new Error(ref_a_1, T_a_a, read_b_1, T_a_b));
-	Error::Ptr error_2(new Error(ref_a_2, T_a_a, read_b_2, T_a_b));
+	Error::Ptr error_0(new Error(ref_a_0, T_a_a, read_b_0, T_b_a));
+	Error::Ptr error_1(new Error(ref_a_1, T_a_a, read_b_1, T_b_a));
+	Error::Ptr error_2(new Error(ref_a_2, T_a_a, read_b_2, T_b_a));
 
 		
 	// Set the NoiseModel (R_i) to identity
@@ -155,12 +156,12 @@ void solveSimpleProblem(Eigen::Matrix<double, 6, 1> T_components)
 		 "is different than original transformation:" << "\n" <<
 		 Tgt_b_a.matrix() << "\n" << 
 		 "difference being:" << "\n" <<
-		 stateReading->getValue().matrix() - Tgt_b_a.matrix()
+		 stateReading->getValue().matrix() - Tgt_a_b.matrix()
 		 );
 
 	// Confirm that our state is the same as our ground truth transformation
 	CHECK(lgmath::common::nearEqual(stateReading->getValue().matrix(), 
-								  	Tgt_b_a.matrix(),
+								  	Tgt_a_b.matrix(),
 								  	1e-3
 								  	));
 
