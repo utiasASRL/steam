@@ -22,15 +22,6 @@ Eigen::Vector4d initVector4d(const double x, const double y, const double z)
 	return v;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Structure to store trajectory state variables
-//////////////////////////////////////////////////////////////////////////////////////////////
-struct TrajStateVar {
-  steam::Time time;
-  steam::se3::TransformStateVar::Ptr pose;
-  steam::VectorSpaceStateVar::Ptr velocity;
-};
-
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
 void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const int constructor_type)
@@ -112,40 +103,41 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 	steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
 
 	// State variable containers (and related data)
-  	std::vector<TrajStateVar> traj_states_ic;
+  	std::vector<steam::se3::SteamTrajVar> traj_states_ic;
 
 	// Setup trajectory state variables using initial condition
-	TrajStateVar TrajStateVar_0;
-	TrajStateVar_0.time = 10000.0;
-	TrajStateVar_0.pose = stateReference;
-	TrajStateVar_0.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	traj_states_ic.push_back(TrajStateVar_0);
 
-	TrajStateVar TrajStateVar_1;
-	TrajStateVar_1.time = 10001.0;
-	TrajStateVar_1.pose = stateReading;
-	TrajStateVar_1.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	traj_states_ic.push_back(TrajStateVar_1);
+	steam::Time time0 = 10000.0;
+	steam::se3::TransformStateEvaluator::Ptr pose0 = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
+	steam::VectorSpaceStateVar::Ptr velocity0 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	steam::se3::SteamTrajVar traj0(time0, pose0, velocity0);
 
+	steam::Time time1 = 10001.0;
+	steam::se3::TransformStateEvaluator::Ptr pose1 = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
+	steam::VectorSpaceStateVar::Ptr velocity1 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	steam::se3::SteamTrajVar traj1(time1, pose1, velocity1);
 
+	traj_states_ic.push_back(traj0);
+	traj_states_ic.push_back(traj1);
+
+	
 	// Convert our states to Transform Evaluators
 	// T_a_a is silly (most be identity) but it's there for completness
-	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(TrajStateVar_0.pose);
-	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(TrajStateVar_1.pose);
+	steam::se3::TransformEvaluator::Ptr T_a_a = traj0.getPose();
+	steam::se3::TransformEvaluator::Ptr T_a_b = traj1.getPose();
 	auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
 
 	// Setup Trajectory
 	steam::se3::SteamTrajInterface traj(Qc_inv);
 	for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
-		TrajStateVar& state = traj_states_ic.at(i);
-		steam::se3::TransformStateEvaluator::Ptr temp =
-			steam::se3::TransformStateEvaluator::MakeShared(state.pose);
-		traj.add(state.time, temp, state.velocity);
+		steam::se3::SteamTrajVar& state = traj_states_ic.at(i);
+		steam::Time temp_time = state.getTime();
+		steam::se3::TransformEvaluator::Ptr temp_pose = state.getPose();
+		steam::VectorSpaceStateVar::Ptr temp_velocity = state.getVelocity();
+		traj.add(temp_time, temp_pose, temp_velocity);
 	}
 
-	// Lock first pose (otherwise entire solution is 'floating')
-	//  **Note: alternatively we could add a prior to the first pose.
-	traj_states_ic[0].pose->setLock(true);
+
 
 	// Define our error funtion
 	typedef steam::PointToPointErrorEval Error;
@@ -202,14 +194,15 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 	steam::OptimizationProblem problem;
 
 	// Add state variables
-	// problem.addStateVariable(stateReference);
-	// problem.addStateVariable(stateReading);
 
 	for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
-		const TrajStateVar& state = traj_states_ic.at(i);
-		problem.addStateVariable(state.pose);
-		problem.addStateVariable(state.velocity);
+		steam::se3::SteamTrajVar& state = traj_states_ic.at(i);
+		steam::VectorSpaceStateVar::Ptr temp_velocity = state.getVelocity();
+		problem.addStateVariable(temp_velocity);
   	}
+
+	problem.addStateVariable(stateReference);
+	problem.addStateVariable(stateReading);
 
 	// Add cost terms
 	problem.addCostTerm(costTerms);
