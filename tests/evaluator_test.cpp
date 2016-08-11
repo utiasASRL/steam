@@ -11,6 +11,7 @@
 #include "catch.hpp"
 #include "steam.hpp"
 #include <lgmath/CommonMath.hpp>
+#include <steam/data/ParseBA.hpp>
 
 // Helper function to initialize a 3D point in homogeneous coordinates 
 Eigen::Vector4d initVector4d(const double x, const double y, const double z)
@@ -21,10 +22,41 @@ Eigen::Vector4d initVector4d(const double x, const double y, const double z)
 	return v;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Structure to store trajectory state variables
+//////////////////////////////////////////////////////////////////////////////////////////////
+struct TrajStateVar {
+  steam::Time time;
+  steam::se3::TransformStateVar::Ptr pose;
+  steam::VectorSpaceStateVar::Ptr velocity;
+};
+
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
 void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const int constructor_type)
 {
+	//---------------------------------------
+	// Preliminary things used for setting up a trajectory
+
+	// Make Qc_inv for the trajectory interface
+	double lin_acc_stddev_x = 1.00; // body-centric (e.g. x is usually forward)
+	double lin_acc_stddev_y = 0.01; // body-centric (e.g. y is usually side-slip)
+	double lin_acc_stddev_z = 0.01; // body-centric (e.g. z is usually 'jump')
+	double ang_acc_stddev_x = 0.01; // ~roll
+	double ang_acc_stddev_y = 0.01; // ~pitch
+	double ang_acc_stddev_z = 1.00; // ~yaw
+	Eigen::Array<double,1,6> Qc_diag;
+	Qc_diag << lin_acc_stddev_x, lin_acc_stddev_y, lin_acc_stddev_z,
+				ang_acc_stddev_x, ang_acc_stddev_y, ang_acc_stddev_z;
+
+	// Make Qc_inv
+	Eigen::Matrix<double,6,6> Qc_inv; Qc_inv.setZero();
+		Qc_inv.diagonal() = 1.0/Qc_diag;
+	
+	// Zero velocity
+	Eigen::Matrix<double,6,1> initVelocity; initVelocity.setZero();
+
+
 	//---------------------------------------
 	// General structure:
 	// 0- Generate simple point clouds
@@ -79,11 +111,41 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 	// steam cost terms
 	steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
 
+	// State variable containers (and related data)
+  	std::vector<TrajStateVar> traj_states_ic;
+
+	// Setup trajectory state variables using initial condition
+	TrajStateVar TrajStateVar_0;
+	TrajStateVar_0.time = 10000.0;
+	TrajStateVar_0.pose = stateReference;
+	TrajStateVar_0.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	traj_states_ic.push_back(TrajStateVar_0);
+
+	TrajStateVar TrajStateVar_1;
+	TrajStateVar_1.time = 10001.0;
+	TrajStateVar_1.pose = stateReading;
+	TrajStateVar_1.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	traj_states_ic.push_back(TrajStateVar_1);
+
+
 	// Convert our states to Transform Evaluators
 	// T_a_a is silly (most be identity) but it's there for completness
-	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
-	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
+	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(TrajStateVar_0.pose);
+	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(TrajStateVar_1.pose);
 	auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
+
+	// Setup Trajectory
+	steam::se3::SteamTrajInterface traj(Qc_inv);
+	for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
+		TrajStateVar& state = traj_states_ic.at(i);
+		steam::se3::TransformStateEvaluator::Ptr temp =
+			steam::se3::TransformStateEvaluator::MakeShared(state.pose);
+		traj.add(state.time, temp, state.velocity);
+	}
+
+	// Lock first pose (otherwise entire solution is 'floating')
+	//  **Note: alternatively we could add a prior to the first pose.
+	traj_states_ic[0].pose->setLock(true);
 
 	// Define our error funtion
 	typedef steam::PointToPointErrorEval Error;
@@ -129,6 +191,9 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 	costTerms->add(cost_1);
 	costTerms->add(cost_2);
 
+	// Trajectory prior smoothing terms
+	steam::ParallelizedCostTermCollection::Ptr smoothingCostTerms(new steam::ParallelizedCostTermCollection());
+	traj.appendPriorCostTerms(smoothingCostTerms);
 
 	//---------------------------------------
 	// 3- Set up the optimization problem
@@ -136,13 +201,19 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 
 	steam::OptimizationProblem problem;
 
-	// Add states
-	problem.addStateVariable(stateReference);
-	problem.addStateVariable(stateReading);
+	// Add state variables
+	// problem.addStateVariable(stateReference);
+	// problem.addStateVariable(stateReading);
+
+	for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
+		const TrajStateVar& state = traj_states_ic.at(i);
+		problem.addStateVariable(state.pose);
+		problem.addStateVariable(state.velocity);
+  	}
 
 	// Add cost terms
 	problem.addCostTerm(costTerms);
-
+	problem.addCostTerm(smoothingCostTerms);
 
 	//---------------------------------------
 	// 4- Solve
