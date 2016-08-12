@@ -24,7 +24,13 @@ Eigen::Vector4d initVector4d(const double x, const double y, const double z)
 
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
-void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components, const int constructor_type)
+void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components, 
+								//   const Eigen::Matrix<double, 6, 1> T_1_0_components,
+								//   const Eigen::Matrix<double, 6, 1> T_2_0_components,
+								//   const Eigen::Matrix<double, 6, 1> T_8_0_components, 
+								//   const Eigen::Matrix<double, 6, 1> T_9_0_components, 
+								//   const Eigen::Matrix<double, 6, 1> T_10_0_components, 
+								  const int constructor_type)
 {
 	//---------------------------------------
 	// Preliminary things used for setting up a trajectory
@@ -63,11 +69,17 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// 0- Generate simple point clouds
 	//---------------------------------------
 
-	// Build a fixed point cloud (reference) with 3 points
+	// Number of points in each point cloud
+	unsigned int num_pts = 8;
+
+	// Build a fixed point cloud (reference) with 8 points
 	// expressed in frame a
-	const Eigen::Vector4d ref_a_0 = initVector4d(0, 0, 0);
-	const Eigen::Vector4d ref_a_1 = initVector4d(1, 0, 0);
-	const Eigen::Vector4d ref_a_2 = initVector4d(0, 1, 0);
+	std::vector<Eigen::Vector4d> ref_a_pts;
+	for (unsigned int i = 0; i < num_pts; i++) {
+		const Eigen::Vector3d rand = Eigen::Matrix<double, 3, 1>::Random();
+		const Eigen::Vector4d ref_a_temp = initVector4d(rand(0,0), rand(1,0), rand(2,0));
+		ref_a_pts.push_back(ref_a_temp);
+	}
 
 	// Build a ground truth (gt) transformation matrix 
 	// from frame b to frame a
@@ -75,12 +87,14 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// and its inverse
 	const lgmath::se3::Transformation Tgt_b_a = Tgt_a_b.inverse();
   
-
 	// Move the reference point cloud to generate a
 	// second point cloud called read (reading)
-	Eigen::Vector4d read_b_0 = Tgt_b_a.matrix() * ref_a_0;
-	Eigen::Vector4d read_b_1 = Tgt_b_a.matrix() * ref_a_1;
-	Eigen::Vector4d read_b_2 = Tgt_b_a.matrix() * ref_a_2;
+	std::vector<Eigen::Vector4d> read_b_pts;
+	for (unsigned int i = 0; i < num_pts; i++) {
+		const Eigen::Vector4d ref_a_temp = ref_a_pts.at(i);
+		Eigen::Vector4d read_b_temp = Tgt_b_a.matrix() * ref_a_temp;
+		read_b_pts.push_back(read_b_temp);
+	}
 	
 	//---------------------------------------
 	// 1- Steam state variables
@@ -95,13 +109,6 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// Setup state for the reading frame
 	steam::se3::TransformStateVar::Ptr stateReading(new steam::se3::TransformStateVar());
 
-	//---------------------------------------
-	// 2- Steam cost terms
-	//---------------------------------------
-
-	// steam cost terms
-	steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
-
 	// State variable containers (and related data)
   	std::vector<steam::se3::SteamTrajVar> traj_states_ic;
 
@@ -112,7 +119,7 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	steam::VectorSpaceStateVar::Ptr velocity0 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
 	steam::se3::SteamTrajVar traj0(time0, pose0, velocity0);
 
-	steam::Time time1 = 10001.0;
+	steam::Time time1 = 10000.1;
 	steam::se3::TransformStateEvaluator::Ptr pose1 = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
 	steam::VectorSpaceStateVar::Ptr velocity1 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
 	steam::se3::SteamTrajVar traj1(time1, pose1, velocity1);
@@ -137,33 +144,38 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 		traj.add(temp_time, temp_pose, temp_velocity);
 	}
 
-
-
 	// Define our error funtion
 	typedef steam::PointToPointErrorEval Error;
 	
 	//-------------
-	// This is specific to the unit test
+	// This is spestateReferencecific to the unit test
 
 	// Build the alignment errors
-	Error::Ptr error_0;
-	Error::Ptr error_1;
-	Error::Ptr error_2;
+	std::vector<Error::Ptr> errors;
 
-	if(constructor_type == 0)
-	{
-		error_0.reset(new Error(ref_a_0, T_a_a, read_b_0, T_b_a));
-		error_1.reset(new Error(ref_a_1, T_a_a, read_b_1, T_b_a));
-		error_2.reset(new Error(ref_a_2, T_a_a, read_b_2, T_b_a));
+	for (unsigned int i = 0; i < ref_a_pts.size(); i++) {
+		Error::Ptr error_temp;
+		const Eigen::Vector4d ref_a_temp = ref_a_pts.at(i);
+		Eigen::Vector4d read_b_temp = read_b_pts.at(i);
+		if(constructor_type == 0)
+		{
+			error_temp.reset(new Error(ref_a_temp, T_a_a, read_b_temp, T_b_a));
+		}
+		else if(constructor_type == 1)
+		{
+			error_temp.reset(new Error(ref_a_temp, read_b_temp, T_a_b));
+		}
+		errors.push_back(error_temp);
 	}
-	else if(constructor_type == 1)
-	{
-		error_0.reset(new Error(ref_a_0, read_b_0, T_a_b));
-		error_1.reset(new Error(ref_a_1, read_b_1, T_a_b));
-		error_2.reset(new Error(ref_a_2, read_b_2, T_a_b));
-	}
-	//-------------
-		
+
+	
+	//---------------------------------------
+	// 2- Steam cost terms
+	//---------------------------------------
+
+	// steam cost terms
+	steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
+
 	// Set the NoiseModel (R_i) to identity
 	steam::BaseNoiseModel<4>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<4>(Eigen::Matrix4d::Identity()));
 
@@ -173,15 +185,14 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// Define our cost term
 	typedef steam::WeightedLeastSqCostTerm<4,6> Cost;
 
-	// Build the cost terms
-	Cost::Ptr cost_0(new Cost(error_0, sharedNoiseModel, sharedLossFunc));
-	Cost::Ptr cost_1(new Cost(error_1, sharedNoiseModel, sharedLossFunc));
-	Cost::Ptr cost_2(new Cost(error_2, sharedNoiseModel, sharedLossFunc));
-	
-	// Add our individual cost terms to the collection 
-	costTerms->add(cost_0);
-	costTerms->add(cost_1);
-	costTerms->add(cost_2);
+	// Build the cost terms. Add our individual cost terms to the collection 
+	std::vector<Cost::Ptr> costs;
+	for (unsigned int i = 0; i < errors.size(); i++) {
+		Error::Ptr error_temp = errors.at(i);
+		Cost::Ptr cost_temp(new Cost(error_temp, sharedNoiseModel, sharedLossFunc));
+		costs.push_back(cost_temp);
+		costTerms->add(cost_temp);
+	}
 
 	// Trajectory prior smoothing terms
 	steam::ParallelizedCostTermCollection::Ptr smoothingCostTerms(new steam::ParallelizedCostTermCollection());
@@ -420,7 +431,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 		solveSimpleProblemTrajectory(T_components, 0);
-		solveSimpleProblem(T_components, 0);
+		// solveSimpleProblem(T_components, 0);
 	}
 	
 	SECTION("Simple rotation - constructor 0")
@@ -432,7 +443,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 		solveSimpleProblemTrajectory(T_components, 0);				
-		solveSimpleProblem(T_components, 0);
+		// solveSimpleProblem(T_components, 0);
 	}
 	
 	SECTION("Random transformation (1000) - constructor 0")
@@ -444,7 +455,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 			// random numbers in interval [-1, 1]
 			T_components = Eigen::Matrix<double, 6, 1>::Random();
 			solveSimpleProblemTrajectory(T_components, 0);
-			solveSimpleProblem(T_components, 0);
+			// solveSimpleProblem(T_components, 0);
 		}
 
 	}
@@ -458,7 +469,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 		solveSimpleProblemTrajectory(T_components, 0);				
-		solveSimpleProblem(T_components, 1);
+		// solveSimpleProblem(T_components, 1);
 	}
 	
 	SECTION("Simple rotation - constructor 1")
@@ -470,7 +481,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
 		solveSimpleProblemTrajectory(T_components, 0);			
-		solveSimpleProblem(T_components, 1);
+		// solveSimpleProblem(T_components, 1);
 	}
 	
 	SECTION("Random transformation (1000) - constructor 1")
@@ -482,7 +493,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 			// random numbers in interval [-1, 1]
 			T_components = Eigen::Matrix<double, 6, 1>::Random();
 			solveSimpleProblemTrajectory(T_components, 0);
-			solveSimpleProblem(T_components, 1);
+			// solveSimpleProblem(T_components, 1);
 		}
 
 	}
