@@ -24,7 +24,8 @@ Eigen::Vector4d initVector4d(const double x, const double y, const double z)
 
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
-void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components, 
+void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_a_0_components, 
+								  const Eigen::Matrix<double, 6, 1> T_b_0_components, 
 								  const Eigen::Matrix<double, 6, 1> T_1_0_components,
 								  const Eigen::Matrix<double, 6, 1> T_2_0_components,
 								  const Eigen::Matrix<double, 6, 1> T_8_0_components, 
@@ -72,26 +73,6 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// Number of points in each point cloud
 	unsigned int num_pts = 8;
 
-	// Create a map to store the time stamps which the points are taken
-	std::map<unsigned int, double> ref_time_map;
-	std::map<unsigned int, double> read_time_map;
-	
-	ref_time_map[0] = 10000.0;
-	ref_time_map[1] = 10000.0;
-	ref_time_map[2] = 10001.0;
-	ref_time_map[3] = 10001.0;
-	ref_time_map[4] = 10001.0;
-	ref_time_map[5] = 10002.0;
-	ref_time_map[5] = 10002.0;
-
-	read_time_map[0] = 10008.0;
-	read_time_map[1] = 10008.0;
-	read_time_map[2] = 10009.0;
-	read_time_map[3] = 10009.0;
-	read_time_map[4] = 10009.0;
-	read_time_map[5] = 10010.0;
-	read_time_map[5] = 10010.0;
-
 	// Build a fixed point cloud (reference) with 8 points
 	// expressed in frame a
 	std::vector<Eigen::Vector4d> ref_a_pts;
@@ -103,7 +84,9 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 
 	// Build a ground truth (gt) transformation matrix 
 	// from frame b to frame a
-	const lgmath::se3::Transformation Tgt_a_b(T_components);
+	const lgmath::se3::Transformation Tgt_a_0(T_a_0_components);
+	const lgmath::se3::Transformation Tgt_b_0(T_b_0_components);
+	const lgmath::se3::Transformation Tgt_a_b = Tgt_a_0 * Tgt_b_0.inverse();
 	// and its inverse
 	const lgmath::se3::Transformation Tgt_b_a = Tgt_a_b.inverse();
 
@@ -123,18 +106,26 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 		
 		// T_temp is the transformation of the sensor between when point in reading frame
 		// was taken and when the corresponding point in reference frame was taken
-		Eigen::Matrix4d T_temp;
+
+		// For each pair of points, the point in reference is taken at time i, the point
+		// in reading is taken at time j.
+		Eigen::Matrix4d T_a_i;
+		Eigen::Matrix4d T_j_b;
+		Eigen::Matrix4d T_j_i;
 		if (i < 2){
-			T_temp = Tgt_0_0.matrix() * Tgt_8_0.inverse().matrix();
+			T_a_i = Tgt_a_0.matrix() * Tgt_0_0.matrix();
+			T_j_b = Tgt_8_0.matrix() * Tgt_b_0.inverse().matrix();
 		}
 		else if (i >= 2 and i < 5){
-			T_temp = Tgt_1_0.matrix() * Tgt_9_0.inverse().matrix();
+			T_a_i = Tgt_a_0.matrix() * Tgt_1_0.inverse().matrix();
+			T_j_b = Tgt_9_0.matrix() * Tgt_b_0.inverse().matrix();
 		}
 		else {
-			T_temp = Tgt_2_0.matrix() * Tgt_10_0.inverse().matrix();
+			T_a_i = Tgt_a_0.matrix() * Tgt_2_0.inverse().matrix();
+			T_j_b = Tgt_10_0.matrix() * Tgt_b_0.inverse().matrix();
 		}
-		// Eigen::Vector4d read_b_temp = Tgt_b_a.matrix() * ref_a_temp;
-		Eigen::Vector4d read_b_temp = Tgt_b_a.matrix() * T_temp * ref_a_temp;
+		T_j_i = T_j_b * Tgt_b_a.matrix() * T_a_i;
+		Eigen::Vector4d read_b_temp = T_j_i * ref_a_temp;
 		read_b_pts.push_back(read_b_temp);
 	}
 
@@ -143,61 +134,41 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// 1- Steam state variables
 	//---------------------------------------
 
-	// Setup state for the reference frame
-	// Note: the default constructor sets the state to identity
-	steam::se3::TransformStateVar::Ptr stateReference(new steam::se3::TransformStateVar());
-	// Lock the reference frame
-	stateReference->setLock(true);
-
-	// Setup state for the reading frame
-	steam::se3::TransformStateVar::Ptr stateReading(new steam::se3::TransformStateVar());
-
 	// State variable containers (and related data)
   	std::vector<steam::se3::SteamTrajVar> traj_states_ic;
+	std::vector<steam::se3::TransformStateVar::Ptr> statevars_ic;
 
-	// Setup trajectory state variables using initial condition. We have 5 trajectory state variables
-	// Corresponding to T_1_0, T_2_0, T_8_0, T_9_0, T_10_0
-	steam::Time time0 = 10001.0;
-	steam::se3::TransformStateVar::Ptr State_T_1_0(new steam::se3::TransformStateVar());
-	steam::se3::TransformStateEvaluator::Ptr pose0 = steam::se3::TransformStateEvaluator::MakeShared(State_T_1_0);
-	steam::VectorSpaceStateVar::Ptr velocity0 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	steam::se3::SteamTrajVar traj0(time0, pose0, velocity0);
+	// Setup trajectory state variables using initial condition. We have 6 trajectory state variables
+	// Corresponding to T_0_0, T_1_0, T_2_0, T_8_0, T_9_0, T_10_0
 
-	steam::Time time1 = 10002.0;
-	steam::se3::TransformStateVar::Ptr State_T_2_0(new steam::se3::TransformStateVar());
-	steam::se3::TransformStateEvaluator::Ptr pose1 = steam::se3::TransformStateEvaluator::MakeShared(State_T_2_0);
-	steam::VectorSpaceStateVar::Ptr velocity1 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	steam::se3::SteamTrajVar traj1(time1, pose1, velocity1);
+	double time_array[6] = {10000.0, 10001.0, 10002.0, 10008.0, 10009.0, 10010.0};
 
-	steam::Time time2 = 10008.0;
-	steam::se3::TransformStateVar::Ptr State_T_8_0(new steam::se3::TransformStateVar());
-	steam::se3::TransformStateEvaluator::Ptr pose2 = steam::se3::TransformStateEvaluator::MakeShared(State_T_8_0);
-	steam::VectorSpaceStateVar::Ptr velocity2 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	steam::se3::SteamTrajVar traj2(time2, pose2, velocity2);
+	for (int i = 0; i < 6; i++) {
+		double time = time_array[i];
+		steam::Time temp_time = time;
+		steam::se3::TransformStateVar::Ptr temp_statevar(new steam::se3::TransformStateVar());
+		steam::se3::TransformStateEvaluator::Ptr temp_pose = steam::se3::TransformStateEvaluator::MakeShared(temp_statevar);
+		steam::VectorSpaceStateVar::Ptr temp_velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+		steam::se3::SteamTrajVar temp(temp_time, temp_pose, temp_velocity);
 
-	steam::Time time3 = 10009.0;
-	steam::se3::TransformStateVar::Ptr State_T_9_0(new steam::se3::TransformStateVar());
-	steam::se3::TransformStateEvaluator::Ptr pose3 = steam::se3::TransformStateEvaluator::MakeShared(State_T_9_0);
-	steam::VectorSpaceStateVar::Ptr velocity3 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	steam::se3::SteamTrajVar traj3(time3, pose3, velocity3);
+		statevars_ic.push_back(temp_statevar);
+		traj_states_ic.push_back(temp);
+	}
 
-	steam::Time time4 = 10010.0;
-	steam::se3::TransformStateVar::Ptr State_T_10_0(new steam::se3::TransformStateVar());
-	steam::se3::TransformStateEvaluator::Ptr pose4 = steam::se3::TransformStateEvaluator::MakeShared(State_T_10_0);
-	steam::VectorSpaceStateVar::Ptr velocity4 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-	steam::se3::SteamTrajVar traj4(time4, pose4, velocity4);
+	steam::se3::TransformStateVar::Ptr T_a_0_statevar(new steam::se3::TransformStateVar());
+	steam::se3::TransformStateVar::Ptr T_b_0_statevar(new steam::se3::TransformStateVar());
 
-	traj_states_ic.push_back(traj0);
-	traj_states_ic.push_back(traj1);
-	traj_states_ic.push_back(traj2);
-	traj_states_ic.push_back(traj3);
-	traj_states_ic.push_back(traj4);
+	statevars_ic.push_back(T_a_0_statevar);
+	statevars_ic.push_back(T_b_0_statevar);
+
+	// Lock the first state variable
+	statevars_ic[0]->setLock(true);
 
 	// Convert our states to Transform Evaluators
-	// T_a_a is silly (most be identity) but it's there for completness
-	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
-	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
-	auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
+	steam::se3::TransformStateEvaluator::Ptr T_a_0 = steam::se3::TransformStateEvaluator::MakeShared(T_a_0_statevar);
+	steam::se3::TransformStateEvaluator::Ptr T_b_0 = steam::se3::TransformStateEvaluator::MakeShared(T_b_0_statevar);
+	steam::se3::TransformEvaluator::Ptr T_a_b = steam::se3::composeInverse(T_a_0, T_b_0);
+	steam::se3::TransformStateEvaluator::Ptr T_0_0 = steam::se3::TransformStateEvaluator::MakeShared(statevars_ic[0]);
 
 	// Setup Trajectory
 	steam::se3::SteamTrajInterface traj(Qc_inv);
@@ -222,9 +193,31 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 		Error::Ptr error_temp;
 		const Eigen::Vector4d ref_a_temp = ref_a_pts.at(i);
 		Eigen::Vector4d read_b_temp = read_b_pts.at(i);
+
+		steam::se3::TransformEvaluator::Ptr T_i_0;
+		steam::se3::TransformEvaluator::Ptr T_j_0;
+
+		if (i < 2){
+			T_i_0 = traj_states_ic[0].getPose();
+			T_j_0 = traj_states_ic[3].getPose();
+		}
+		else if (i >= 2 and i < 5){
+			T_i_0 = traj_states_ic[1].getPose();
+			T_j_0 = traj_states_ic[4].getPose();
+		}
+		else {
+			T_i_0 = traj_states_ic[2].getPose();
+			T_j_0 = traj_states_ic[5].getPose();
+		}
+
+		steam::se3::TransformEvaluator::Ptr T_i_a = steam::se3::composeInverse(T_i_0, T_a_0);
+		steam::se3::TransformEvaluator::Ptr T_b_j = steam::se3::composeInverse(T_b_0, T_j_0);
+		steam::se3::TransformEvaluator::Ptr T_i_b = steam::se3::compose(T_i_a, T_a_b);
+		steam::se3::TransformEvaluator::Ptr T_i_j = steam::se3::compose(T_i_b, T_b_j);
+		
 		if(constructor_type == 0)
 		{
-			error_temp.reset(new Error(ref_a_temp, T_a_a, read_b_temp, T_b_a)); 
+			error_temp.reset(new Error(ref_a_temp, T_0_0, read_b_temp, T_i_j)); 
 		}
 		else if(constructor_type == 1)
 		{
@@ -277,8 +270,10 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 		problem.addStateVariable(temp_velocity);
   	}
 
-	problem.addStateVariable(stateReference);
-	problem.addStateVariable(stateReading);
+	for (unsigned int i = 0; i < statevars_ic.size(); i++) {
+		steam::se3::TransformStateVar::Ptr& state_var= statevars_ic.at(i);
+		problem.addStateVariable(state_var);
+  	}
 
 	// Add cost terms
 	problem.addCostTerm(costTerms);
@@ -308,16 +303,16 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// 5- Check that the transformation are the same
 	//---------------------------------------
 	INFO("Minimized transformation:" << "\n" <<
-		 stateReading->getValue().matrix() << "\n" <<
+		 T_a_0_statevar->getValue().matrix() << "\n" <<
 		 "is different than original transformation:" << "\n" <<
-		 Tgt_b_a.matrix() << "\n" << 
+		 Tgt_a_0.matrix() << "\n" << 
 		 "difference being:" << "\n" <<
-		 stateReading->getValue().matrix() - Tgt_a_b.matrix()
+		 T_a_0_statevar->getValue().matrix() - Tgt_a_0.matrix()
 		 );
 
 	// Confirm that our state is the same as our ground truth transformation
-	CHECK(lgmath::common::nearEqual(stateReading->getValue().matrix(), 
-								  	Tgt_a_b.matrix(),
+	CHECK(lgmath::common::nearEqual(T_a_0_statevar->getValue().matrix(), 
+								  	Tgt_a_0.matrix(),
 								  	1e-3
 								  	));
 
@@ -484,8 +479,10 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 }
 
 TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
-	
+
 	Eigen::Matrix<double, 6, 1> T_components;
+	Eigen::Matrix<double, 6, 1> T_a_0_components;
+	Eigen::Matrix<double, 6, 1> T_b_0_components;
 	Eigen::Matrix<double, 6, 1> T_1_0_components;
 	Eigen::Matrix<double, 6, 1> T_2_0_components;
 	Eigen::Matrix<double, 6, 1> T_8_0_components;
@@ -500,7 +497,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around x-axis
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
-		solveSimpleProblemTrajectory(T_components, T_components, T_components, T_components, T_components, T_components, 0);
+		solveSimpleProblemTrajectory(T_components, T_components, T_components, T_components, T_components, T_components, T_components, 0);
 		// solveSimpleProblem(T_components, 0);
 	}
 	
@@ -512,7 +509,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						1.0, // rotation around x-axis
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
-		solveSimpleProblemTrajectory(T_components, T_components, T_components, T_components, T_components, T_components, 0);				
+		solveSimpleProblemTrajectory(T_components, T_components, T_components, T_components, T_components, T_components, T_components, 0);				
 		// solveSimpleProblem(T_components, 0);
 	}
 	
@@ -523,13 +520,14 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 		for(int i=0; i<1000; i++)
 		{
 			// random numbers in interval [-1, 1]
-			T_components = Eigen::Matrix<double, 6, 1>::Random();
+			T_a_0_components = Eigen::Matrix<double, 6, 1>::Random();
+			T_b_0_components = Eigen::Matrix<double, 6, 1>::Random();
 			T_1_0_components = Eigen::Matrix<double, 6, 1>::Random();
 			T_2_0_components = Eigen::Matrix<double, 6, 1>::Random();
 			T_8_0_components = Eigen::Matrix<double, 6, 1>::Random();
 			T_9_0_components = Eigen::Matrix<double, 6, 1>::Random();
 			T_10_0_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblemTrajectory(T_components, T_1_0_components, T_2_0_components, T_8_0_components, T_9_0_components, T_10_0_components, 0);
+			solveSimpleProblemTrajectory(T_a_0_components, T_b_0_components, T_1_0_components, T_2_0_components, T_8_0_components, T_9_0_components, T_10_0_components, 0);
 			// solveSimpleProblem(T_components, 0);
 		}
 
