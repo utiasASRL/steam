@@ -25,11 +25,11 @@ Eigen::Vector4d initVector4d(const double x, const double y, const double z)
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
 void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components, 
-								//   const Eigen::Matrix<double, 6, 1> T_1_0_components,
-								//   const Eigen::Matrix<double, 6, 1> T_2_0_components,
-								//   const Eigen::Matrix<double, 6, 1> T_8_0_components, 
-								//   const Eigen::Matrix<double, 6, 1> T_9_0_components, 
-								//   const Eigen::Matrix<double, 6, 1> T_10_0_components, 
+								  const Eigen::Matrix<double, 6, 1> T_1_0_components,
+								  const Eigen::Matrix<double, 6, 1> T_2_0_components,
+								  const Eigen::Matrix<double, 6, 1> T_8_0_components, 
+								  const Eigen::Matrix<double, 6, 1> T_9_0_components, 
+								  const Eigen::Matrix<double, 6, 1> T_10_0_components, 
 								  const int constructor_type)
 {
 	//---------------------------------------
@@ -72,6 +72,26 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// Number of points in each point cloud
 	unsigned int num_pts = 8;
 
+	// Create a map to store the time stamps which the points are taken
+	std::map<unsigned int, double> ref_time_map;
+	std::map<unsigned int, double> read_time_map;
+	
+	ref_time_map[0] = 10000.0;
+	ref_time_map[1] = 10000.0;
+	ref_time_map[2] = 10001.0;
+	ref_time_map[3] = 10001.0;
+	ref_time_map[4] = 10001.0;
+	ref_time_map[5] = 10002.0;
+	ref_time_map[5] = 10002.0;
+
+	read_time_map[0] = 10008.0;
+	read_time_map[1] = 10008.0;
+	read_time_map[2] = 10009.0;
+	read_time_map[3] = 10009.0;
+	read_time_map[4] = 10009.0;
+	read_time_map[5] = 10010.0;
+	read_time_map[5] = 10010.0;
+
 	// Build a fixed point cloud (reference) with 8 points
 	// expressed in frame a
 	std::vector<Eigen::Vector4d> ref_a_pts;
@@ -86,15 +106,38 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	const lgmath::se3::Transformation Tgt_a_b(T_components);
 	// and its inverse
 	const lgmath::se3::Transformation Tgt_b_a = Tgt_a_b.inverse();
+
+	// Build ground truth for transformation between key frames
+	const lgmath::se3::Transformation Tgt_0_0;
+	const lgmath::se3::Transformation Tgt_1_0(T_1_0_components); 
+	const lgmath::se3::Transformation Tgt_2_0(T_2_0_components); 
+	const lgmath::se3::Transformation Tgt_8_0(T_8_0_components); 
+	const lgmath::se3::Transformation Tgt_9_0(T_9_0_components); 
+	const lgmath::se3::Transformation Tgt_10_0(T_10_0_components); 
   
 	// Move the reference point cloud to generate a
-	// second point cloud called read (reading)
+	// second point cloud called read (reading) (still ground truth)
 	std::vector<Eigen::Vector4d> read_b_pts;
 	for (unsigned int i = 0; i < num_pts; i++) {
 		const Eigen::Vector4d ref_a_temp = ref_a_pts.at(i);
-		Eigen::Vector4d read_b_temp = Tgt_b_a.matrix() * ref_a_temp;
+		
+		// T_temp is the transformation of the sensor between when point in reading frame
+		// was taken and when the corresponding point in reference frame was taken
+		Eigen::Matrix4d T_temp;
+		if (i < 2){
+			T_temp = Tgt_0_0.matrix() * Tgt_8_0.inverse().matrix();
+		}
+		else if (i >= 2 and i < 5){
+			T_temp = Tgt_1_0.matrix() * Tgt_9_0.inverse().matrix();
+		}
+		else {
+			T_temp = Tgt_2_0.matrix() * Tgt_10_0.inverse().matrix();
+		}
+		// Eigen::Vector4d read_b_temp = Tgt_b_a.matrix() * ref_a_temp;
+		Eigen::Vector4d read_b_temp = Tgt_b_a.matrix() * T_temp * ref_a_temp;
 		read_b_pts.push_back(read_b_temp);
 	}
+
 	
 	//---------------------------------------
 	// 1- Steam state variables
@@ -112,26 +155,48 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 	// State variable containers (and related data)
   	std::vector<steam::se3::SteamTrajVar> traj_states_ic;
 
-	// Setup trajectory state variables using initial condition
-
-	steam::Time time0 = 10000.0;
-	steam::se3::TransformStateEvaluator::Ptr pose0 = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
+	// Setup trajectory state variables using initial condition. We have 5 trajectory state variables
+	// Corresponding to T_1_0, T_2_0, T_8_0, T_9_0, T_10_0
+	steam::Time time0 = 10001.0;
+	steam::se3::TransformStateVar::Ptr State_T_1_0(new steam::se3::TransformStateVar());
+	steam::se3::TransformStateEvaluator::Ptr pose0 = steam::se3::TransformStateEvaluator::MakeShared(State_T_1_0);
 	steam::VectorSpaceStateVar::Ptr velocity0 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
 	steam::se3::SteamTrajVar traj0(time0, pose0, velocity0);
 
-	steam::Time time1 = 10000.1;
-	steam::se3::TransformStateEvaluator::Ptr pose1 = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
+	steam::Time time1 = 10002.0;
+	steam::se3::TransformStateVar::Ptr State_T_2_0(new steam::se3::TransformStateVar());
+	steam::se3::TransformStateEvaluator::Ptr pose1 = steam::se3::TransformStateEvaluator::MakeShared(State_T_2_0);
 	steam::VectorSpaceStateVar::Ptr velocity1 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
 	steam::se3::SteamTrajVar traj1(time1, pose1, velocity1);
 
+	steam::Time time2 = 10008.0;
+	steam::se3::TransformStateVar::Ptr State_T_8_0(new steam::se3::TransformStateVar());
+	steam::se3::TransformStateEvaluator::Ptr pose2 = steam::se3::TransformStateEvaluator::MakeShared(State_T_8_0);
+	steam::VectorSpaceStateVar::Ptr velocity2 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	steam::se3::SteamTrajVar traj2(time2, pose2, velocity2);
+
+	steam::Time time3 = 10009.0;
+	steam::se3::TransformStateVar::Ptr State_T_9_0(new steam::se3::TransformStateVar());
+	steam::se3::TransformStateEvaluator::Ptr pose3 = steam::se3::TransformStateEvaluator::MakeShared(State_T_9_0);
+	steam::VectorSpaceStateVar::Ptr velocity3 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	steam::se3::SteamTrajVar traj3(time3, pose3, velocity3);
+
+	steam::Time time4 = 10010.0;
+	steam::se3::TransformStateVar::Ptr State_T_10_0(new steam::se3::TransformStateVar());
+	steam::se3::TransformStateEvaluator::Ptr pose4 = steam::se3::TransformStateEvaluator::MakeShared(State_T_10_0);
+	steam::VectorSpaceStateVar::Ptr velocity4 = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+	steam::se3::SteamTrajVar traj4(time4, pose4, velocity4);
+
 	traj_states_ic.push_back(traj0);
 	traj_states_ic.push_back(traj1);
+	traj_states_ic.push_back(traj2);
+	traj_states_ic.push_back(traj3);
+	traj_states_ic.push_back(traj4);
 
-	
 	// Convert our states to Transform Evaluators
 	// T_a_a is silly (most be identity) but it's there for completness
-	steam::se3::TransformEvaluator::Ptr T_a_a = traj0.getPose();
-	steam::se3::TransformEvaluator::Ptr T_a_b = traj1.getPose();
+	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
+	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
 	auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
 
 	// Setup Trajectory
@@ -159,7 +224,7 @@ void solveSimpleProblemTrajectory(const Eigen::Matrix<double, 6, 1> T_components
 		Eigen::Vector4d read_b_temp = read_b_pts.at(i);
 		if(constructor_type == 0)
 		{
-			error_temp.reset(new Error(ref_a_temp, T_a_a, read_b_temp, T_b_a));
+			error_temp.reset(new Error(ref_a_temp, T_a_a, read_b_temp, T_b_a)); 
 		}
 		else if(constructor_type == 1)
 		{
@@ -421,6 +486,11 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 	
 	Eigen::Matrix<double, 6, 1> T_components;
+	Eigen::Matrix<double, 6, 1> T_1_0_components;
+	Eigen::Matrix<double, 6, 1> T_2_0_components;
+	Eigen::Matrix<double, 6, 1> T_8_0_components;
+	Eigen::Matrix<double, 6, 1> T_9_0_components;
+	Eigen::Matrix<double, 6, 1> T_10_0_components;
 
 	SECTION("Simple translation - constructor 0")
 	{
@@ -430,7 +500,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						0.0, // rotation around x-axis
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
-		solveSimpleProblemTrajectory(T_components, 0);
+		solveSimpleProblemTrajectory(T_components, T_components, T_components, T_components, T_components, T_components, 0);
 		// solveSimpleProblem(T_components, 0);
 	}
 	
@@ -442,7 +512,7 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 						1.0, // rotation around x-axis
 						0.0, // rotation around y-axis
 						0.0; // rotation around z-axis
-		solveSimpleProblemTrajectory(T_components, 0);				
+		solveSimpleProblemTrajectory(T_components, T_components, T_components, T_components, T_components, T_components, 0);				
 		// solveSimpleProblem(T_components, 0);
 	}
 	
@@ -454,48 +524,53 @@ TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
 		{
 			// random numbers in interval [-1, 1]
 			T_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblemTrajectory(T_components, 0);
+			T_1_0_components = Eigen::Matrix<double, 6, 1>::Random();
+			T_2_0_components = Eigen::Matrix<double, 6, 1>::Random();
+			T_8_0_components = Eigen::Matrix<double, 6, 1>::Random();
+			T_9_0_components = Eigen::Matrix<double, 6, 1>::Random();
+			T_10_0_components = Eigen::Matrix<double, 6, 1>::Random();
+			solveSimpleProblemTrajectory(T_components, T_1_0_components, T_2_0_components, T_8_0_components, T_9_0_components, T_10_0_components, 0);
 			// solveSimpleProblem(T_components, 0);
 		}
 
 	}
 	
-	SECTION("Simple translation - constructor 1")
-	{
-		T_components << 1.0, // translation x
-						0.0, // translation y
-						0.0, // translation z
-						0.0, // rotation around x-axis
-						0.0, // rotation around y-axis
-						0.0; // rotation around z-axis
-		solveSimpleProblemTrajectory(T_components, 0);				
-		// solveSimpleProblem(T_components, 1);
-	}
+	// SECTION("Simple translation - constructor 1")
+	// {
+	// 	T_components << 1.0, // translation x
+	// 					0.0, // translation y
+	// 					0.0, // translation z
+	// 					0.0, // rotation around x-axis
+	// 					0.0, // rotation around y-axis
+	// 					0.0; // rotation around z-axis
+	// 	solveSimpleProblemTrajectory(T_components, 0);				
+	// 	// solveSimpleProblem(T_components, 1);
+	// }
 	
-	SECTION("Simple rotation - constructor 1")
-	{
-		T_components << 0.0, // translation x
-						0.0, // translation y
-						0.0, // translation z
-						1.0, // rotation around x-axis
-						0.0, // rotation around y-axis
-						0.0; // rotation around z-axis
-		solveSimpleProblemTrajectory(T_components, 0);			
-		// solveSimpleProblem(T_components, 1);
-	}
+	// SECTION("Simple rotation - constructor 1")
+	// {
+	// 	T_components << 0.0, // translation x
+	// 					0.0, // translation y
+	// 					0.0, // translation z
+	// 					1.0, // rotation around x-axis
+	// 					0.0, // rotation around y-axis
+	// 					0.0; // rotation around z-axis
+	// 	solveSimpleProblemTrajectory(T_components, 0);			
+	// 	// solveSimpleProblem(T_components, 1);
+	// }
 	
-	SECTION("Random transformation (1000) - constructor 1")
-	{
-		srand((unsigned int) time(0));
+	// SECTION("Random transformation (1000) - constructor 1")
+	// {
+	// 	srand((unsigned int) time(0));
 
-		for(int i=0; i<1000; i++)
-		{
-			// random numbers in interval [-1, 1]
-			T_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblemTrajectory(T_components, 0);
-			// solveSimpleProblem(T_components, 1);
-		}
+	// 	for(int i=0; i<1000; i++)
+	// 	{
+	// 		// random numbers in interval [-1, 1]
+	// 		T_components = Eigen::Matrix<double, 6, 1>::Random();
+	// 		solveSimpleProblemTrajectory(T_components, 0);
+	// 		// solveSimpleProblem(T_components, 1);
+	// 	}
 
-	}
+	// }
 
 } // TEST_CASE
