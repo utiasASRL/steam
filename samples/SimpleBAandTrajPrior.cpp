@@ -264,10 +264,5 @@ int main(int argc, char** argv) {
   // Optimize
   solver.optimize();
 
-  // Setup Trajectory
-  for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
-    steam::se3::SteamTrajVar&state = traj_states_ic.at(i);
-   // std::cout << i << ": \n " << state.velocity->getValue() << "\n";
-  }
   return 0;
 }
