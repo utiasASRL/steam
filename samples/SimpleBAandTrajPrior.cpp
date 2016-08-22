@@ -13,15 +13,6 @@
 #include <steam/data/ParseBA.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Structure to store trajectory state variables
-//////////////////////////////////////////////////////////////////////////////////////////////
-struct TrajStateVar {
-  steam::Time time;
-  steam::se3::TransformStateVar::Ptr pose;
-  steam::VectorSpaceStateVar::Ptr velocity;
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves simple bundle adjustment problems
 //////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv) {
@@ -87,7 +78,7 @@ int main(int argc, char** argv) {
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_gt;
 
   // State variable containers (and related data)
-  std::vector<TrajStateVar> traj_states_ic;
+  std::vector<steam::se3::SteamTrajVar> traj_states_ic;
   //std::vector<steam::se3::TransformStateVar::Ptr> poses_ic_k_0;
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
 
@@ -114,27 +105,32 @@ int main(int argc, char** argv) {
   Eigen::Matrix<double,6,1> initVelocity; initVelocity.setZero();
 
   // Setup state variables using initial condition
+  std::vector<steam::se3::TransformStateVar::Ptr> statevars_ic;
+
   for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
-    TrajStateVar temp;
-    temp.time = steam::Time(dataset.frames_ic[i].time);
-    temp.pose = steam::se3::TransformStateVar::Ptr(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
-    temp.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-    std::cout << i << " : " << dataset.frames_ic[i].time << " " << dataset.frames_ic[i].T_k0;
+    steam::Time temp_time = steam::Time(dataset.frames_ic[i].time);
+    steam::se3::TransformStateVar::Ptr temp_statevar(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
+    steam::se3::TransformStateEvaluator::Ptr temp_pose = steam::se3::TransformStateEvaluator::MakeShared(temp_statevar);    
+    steam::VectorSpaceStateVar::Ptr temp_velocity  = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
+    // std::cout << i << " : " << dataset.frames_ic[i].time << " " << dataset.frames_ic[i].T_k0;
+    steam::se3::SteamTrajVar temp(temp_time, temp_pose, temp_velocity);
+    statevars_ic.push_back(temp_statevar);
     traj_states_ic.push_back(temp);
   }
 
   // Setup Trajectory
   steam::se3::SteamTrajInterface traj(Qc_inv);
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
-    TrajStateVar& state = traj_states_ic.at(i);
-    steam::se3::TransformStateEvaluator::Ptr temp =
-        steam::se3::TransformStateEvaluator::MakeShared(state.pose);
-    traj.add(state.time, temp, state.velocity);
+    steam::se3::SteamTrajVar& state = traj_states_ic.at(i);
+    steam::Time temp_time = state.getTime();
+    steam::se3::TransformEvaluator::Ptr temp_pose = state.getPose();
+		steam::VectorSpaceStateVar::Ptr temp_velocity = state.getVelocity();
+    traj.add(temp_time, temp_pose, temp_velocity);
   }
 
   // Lock first pose (otherwise entire solution is 'floating')
   //  **Note: alternatively we could add a prior to the first pose.
-  traj_states_ic[0].pose->setLock(true);
+  statevars_ic[0]->setLock(true);
 
   // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size());
@@ -208,8 +204,8 @@ int main(int argc, char** argv) {
     } else {
 
       unsigned int firstObsIndex = landmark_map[landmarkIdx];
-      steam::se3::TransformEvaluator::Ptr pose_va_0 = steam::se3::TransformStateEvaluator::MakeShared(traj_states_ic[firstObsIndex].pose);
-      steam::se3::TransformEvaluator::Ptr pose_vb_0 = steam::se3::TransformStateEvaluator::MakeShared(traj_states_ic[frameIdx].pose);
+      steam::se3::TransformEvaluator::Ptr pose_va_0 = traj_states_ic[firstObsIndex].getPose();
+      steam::se3::TransformEvaluator::Ptr pose_vb_0 = traj_states_ic[frameIdx].getPose();
       tf_vb_va = steam::se3::composeInverse(pose_vb_0, pose_va_0);
     }
 
@@ -238,9 +234,10 @@ int main(int argc, char** argv) {
 
   // Add state variables
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
-    const TrajStateVar& state = traj_states_ic.at(i);
-    problem.addStateVariable(state.pose);
-    problem.addStateVariable(state.velocity);
+    const steam::se3::SteamTrajVar& state = traj_states_ic.at(i);
+    steam::se3::TransformStateVar::Ptr state_var = statevars_ic[i];
+    problem.addStateVariable(state_var);
+    problem.addStateVariable(state.getVelocity());
   }
 
   // Add landmark variables
@@ -267,10 +264,5 @@ int main(int argc, char** argv) {
   // Optimize
   solver.optimize();
 
-  // Setup Trajectory
-  for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
-    TrajStateVar& state = traj_states_ic.at(i);
-   // std::cout << i << ": \n " << state.velocity->getValue() << "\n";
-  }
   return 0;
 }
