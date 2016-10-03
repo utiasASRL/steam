@@ -214,7 +214,7 @@ endif()
 
 if(NOT USE_CATKIN) # Catkin handles all of this in catkin_package()
 
-  ##### Create the SteamConfig.cmake and SteamConfigVersion files
+  ##### Create the PackageConfig.cmake and PackageConfigVersion files
 
   ### local build-tree
 
@@ -231,8 +231,8 @@ if(NOT USE_CATKIN) # Catkin handles all of this in catkin_package()
   get_target_property(STEAM_LIB steam LOCATION)
 
   # Create the <name>Config.cmake for local build tree
-  configure_file(SteamConfig.cmake.in
-    "${PROJECT_BINARY_DIR}/SteamConfig.cmake" @ONLY)
+  configure_file(steamConfig.cmake.in
+    "${PROJECT_BINARY_DIR}/steamConfig.cmake" @ONLY)
 
   ### install build-tree
 
@@ -247,17 +247,17 @@ if(NOT USE_CATKIN) # Catkin handles all of this in catkin_package()
   set(STEAM_LIB ${INSTALL_LIB_DIR}/${STEAM_LIB_NAME})
 
   # Create the <name>Config.cmake for the installation tree
-  configure_file(SteamConfig.cmake.in
-    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/SteamConfig.cmake" @ONLY)
+  configure_file(steamConfig.cmake.in
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/steamConfig.cmake" @ONLY)
 
   # The same versioning file can be used for both local and instal trees
-  configure_file(SteamConfigVersion.cmake.in
-    "${PROJECT_BINARY_DIR}/SteamConfigVersion.cmake" @ONLY)
+  configure_file(steamConfigVersion.cmake.in
+    "${PROJECT_BINARY_DIR}/steamConfigVersion.cmake" @ONLY)
 
   # Install the SteamConfig.cmake and SteamConfigVersion.cmake
   install(FILES
-    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/SteamConfig.cmake"
-    "${PROJECT_BINARY_DIR}/SteamConfigVersion.cmake"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/steamConfig.cmake"
+    "${PROJECT_BINARY_DIR}/steamConfigVersion.cmake"
     DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
   ################################################################################
