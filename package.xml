@@ -12,13 +12,13 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <!--BUILD DEPENDENCIES-->
-  <build_depend>LGMath</build_depend>
+  <build_depend>lgmath</build_depend>
   <build_depend>Eigen3</build_depend>
   <build_depend>Boost</build_depend>
   <build_depend>OpenMP</build_depend>
 
   <!--RUNTIME DEPENDENCIES-->
-  <!-- run_depend></run_depend -->
+  <run_depend>lgmath</run_depend>
 
   <!--TEST DEPENDENCIES-->
   <!-- test_depend></test_depend -->

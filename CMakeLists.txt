@@ -92,9 +92,9 @@ else(OPENMP_FOUND)
 endif(OPENMP_FOUND)
 
 # find Lie Group Math
-find_package(LGMath REQUIRED)
-include_directories(${LGMath_INCLUDE_DIRS})
-list(APPEND EXTERNAL_LIBS ${LGMath_LIBRARIES})
+find_package(lgmath REQUIRED)
+include_directories(${lgmath_INCLUDE_DIRS})
+list(APPEND EXTERNAL_LIBS ${lgmath_LIBRARIES})
 
 # find Boost (used for executables only)
 find_package(Boost REQUIRED system)
@@ -110,7 +110,7 @@ if(USE_CATKIN)
   catkin_package(
     INCLUDE_DIRS include
     LIBRARIES steam
-    CATKIN_DEPENDS LGMath
+    CATKIN_DEPENDS lgmath
     DEPENDS Eigen3 OpenMP Boost)
 endif()
 
@@ -137,7 +137,7 @@ else()
   if(WIN32 AND NOT CYGWIN)
     set(DEF_INSTALL_CMAKE_DIR CMake)
   else()
-    set(DEF_INSTALL_CMAKE_DIR lib/cmake/LGMath)
+    set(DEF_INSTALL_CMAKE_DIR lib/cmake/steam)
   endif()
 endif()
 
