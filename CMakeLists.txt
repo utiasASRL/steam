@@ -93,7 +93,6 @@ endif(OPENMP_FOUND)
 
 # find Lie Group Math
 find_package(lgmath REQUIRED)
-message(${lgmath_INCLUDE_DIRS})
 include_directories(${lgmath_INCLUDE_DIRS})
 list(APPEND EXTERNAL_LIBS ${lgmath_LIBRARIES})
 
