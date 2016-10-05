@@ -4,7 +4,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(steam)
 
-
 # build tool
 find_package(catkin_optional REQUIRED)
 co_build_type() # cache the build type
@@ -86,6 +85,13 @@ file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
 add_library(steam SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(steam ${EXTERNAL_LIBS})
 set_target_properties(steam PROPERTIES VERSION "${PROJECT_VERSION}" SOVERSION 1)
+
+################################################################################
+### Set install targets
+################################################################################
+
+# install the exported items
+co_install()
 
 ################################################################################
 ### Samples and Tests
