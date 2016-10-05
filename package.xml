@@ -10,6 +10,7 @@
 
   <!--BUILD TOOL DEPENDENCIES-->
   <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_optional</buildtool_depend>
 
   <!--BUILD DEPENDENCIES-->
   <build_depend>lgmath</build_depend>
