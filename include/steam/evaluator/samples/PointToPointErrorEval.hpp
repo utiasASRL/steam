@@ -52,7 +52,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	PointToPointErrorEval(const Eigen::Vector4d& ref_a,
 						  const Eigen::Vector4d& read_b,
-						  const se3::TransformEvaluator::ConstPtr& T_a_b
+						  const se3::TransformEvaluator::ConstPtr& T_b_a
 						  );
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +77,7 @@ private:
 	/// \brief Point evaluator (evaluates the point transformed into the camera frame)
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	Eigen::Vector4d ref_a_;
-	se3::TransformEvaluator::ConstPtr T_a_b_;
+	se3::TransformEvaluator::ConstPtr T_b_a_;
 	Eigen::Vector4d read_b_;
 
 };
