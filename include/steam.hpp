@@ -36,6 +36,7 @@
 #include <steam/evaluator/samples/PositionErrorEval.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 #include <steam/evaluator/samples/PointToPointErrorEval.hpp>
+#include <steam/evaluator/samples/TetherLengthErrorEval.hpp>
 
 // evaluator - block auto diff
 #include <steam/evaluator/blockauto/EvalTreeNode.hpp>
