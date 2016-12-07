@@ -286,5 +286,90 @@ void SteamTrajInterface::getActiveStateVariables(
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get interpolated/extrapolated covariance at given time
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
+    const steam::Time& time) const {
+
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or great than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+      = knotMap_.lower_bound(time.nanosecs());
+
+  // TODO(DAVID): Extrapolation past last entry
+  // Check if time is passed the last entry
+      /*
+  if (it1 == knotMap_.end()) {
+
+    // If we allow extrapolation, return constant-velocity interpolated entry
+    if (allowExtrapolation_) {
+      --it1; // should be safe, as we checked that the map was not empty..
+      const SteamTrajVar::Ptr& endKnot = it1->second;
+      TransformEvaluator::Ptr T_t_k =
+          ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());
+      return compose(T_t_k, endKnot->getPose());
+    } else {
+      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    }
+  }
+  */
+
+  // Check if we requested time exactly
+  if (it1->second->getTime() == time) {
+    // return covariance exactly (no interp)
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outStates;
+    it1->second->getPose()->getActiveStateVariables(&outStates);
+    
+    std::vector<steam::StateKey> keys;
+    keys.push_back(outStates.begin()->second->getKey());
+    keys.push_back(it1->second->getVelocity()->getKey());
+
+    steam::BlockMatrix covariance = solver.queryCovarianceBlock(keys);
+
+    Eigen::Matrix<double,12,12> output;
+    output.block<6,6>(0,0) = covariance.copyAt(0,0);
+    output.block<6,6>(0,6) = covariance.copyAt(0,1);
+    output.block<6,6>(6,0) = covariance.copyAt(1,0);
+    output.block<6,6>(6,6) = covariance.copyAt(1,1);
+    return output;
+  }
+
+  // TODO(DAVID): Extrapolation behind first entry
+  /*
+  // Check if we requested before first time
+  if (it1 == knotMap_.begin()) {
+
+    // If we allow extrapolation, return constant-velocity interpolated entry
+    if (allowExtrapolation_) {
+      const SteamTrajVar::Ptr& startKnot = it1->second;
+      TransformEvaluator::Ptr T_t_k =
+          ConstVelTransformEvaluator::MakeShared(startKnot->getVelocity(),
+                                                 time - startKnot->getTime());
+      return compose(T_t_k, startKnot->getPose());
+    } else {
+      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    }
+  }
+  */
+
+  // Get iterators bounding the time interval
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                             "should not trigger... report to a STEAM contributor.");
+  }
+/*
+getActiveStateVariables(
+      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
+
+  solver.queryCovariance(states.at(2).pose->getKey());
+  */
+}
+
 } // se3
 } // steam

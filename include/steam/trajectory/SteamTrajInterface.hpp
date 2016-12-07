@@ -16,6 +16,8 @@
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>
 #include <steam/problem/ParallelizedCostTermCollection.hpp>
 
+#include <steam/solver/GaussNewtonSolverBase.hpp>
+
 namespace steam {
 namespace se3 {
 
@@ -79,6 +81,11 @@ class SteamTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   void getActiveStateVariables(
       std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get interpolated/extrapolated covariance at given time
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  Eigen::MatrixXd getInterpCov(GaussNewtonSolverBase& solver, const steam::Time& time) const;
 
  private:
 
