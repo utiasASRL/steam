@@ -391,9 +391,11 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
   Eigen::Matrix<double,24,24> local_cov = translateCovToLocal(global_cov,
       it1->second, it2->second);
 
-  // Interpolate using local covariances
-  double psi11, psi12, psi21, psi22, lambda11, lambda12, lambda21, lambda22;
-  { // TODO(DAVID): Copied from SteamTrajPoseInterpEval. Look into a better way.
+  // Compute constants (Refer to eq 6.116 in Sean Anderson's thesis, note psi here is omega in
+  // his thesis)
+  Eigen::Matrix<double,12,24> Lambda_Psi;
+  Eigen::Matrix<double,12,12> Q_check;
+  { // TODO(DAVID): First part is copied from SteamTrajPoseInterpEval. Look into a better way.
     double tau = (time - it1->second->getTime()).seconds();
     double T = (it2->second->getTime() - it1->second->getTime()).seconds();
     double ratio = tau/T;
@@ -401,22 +403,60 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
     double ratio3 = ratio2*ratio;
 
     // Calculate 'psi' interpolation values
-    psi11 = 3.0*ratio2 - 2.0*ratio3;
-    psi12 = tau*(ratio2 - ratio);
-    psi21 = 6.0*(ratio - ratio2)/T;
-    psi22 = 3.0*ratio2 - 2.0*ratio;
+    double psi11 = 3.0*ratio2 - 2.0*ratio3;
+    double psi12 = tau*(ratio2 - ratio);
+    double psi21 = 6.0*(ratio - ratio2)/T;
+    double psi22 = 3.0*ratio2 - 2.0*ratio;
 
     // Calculate 'lambda' interpolation values
-    lambda11 = 1.0 - psi11;
-    lambda12 = tau - T*psi11 - psi12;
-    lambda21 = -psi21;
-    lambda22 = 1.0 - psi21 - psi22;
+    double lambda11 = 1.0 - psi11;
+    double lambda12 = tau - T*psi11 - psi12;
+    double lambda21 = -psi21;
+    double lambda22 = 1.0 - psi21 - psi22;
+
+    // Formulate Lambda and Psi matrices
+    Eigen::Matrix<double,6,6> identity = Eigen::MatrixXd::Identity(6,6);
+    Eigen::Matrix<double,12,12> Lambda;
+    Lambda.block<6,6>(0,0) = lambda11*identity;
+    Lambda.block<6,6>(0,6) = lambda12*identity;
+    Lambda.block<6,6>(6,0) = lambda21*identity;
+    Lambda.block<6,6>(6,6) = lambda22*identity;
+
+    Eigen::Matrix<double,12,12> Psi;
+    Psi.block<6,6>(0,0) = psi11*identity;
+    Psi.block<6,6>(0,6) = psi12*identity;
+    Psi.block<6,6>(6,0) = psi21*identity;
+    Psi.block<6,6>(6,6) = psi22*identity;
+
+    Lambda_Psi.block<12,12>(0,0) = Lambda;
+    Lambda_Psi.block<12,12>(12,0) = Psi;
+
+    Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();  // TODO(DAVID): Is this necessary?
+
+    Eigen::Matrix<double,12,12> Q_k_tau;
+    Q_k_tau.block<6,6>(0,0) = 1.0/3.0*tau*tau*tau*Qc;
+    Q_k_tau.block<6,6>(0,6) = 0.5*tau*tau*Qc;
+    Q_k_tau.block<6,6>(6,0) = Q_k_tau.block<6,6>(0,6);
+    Q_k_tau.block<6,6>(6,6) = tau*Qc;
+
+    Eigen::Matrix<double,12,12> Q_k_2_inv;
+    double T_inv = 1.0/T;
+    Q_k_2_inv.block<6,6>(0,0) = 12.0*T_inv*T_inv*T_inv*Qc_inv_;
+    Q_k_2_inv.block<6,6>(0,6) = -6.0*T_inv*T_inv*Qc_inv_;
+    Q_k_2_inv.block<6,6>(6,0) = Q_k_2_inv.block<6,6>(0,6);
+    Q_k_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
+
+    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12);
+    tran_2_tau.block<6,6>(6,0) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
+
+    Q_check = Q_k_tau - Q_k_tau*tran_2_tau.transpose()*Q_k_2_inv.transpose()*
+        tran_2_tau*Q_k_tau.transpose();
   }
 
   // Approximately translate result to global frame
 
   // Dummy return
-  return local_cov;
+  return Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
