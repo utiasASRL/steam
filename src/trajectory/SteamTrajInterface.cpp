@@ -322,11 +322,11 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
   // Check if we requested time exactly
   if (it1->second->getTime() == time) {
     // return covariance exactly (no interp)
-    std::map<unsigned int, steam::StateVariableBase::Ptr> outStates;
-    it1->second->getPose()->getActiveStateVariables(&outStates);
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState;
+    it1->second->getPose()->getActiveStateVariables(&outState);
     
     std::vector<steam::StateKey> keys;
-    keys.push_back(outStates.begin()->second->getKey());
+    keys.push_back(outState.begin()->second->getKey());
     keys.push_back(it1->second->getVelocity()->getKey());
 
     steam::BlockMatrix covariance = solver.queryCovarianceBlock(keys);
@@ -363,12 +363,66 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
     throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
                              "should not trigger... report to a STEAM contributor.");
   }
-/*
-getActiveStateVariables(
-      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
-  solver.queryCovariance(states.at(2).pose->getKey());
-  */
+  // Need interpolated pose
+  TransformEvaluator::ConstPtr interp_state = SteamTrajPoseInterpEval::MakeShared(
+      time, it1->second, it2->second);
+
+  // Get required pose/velocity keys
+  // TODO(DAVID): Find a better way to get pose keys...
+  std::vector<steam::StateKey> keys;
+  {
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState1;
+    it1->second->getPose()->getActiveStateVariables(&outState1);
+
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState2;
+    it2->second->getPose()->getActiveStateVariables(&outState2);
+
+    keys.push_back(outState1.begin()->second->getKey());
+    keys.push_back(it1->second->getVelocity()->getKey());
+    keys.push_back(outState2.begin()->second->getKey());
+    keys.push_back(it2->second->getVelocity()->getKey());
+  }
+
+  // Get required covariances using the keys
+  Eigen::Matrix<double,12,12> P_11;
+  Eigen::Matrix<double,12,12> P_12;
+  Eigen::Matrix<double,12,12> P_21;
+  Eigen::Matrix<double,12,12> P_22;
+  {
+    steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
+
+    // TODO(DAVID): Is there a cleaner way to do this? BlockMatrix class seems to only have
+    // single queries...
+    P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
+    P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
+    P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
+    P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+
+    P_12.block<6,6>(0,0) = global_cov.copyAt(0,2);
+    P_12.block<6,6>(0,6) = global_cov.copyAt(0,3);
+    P_12.block<6,6>(6,0) = global_cov.copyAt(1,2);
+    P_12.block<6,6>(6,6) = global_cov.copyAt(1,3);
+
+    P_21.block<6,6>(0,0) = global_cov.copyAt(2,0);
+    P_21.block<6,6>(0,6) = global_cov.copyAt(2,1);
+    P_21.block<6,6>(6,0) = global_cov.copyAt(3,0);
+    P_21.block<6,6>(6,6) = global_cov.copyAt(3,1);
+
+    P_22.block<6,6>(0,0) = global_cov.copyAt(2,2);
+    P_22.block<6,6>(0,6) = global_cov.copyAt(2,3);
+    P_22.block<6,6>(6,0) = global_cov.copyAt(3,2);
+    P_22.block<6,6>(6,6) = global_cov.copyAt(3,3);
+  }
+
+  // Approximately translate global covariances (P_11 ... P_22) to local frame 1
+
+  // Interpolate using local covariances
+
+  // Approximately translate result to global frame
+
+  // Dummy return
+  return P_11;
 }
 
 } // se3
