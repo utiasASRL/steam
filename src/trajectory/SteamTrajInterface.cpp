@@ -385,44 +385,100 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
   }
 
   // Get required covariances using the keys
-  Eigen::Matrix<double,12,12> P_11;
-  Eigen::Matrix<double,12,12> P_12;
-  Eigen::Matrix<double,12,12> P_21;
-  Eigen::Matrix<double,12,12> P_22;
-  {
-    steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
-
-    // TODO(DAVID): Is there a cleaner way to do this? BlockMatrix class seems to only have
-    // single queries...
-    P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
-    P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
-    P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
-    P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
-
-    P_12.block<6,6>(0,0) = global_cov.copyAt(0,2);
-    P_12.block<6,6>(0,6) = global_cov.copyAt(0,3);
-    P_12.block<6,6>(6,0) = global_cov.copyAt(1,2);
-    P_12.block<6,6>(6,6) = global_cov.copyAt(1,3);
-
-    P_21.block<6,6>(0,0) = global_cov.copyAt(2,0);
-    P_21.block<6,6>(0,6) = global_cov.copyAt(2,1);
-    P_21.block<6,6>(6,0) = global_cov.copyAt(3,0);
-    P_21.block<6,6>(6,6) = global_cov.copyAt(3,1);
-
-    P_22.block<6,6>(0,0) = global_cov.copyAt(2,2);
-    P_22.block<6,6>(0,6) = global_cov.copyAt(2,3);
-    P_22.block<6,6>(6,0) = global_cov.copyAt(3,2);
-    P_22.block<6,6>(6,6) = global_cov.copyAt(3,3);
-  }
+  steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
 
   // Approximately translate global covariances (P_11 ... P_22) to local frame 1
+  Eigen::Matrix<double,24,24> local_cov = translateCovToLocal(global_cov,
+      it1->second, it2->second);
 
   // Interpolate using local covariances
+  double psi11, psi12, psi21, psi22, lambda11, lambda12, lambda21, lambda22;
+  { // TODO(DAVID): Copied from SteamTrajPoseInterpEval. Look into a better way.
+    double tau = (time - it1->second->getTime()).seconds();
+    double T = (it2->second->getTime() - it1->second->getTime()).seconds();
+    double ratio = tau/T;
+    double ratio2 = ratio*ratio;
+    double ratio3 = ratio2*ratio;
+
+    // Calculate 'psi' interpolation values
+    psi11 = 3.0*ratio2 - 2.0*ratio3;
+    psi12 = tau*(ratio2 - ratio);
+    psi21 = 6.0*(ratio - ratio2)/T;
+    psi22 = 3.0*ratio2 - 2.0*ratio;
+
+    // Calculate 'lambda' interpolation values
+    lambda11 = 1.0 - psi11;
+    lambda12 = tau - T*psi11 - psi12;
+    lambda21 = -psi21;
+    lambda22 = 1.0 - psi21 - psi22;
+  }
 
   // Approximately translate result to global frame
 
   // Dummy return
-  return P_11;
+  return local_cov;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Covariance translation
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix& global_cov, 
+    const SteamTrajVar::ConstPtr& knot1, const SteamTrajVar::ConstPtr& knot2) const {
+
+  Eigen::Matrix<double,12,12> P_11;
+  Eigen::Matrix<double,12,12> P_12;
+  Eigen::Matrix<double,12,12> P_22;
+
+  P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
+  P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
+  P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
+  P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+
+  P_12.block<6,6>(0,0) = global_cov.copyAt(0,2);
+  P_12.block<6,6>(0,6) = global_cov.copyAt(0,3);
+  P_12.block<6,6>(6,0) = global_cov.copyAt(1,2);
+  P_12.block<6,6>(6,6) = global_cov.copyAt(1,3);
+
+  P_22.block<6,6>(0,0) = global_cov.copyAt(2,2);
+  P_22.block<6,6>(0,6) = global_cov.copyAt(2,3);
+  P_22.block<6,6>(6,0) = global_cov.copyAt(3,2);
+  P_22.block<6,6>(6,6) = global_cov.copyAt(3,3);
+
+  // Create constants
+  Eigen::Matrix<double,12,12> Gam1 = Eigen::MatrixXd::Zero(12,12);
+  Eigen::Matrix<double,12,12> Gam2 = Eigen::MatrixXd::Zero(12,12);
+  Eigen::Matrix<double,12,12> Xi1 = Eigen::MatrixXd::Zero(12,12);
+  Eigen::Matrix<double,12,12> Xi2 = Eigen::MatrixXd::Zero(12,12);
+
+  // Eigen::Matrix4d identity_transform = Eigen::MatrixXd::Identity(4,4);
+  // lgmath::se3::Transformation T_11(identity_transform);
+  // Eigen::Matrix<double,6,6> J_11_inv = lgmath::se3::vec2jacinv(T_11.vec());
+  Eigen::Matrix<double,6,6> J_11_inv = Eigen::MatrixXd::Identity(6,6);
+  Gam1.block<6,6>(0,0) = J_11_inv;
+  Gam1.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue());
+  Gam1.block<6,6>(6,6) = J_11_inv;
+
+  lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(T_21.vec());
+  Gam2.block<6,6>(0,0) = J_21_inv;
+  Gam2.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2->getVelocity()->getValue())*J_21_inv;
+  Gam2.block<6,6>(6,6) = J_21_inv;
+
+  Xi1.block<6,6>(0,0) = Eigen::MatrixXd::Identity(6,6);
+  Xi2.block<6,6>(0,0) = lgmath::se3::tranAd(T_21.matrix());
+
+  // Translate
+  Eigen::Matrix<double,12,12> P_11_local = Gam1*(P_11 - Xi1*P_11*Xi1.transpose())*Gam1.transpose();
+  Eigen::Matrix<double,12,12> P_12_local = Gam1*(P_12 - Xi1*P_11*Xi2.transpose())*Gam2.transpose();
+  Eigen::Matrix<double,12,12> P_22_local = Gam2*(P_22 - Xi2*P_11*Xi2.transpose())*Gam2.transpose();
+
+  // Return
+  Eigen::Matrix<double,24,24> output;
+  output.block<12,12>(0,0)   = P_11_local;
+  output.block<12,12>(0,12)  = P_12_local;
+  output.block<12,12>(12,0)  = P_12_local.transpose();
+  output.block<12,12>(12,12) = P_22_local;
+  return output;
 }
 
 } // se3
