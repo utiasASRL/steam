@@ -85,7 +85,7 @@ class SteamTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get interpolated/extrapolated covariance at given time
   //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::MatrixXd getInterpCov(GaussNewtonSolverBase& solver, const steam::Time& time) const;
+  Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver, const steam::Time& time) const;
 
  private:
 
@@ -108,6 +108,11 @@ class SteamTrajInterface
   void getInterpState(lgmath::se3::Transformation* pose, Eigen::MatrixXd* velocity, 
       const Eigen::MatrixXd& lambda_psi, const steam::Time& time,
       const SteamTrajVar::ConstPtr& knot1, const SteamTrajVar::ConstPtr& knot2) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Compute covariance interpolation at given time
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  Eigen::MatrixXd interpCovariance(GaussNewtonSolverBase& solver, const steam::Time& time) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Ordered map of knots

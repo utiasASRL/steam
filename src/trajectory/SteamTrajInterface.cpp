@@ -289,7 +289,7 @@ void SteamTrajInterface::getActiveStateVariables(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get interpolated/extrapolated covariance at given time
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
+Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
     const steam::Time& time) const {
 
   // Check that map is not empty
@@ -357,107 +357,7 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
   }
   */
 
-  // Get iterators bounding the time interval
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
-  if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
-    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
-                             "should not trigger... report to a STEAM contributor.");
-  }
-
-  // Get required pose/velocity keys
-  // TODO(DAVID): Find a better way to get pose keys...
-  std::vector<steam::StateKey> keys;
-  {
-    std::map<unsigned int, steam::StateVariableBase::Ptr> outState1;
-    it1->second->getPose()->getActiveStateVariables(&outState1);
-
-    std::map<unsigned int, steam::StateVariableBase::Ptr> outState2;
-    it2->second->getPose()->getActiveStateVariables(&outState2);
-
-    keys.push_back(outState1.begin()->second->getKey());
-    keys.push_back(it1->second->getVelocity()->getKey());
-    keys.push_back(outState2.begin()->second->getKey());
-    keys.push_back(it2->second->getVelocity()->getKey());
-  }
-
-  // Get required covariances using the keys
-  steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
-
-  // Approximately translate global covariances (P_11 ... P_22) to local frame 1
-  Eigen::Matrix<double,24,24> local_cov = translateCovToLocal(global_cov,
-      it1->second, it2->second);
-
-  // Compute constants (Refer to eq 6.116 in Sean Anderson's thesis, note psi here is omega in
-  // his thesis)
-  Eigen::Matrix<double,12,24> Lambda_Psi; // [Lambda  Psi] block matrix
-  Eigen::Matrix<double,12,12> Q_check;
-  { // TODO(DAVID): First part is copied from SteamTrajPoseInterpEval. Look into a better way?
-    double tau = (time - it1->second->getTime()).seconds();
-    double T = (it2->second->getTime() - it1->second->getTime()).seconds();
-    double ratio = tau/T;
-    double ratio2 = ratio*ratio;
-    double ratio3 = ratio2*ratio;
-
-    // Calculate 'psi' interpolation values
-    double psi11 = 3.0*ratio2 - 2.0*ratio3;
-    double psi12 = tau*(ratio2 - ratio);
-    double psi21 = 6.0*(ratio - ratio2)/T;
-    double psi22 = 3.0*ratio2 - 2.0*ratio;
-
-    // Calculate 'lambda' interpolation values
-    double lambda11 = 1.0 - psi11;
-    double lambda12 = tau - T*psi11 - psi12;
-    double lambda21 = -psi21;
-    double lambda22 = 1.0 - psi21 - psi22;
-
-    // Formulate Lambda and Psi matrices
-    Eigen::Matrix<double,6,6> identity = Eigen::MatrixXd::Identity(6,6);
-    Eigen::Matrix<double,12,12> Lambda;
-    Lambda.block<6,6>(0,0) = lambda11*identity;
-    Lambda.block<6,6>(0,6) = lambda12*identity;
-    Lambda.block<6,6>(6,0) = lambda21*identity;
-    Lambda.block<6,6>(6,6) = lambda22*identity;
-
-    Eigen::Matrix<double,12,12> Psi;
-    Psi.block<6,6>(0,0) = psi11*identity;
-    Psi.block<6,6>(0,6) = psi12*identity;
-    Psi.block<6,6>(6,0) = psi21*identity;
-    Psi.block<6,6>(6,6) = psi22*identity;
-
-    Lambda_Psi.block<12,12>(0,0) = Lambda;
-    Lambda_Psi.block<12,12>(12,0) = Psi;
-
-    // Formulate Q_check
-    Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
-
-    Eigen::Matrix<double,12,12> Qk_tau;
-    Qk_tau.block<6,6>(0,0) = 1.0/3.0*tau*tau*tau*Qc;
-    Qk_tau.block<6,6>(0,6) = 0.5*tau*tau*Qc;
-    Qk_tau.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
-    Qk_tau.block<6,6>(6,6) = tau*Qc;
-
-    Eigen::Matrix<double,12,12> Qk_2_inv;
-    double T_inv = 1.0/T;
-    Qk_2_inv.block<6,6>(0,0) = 12.0*T_inv*T_inv*T_inv*Qc_inv_;
-    Qk_2_inv.block<6,6>(0,6) = -6.0*T_inv*T_inv*Qc_inv_;
-    Qk_2_inv.block<6,6>(6,0) = Qk_2_inv.block<6,6>(0,6);
-    Qk_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
-
-    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12);
-    tran_2_tau.block<6,6>(6,0) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
-
-    Q_check = Qk_tau - Qk_tau*tran_2_tau.transpose()*Qk_2_inv.transpose()*
-        tran_2_tau*Qk_tau.transpose();
-  }
-  Eigen::MatrixXd local_interp = Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
-
-  // Need interpolated state
-  // TransformEvaluator::ConstPtr interp_state = SteamTrajPoseInterpEval::MakeShared(
-  //    time, it1->second, it2->second);
-
-
-  // Approximately translate result to global frame and return
-  return translateCovToGlobal(local_interp, global_cov, it1->second, it2->second);
+  return interpCovariance(solver, time);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -615,6 +515,121 @@ void SteamTrajInterface::getInterpState(lgmath::se3::Transformation* pose, Eigen
 
   *velocity = J_i1*(Lambda.block<6,12>(6,0)*gam1 + Psi.block<6,12>(6,0)*gam2);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Compute covariance interpolation at given time
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solver, 
+    const steam::Time& time) const {
+
+  // Get iterator to first element with time equal to or great than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+      = knotMap_.lower_bound(time.nanosecs());
+
+  // Get iterators bounding the time interval
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                             "should not trigger... report to a STEAM contributor.");
+  }
+
+  // Get required pose/velocity keys
+  // TODO(DAVID): Find a better way to get pose keys...
+  std::vector<steam::StateKey> keys;
+  {
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState1;
+    it1->second->getPose()->getActiveStateVariables(&outState1);
+
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState2;
+    it2->second->getPose()->getActiveStateVariables(&outState2);
+
+    keys.push_back(outState1.begin()->second->getKey());
+    keys.push_back(it1->second->getVelocity()->getKey());
+    keys.push_back(outState2.begin()->second->getKey());
+    keys.push_back(it2->second->getVelocity()->getKey());
+  }
+
+  // Get required covariances using the keys
+  steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
+
+  // Approximately translate global covariances (P_11 ... P_22) to local frame 1
+  Eigen::Matrix<double,24,24> local_cov = translateCovToLocal(global_cov,
+      it1->second, it2->second);
+
+  // Compute constants (Refer to eq 6.116 in Sean Anderson's thesis, note psi here is omega in
+  // his thesis)
+  Eigen::Matrix<double,12,24> Lambda_Psi; // [Lambda  Psi] block matrix
+  Eigen::Matrix<double,12,12> Q_check;
+  { // TODO(DAVID): First part is copied from SteamTrajPoseInterpEval. Look into a better way?
+    double tau = (time - it1->second->getTime()).seconds();
+    double T = (it2->second->getTime() - it1->second->getTime()).seconds();
+    double ratio = tau/T;
+    double ratio2 = ratio*ratio;
+    double ratio3 = ratio2*ratio;
+
+    // Calculate 'psi' interpolation values
+    double psi11 = 3.0*ratio2 - 2.0*ratio3;
+    double psi12 = tau*(ratio2 - ratio);
+    double psi21 = 6.0*(ratio - ratio2)/T;
+    double psi22 = 3.0*ratio2 - 2.0*ratio;
+
+    // Calculate 'lambda' interpolation values
+    double lambda11 = 1.0 - psi11;
+    double lambda12 = tau - T*psi11 - psi12;
+    double lambda21 = -psi21;
+    double lambda22 = 1.0 - psi21 - psi22;
+
+    // Formulate Lambda and Psi matrices
+    Eigen::Matrix<double,6,6> identity = Eigen::MatrixXd::Identity(6,6);
+    Eigen::Matrix<double,12,12> Lambda;
+    Lambda.block<6,6>(0,0) = lambda11*identity;
+    Lambda.block<6,6>(0,6) = lambda12*identity;
+    Lambda.block<6,6>(6,0) = lambda21*identity;
+    Lambda.block<6,6>(6,6) = lambda22*identity;
+
+    Eigen::Matrix<double,12,12> Psi;
+    Psi.block<6,6>(0,0) = psi11*identity;
+    Psi.block<6,6>(0,6) = psi12*identity;
+    Psi.block<6,6>(6,0) = psi21*identity;
+    Psi.block<6,6>(6,6) = psi22*identity;
+
+    Lambda_Psi.block<12,12>(0,0) = Lambda;
+    Lambda_Psi.block<12,12>(12,0) = Psi;
+
+    // Formulate Q_check
+    Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
+
+    Eigen::Matrix<double,12,12> Qk_tau;
+    Qk_tau.block<6,6>(0,0) = 1.0/3.0*tau*tau*tau*Qc;
+    Qk_tau.block<6,6>(0,6) = 0.5*tau*tau*Qc;
+    Qk_tau.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
+    Qk_tau.block<6,6>(6,6) = tau*Qc;
+
+    Eigen::Matrix<double,12,12> Qk_2_inv;
+    double T_inv = 1.0/T;
+    Qk_2_inv.block<6,6>(0,0) = 12.0*T_inv*T_inv*T_inv*Qc_inv_;
+    Qk_2_inv.block<6,6>(0,6) = -6.0*T_inv*T_inv*Qc_inv_;
+    Qk_2_inv.block<6,6>(6,0) = Qk_2_inv.block<6,6>(0,6);
+    Qk_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
+
+    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12);
+    tran_2_tau.block<6,6>(6,0) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
+
+    Q_check = Qk_tau - Qk_tau*tran_2_tau.transpose()*Qk_2_inv.transpose()*
+        tran_2_tau*Qk_tau.transpose();
+  }
+
+  // Interpolate covariance in local frame
+  Eigen::MatrixXd local_interp = Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
+
+  // Need interpolated state
+  // TransformEvaluator::ConstPtr interp_state = SteamTrajPoseInterpEval::MakeShared(
+  //    time, it1->second, it2->second);
+
+
+  // Approximately translate result to global frame and return
+  return translateCovToGlobal(local_interp, global_cov, it1->second, it2->second);
+  }
 
 } // se3
 } // steam
