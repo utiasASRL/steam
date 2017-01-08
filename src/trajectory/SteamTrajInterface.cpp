@@ -364,10 +364,6 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
                              "should not trigger... report to a STEAM contributor.");
   }
 
-  // Need interpolated pose
-  // TransformEvaluator::ConstPtr interp_state = SteamTrajPoseInterpEval::MakeShared(
-  //    time, it1->second, it2->second);
-
   // Get required pose/velocity keys
   // TODO(DAVID): Find a better way to get pose keys...
   std::vector<steam::StateKey> keys;
@@ -454,6 +450,10 @@ Eigen::MatrixXd SteamTrajInterface::getInterpCov(GaussNewtonSolverBase& solver,
         tran_2_tau*Qk_tau.transpose();
   }
   Eigen::MatrixXd local_interp = Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
+
+  // Need interpolated state
+  // TransformEvaluator::ConstPtr interp_state = SteamTrajPoseInterpEval::MakeShared(
+  //    time, it1->second, it2->second);
 
 
   // Approximately translate result to global frame and return
@@ -556,6 +556,64 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToGlobal(const Eigen::MatrixXd& 
 
   // Translate and Return
   return Gam1_inv*local_cov*Gam2_inv.transpose() + Xi1*P_11*Xi2.transpose();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get interpolated state at given time
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::getInterpState(lgmath::se3::Transformation* pose, Eigen::MatrixXd* velocity,
+    const Eigen::MatrixXd& lambda_psi, const steam::Time& time,
+    const SteamTrajVar::ConstPtr& knot1, const SteamTrajVar::ConstPtr& knot2) const {
+
+  // Interpolated state, which includes velocity is required for covariance interpolation.
+  // SteamTrajPoseInterpEval only interpolates the pose.
+
+  // Constants
+  Eigen::Matrix<double,12,12> Lambda = lambda_psi.block<12,12>(0,0);
+  Eigen::Matrix<double,12,12> Psi = lambda_psi.block<12,12>(0,6);
+
+  // Get relative matrix info
+  lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
+
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+
+  // Calculate interpolated relative se3 algebra
+  double psi11 = Psi(0,0);
+  double psi12 = Psi(0,6);
+  double lambda12 = Lambda(0,6);
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12*knot1->getVelocity()->getValue() +
+                                    psi11*xi_21 +
+                                    psi12*J_21_inv*knot2->getVelocity()->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
+
+  // Global interpolated pose
+  *pose = T_i1*knot1->getPose()->evaluate();
+
+  // Note(DAVID): Computation above is directly from SteamTrajPoseInterpEval. I'm unsure of
+  // Sean's notation, particularly if xi is referring to the greek letter or x indexed with i.
+  // It does seem that i after an underscore is referring to the interpolated time index.
+
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+
+  // TODO(DAVID): As how Sean simplified the pose interpolation, do the same for velocity.
+  // i.e. do not fully compute the matrix multiplications.
+
+  // Local state variables. i.e. gam1 -> gamma_k(t_k)
+  Eigen::Matrix<double,12,1> gam1 = Eigen::MatrixXd::Zero(12,1);
+  gam1.block<6,1>(6,0) = knot1->getVelocity()->getValue();
+
+  Eigen::Matrix<double,12,1> gam2 = Eigen::MatrixXd::Zero(12,1);
+  gam2.block<6,1>(0,0) = xi_21;
+  gam2.block<6,1>(6,0) = J_21_inv*knot2->getVelocity()->getValue();
+
+  *velocity = J_i1*(Lambda.block<6,12>(6,0)*gam1 + Psi.block<6,12>(6,0)*gam2);
 }
 
 } // se3
