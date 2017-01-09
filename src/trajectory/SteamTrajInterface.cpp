@@ -301,6 +301,14 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
       = knotMap_.lower_bound(time.nanosecs());
 
+  // TODO(DAVID): Be able to handle locked states
+  // Check if state is locked
+  std::map<unsigned int, steam::StateVariableBase::Ptr> outState;
+  it1->second->getPose()->getActiveStateVariables(&outState);
+  if (outState.size() == 0) {
+    throw std::runtime_error("Attempted covariance interpolation with locked states");
+  }
+
   // TODO(DAVID): Extrapolation past last entry
   // Check if time is passed the last entry
       /*
