@@ -301,31 +301,16 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
       = knotMap_.lower_bound(time.nanosecs());
 
-  // TODO(DAVID): Be able to handle locked states
-  // Check if state is locked
-  std::map<unsigned int, steam::StateVariableBase::Ptr> outState;
-  it1->second->getPose()->getActiveStateVariables(&outState);
-  if (outState.size() == 0) {
-    throw std::runtime_error("Attempted covariance interpolation with locked states");
-  }
-
-  // TODO(DAVID): Extrapolation past last entry
   // Check if time is passed the last entry
-      /*
   if (it1 == knotMap_.end()) {
 
-    // If we allow extrapolation, return constant-velocity interpolated entry
+    // If we allow extrapolation
     if (allowExtrapolation_) {
-      --it1; // should be safe, as we checked that the map was not empty..
-      const SteamTrajVar::Ptr& endKnot = it1->second;
-      TransformEvaluator::Ptr T_t_k =
-          ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());
-      return compose(T_t_k, endKnot->getPose());
+      return extrapCovariance(solver, time);
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
   }
-  */
 
   // Check if we requested time exactly
   if (it1->second->getTime() == time) {
@@ -345,6 +330,14 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
     output.block<6,6>(6,0) = covariance.copyAt(1,0);
     output.block<6,6>(6,6) = covariance.copyAt(1,1);
     return output;
+  }
+
+  // TODO(DAVID): Be able to handle locked states
+  // Check if state is locked
+  std::map<unsigned int, steam::StateVariableBase::Ptr> states;
+  it1->second->getPose()->getActiveStateVariables(&states);
+  if (states.size() == 0) {
+    throw std::runtime_error("Attempted covariance interpolation with locked states");
   }
 
   // TODO(DAVID): Extrapolation behind first entry
@@ -428,36 +421,31 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Covariance translation from global(6x6 matrix, meaning 1 state) to local
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const Eigen::MatrixXd& global_cov, 
+    const SteamTrajVar::ConstPtr& knot1) const {
+
+  // Create constants
+  Eigen::Matrix<double,12,12> Gam = Eigen::MatrixXd::Zero(12,12);
+  Eigen::Matrix<double,6,6> J_11_inv = lgmath::se3::vec2jacinv(Eigen::MatrixXd::Identity(6,6));
+  Gam.block<6,6>(0,0) = J_11_inv;
+  Gam.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue())*J_11_inv;
+  Gam.block<6,6>(6,6) = J_11_inv;
+
+  Eigen::Matrix<double,12,12> Xi = Eigen::MatrixXd::Zero(12,12);
+  Xi.block<6,6>(0,0) = Eigen::MatrixXd::Identity(6,6);
+
+  // Translate and return
+  return Gam*(global_cov - Xi*global_cov*Xi.transpose())*Gam.transpose();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Covariance translation of interpolated covariance from local to global
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::MatrixXd SteamTrajInterface::translateCovToGlobal(const Eigen::MatrixXd& local_cov,
     const Eigen::MatrixXd& global_frame_cov, const lgmath::se3::Transformation& local_pose, 
     const Eigen::MatrixXd& velocity) const {
-/*
-
-  // Create constants
-  Eigen::Matrix<double,12,12> Gam1_inv = Eigen::MatrixXd::Zero(12,12);
-  Eigen::Matrix<double,12,12> Gam2_inv = Eigen::MatrixXd::Zero(12,12);
-  Eigen::Matrix<double,12,12> Xi1 = Eigen::MatrixXd::Zero(12,12);
-  Eigen::Matrix<double,12,12> Xi2 = Eigen::MatrixXd::Zero(12,12);
-
-  Eigen::Matrix<double,6,6> J_11 = Eigen::MatrixXd::Identity(6,6);
-  Gam1_inv.block<6,6>(0,0) = J_11;
-  Gam1_inv.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue());
-  Gam1_inv.block<6,6>(6,6) = J_11;
-
-  lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
-  Eigen::Matrix<double,6,6> J_21 = lgmath::se3::vec2jac(T_21.vec());
-  Gam2_inv.block<6,6>(0,0) = J_21;
-  Gam2_inv.block<6,6>(6,0) = -0.5*J_21*lgmath::se3::curlyhat(knot2->getVelocity()->getValue());
-  Gam2_inv.block<6,6>(6,6) = J_21;
-
-  Xi1.block<6,6>(0,0) = Eigen::MatrixXd::Identity(6,6);
-  Xi2.block<6,6>(0,0) = lgmath::se3::tranAd(T_21.matrix());
-  */
-
-  // Translate and Return
-  //return Gam1_inv*local_cov*Gam2_inv.transpose() + Xi1*P_11*Xi2.transpose();
 
   // Create constants. 'tau' is time index interpolated between '1' and '2'. If extrapolation is
   // the case, 'tau' is time index extrapolated past index '1'.
@@ -627,8 +615,8 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
     Qk_2_inv.block<6,6>(6,0) = Qk_2_inv.block<6,6>(0,6);
     Qk_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
 
-    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12);
-    tran_2_tau.block<6,6>(0,6) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
+    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12); // Phi in lit.
+    tran_2_tau.block<6,6>(0,6) = (T - tau)*Eigen::MatrixXd::Identity(6,6);  
 
     Q_check = Qk_tau - Qk_tau*tran_2_tau.transpose()*Qk_2_inv.transpose()*
         tran_2_tau*Qk_tau.transpose();
@@ -652,6 +640,68 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
 
   return translateCovToGlobal(local_interp, P_11, 
       pose/it1->second->getPose()->evaluate(), velocity);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Compute covariance interpolation at given time
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::extrapCovariance(GaussNewtonSolverBase& solver, 
+    const steam::Time& time) const {
+
+  // Get iterator to first element with time equal to or great than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+      = knotMap_.lower_bound(time.nanosecs());
+
+  --it1; // should be safe, as we checked that the map was not empty..
+  // const SteamTrajVar::Ptr& endKnot = it1->second;
+
+  // Get required pose/velocity keys
+  // TODO(DAVID): Find a better way to get pose keys...
+  std::vector<steam::StateKey> keys;
+  {
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState1;
+    it1->second->getPose()->getActiveStateVariables(&outState1);
+
+    keys.push_back(outState1.begin()->second->getKey());
+    keys.push_back(it1->second->getVelocity()->getKey());
+  }
+
+  // Get required covariances using the keys
+  steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
+  Eigen::Matrix<double,12,12> P_11;
+
+  P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
+  P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
+  P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
+  P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+
+  // Approximately translate covariance of last state to local frame
+  Eigen::MatrixXd local_frame_cov = translateCovToLocal(P_11, it1->second);
+
+  // Extrapolate in local frame
+  double tau = (time - it1->second->getTime()).seconds();
+  Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
+
+  Eigen::Matrix<double,12,12> Qk_tau;
+  Qk_tau.block<6,6>(0,0) = 1.0/3.0*tau*tau*tau*Qc;
+  Qk_tau.block<6,6>(0,6) = 0.5*tau*tau*Qc;
+  Qk_tau.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
+  Qk_tau.block<6,6>(6,6) = tau*Qc;
+
+  // Note: This is the transformation matrix, Phi in literature.
+  Eigen::Matrix<double,12,12> tran_tau_1 = Eigen::MatrixXd::Identity(12,12);
+  tran_tau_1.block<6,6>(0,6) = tau*Eigen::MatrixXd::Identity(6,6);
+
+  Eigen::MatrixXd local_extrap = tran_tau_1*local_frame_cov*tran_tau_1.transpose() + Qk_tau;
+
+  // Extrapolate state. Velocity stays constant
+  const SteamTrajVar::Ptr& endKnot = it1->second;
+  TransformEvaluator::Ptr T_t_k =
+      ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());
+
+  // Approximately translate to global frame and return
+  return translateCovToGlobal(local_extrap, P_11, T_t_k->evaluate(), 
+      it1->second->getVelocity()->getValue());
 }
 
 } // se3
