@@ -393,7 +393,7 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
 
   Eigen::Matrix<double,6,6> J_11_inv = lgmath::se3::vec2jacinv(Eigen::MatrixXd::Identity(6,6));
   Gam1.block<6,6>(0,0) = J_11_inv;
-  Gam1.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue());
+  Gam1.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue())*J_11_inv;
   Gam1.block<6,6>(6,6) = J_11_inv;
 
   lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
@@ -423,16 +423,9 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
 /// \brief Covariance translation of interpolated covariance from local to global
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::MatrixXd SteamTrajInterface::translateCovToGlobal(const Eigen::MatrixXd& local_cov,
-    const steam::BlockMatrix& global_cov, const SteamTrajVar::ConstPtr& knot1,
-    const SteamTrajVar::ConstPtr& knot2) const {
-
-  // Need global covariance P_11
-  Eigen::Matrix<double,12,12> P_11;
-
-  P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
-  P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
-  P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
-  P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+    const Eigen::MatrixXd& global_frame_cov, const lgmath::se3::Transformation& local_pose, 
+    const Eigen::MatrixXd& velocity) const {
+/*
 
   // Create constants
   Eigen::Matrix<double,12,12> Gam1_inv = Eigen::MatrixXd::Zero(12,12);
@@ -453,15 +446,29 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToGlobal(const Eigen::MatrixXd& 
 
   Xi1.block<6,6>(0,0) = Eigen::MatrixXd::Identity(6,6);
   Xi2.block<6,6>(0,0) = lgmath::se3::tranAd(T_21.matrix());
+  */
 
   // Translate and Return
-  return Gam1_inv*local_cov*Gam2_inv.transpose() + Xi1*P_11*Xi2.transpose();
+  //return Gam1_inv*local_cov*Gam2_inv.transpose() + Xi1*P_11*Xi2.transpose();
+
+  // Create constants. 'tau' is time index interpolated between '1' and '2'. If extrapolation is
+  // the case, 'tau' is time index extrapolated past index '1'.
+  Eigen::Matrix<double,6,6> J_tau1 = lgmath::se3::vec2jac(local_pose.vec());
+  Eigen::Matrix<double,12,12> Gam_inv = Eigen::MatrixXd::Zero(12,12);
+  Gam_inv.block<6,6>(0,0) = J_tau1;
+  Gam_inv.block<6,6>(6,0) = -0.5*J_tau1*lgmath::se3::curlyhat(velocity);
+  Gam_inv.block<6,6>(6,6) = J_tau1;
+
+  Eigen::Matrix<double,12,12> Xi = Eigen::MatrixXd::Zero(12,12);
+  Xi.block<6,6>(0,0) = lgmath::se3::tranAd(local_pose.matrix());
+
+  return Gam_inv*local_cov*Gam_inv.transpose() + Xi*global_frame_cov*Xi.transpose();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get interpolated state at given time
 //////////////////////////////////////////////////////////////////////////////////////////////
-void SteamTrajInterface::getInterpState(lgmath::se3::Transformation* pose, Eigen::MatrixXd* velocity,
+void SteamTrajInterface::interpState(lgmath::se3::Transformation* pose, Eigen::MatrixXd* velocity,
     const Eigen::MatrixXd& lambda_psi, const steam::Time& time,
     const SteamTrajVar::ConstPtr& knot1, const SteamTrajVar::ConstPtr& knot2) const {
 
@@ -470,7 +477,7 @@ void SteamTrajInterface::getInterpState(lgmath::se3::Transformation* pose, Eigen
 
   // Constants
   Eigen::Matrix<double,12,12> Lambda = lambda_psi.block<12,12>(0,0);
-  Eigen::Matrix<double,12,12> Psi = lambda_psi.block<12,12>(0,6);
+  Eigen::Matrix<double,12,12> Psi = lambda_psi.block<12,12>(0,12);
 
   // Get relative matrix info
   lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
@@ -594,7 +601,7 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
     Psi.block<6,6>(6,6) = psi22*identity;
 
     Lambda_Psi.block<12,12>(0,0) = Lambda;
-    Lambda_Psi.block<12,12>(12,0) = Psi;
+    Lambda_Psi.block<12,12>(0,12) = Psi;
 
     // Formulate Q_check
     Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
@@ -613,7 +620,7 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
     Qk_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
 
     Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12);
-    tran_2_tau.block<6,6>(6,0) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
+    tran_2_tau.block<6,6>(0,6) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
 
     Q_check = Qk_tau - Qk_tau*tran_2_tau.transpose()*Qk_2_inv.transpose()*
         tran_2_tau*Qk_tau.transpose();
@@ -623,13 +630,21 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
   Eigen::MatrixXd local_interp = Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
 
   // Need interpolated state
-  // TransformEvaluator::ConstPtr interp_state = SteamTrajPoseInterpEval::MakeShared(
-  //    time, it1->second, it2->second);
-
+  lgmath::se3::Transformation pose;
+  Eigen::MatrixXd velocity;
+  interpState(&pose, &velocity, Lambda_Psi, time, it1->second, it2->second);
 
   // Approximately translate result to global frame and return
-  return translateCovToGlobal(local_interp, global_cov, it1->second, it2->second);
-  }
+  Eigen::Matrix<double,12,12> P_11;
+
+  P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
+  P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
+  P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
+  P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+
+  return translateCovToGlobal(local_interp, P_11, 
+      pose/it1->second->getPose()->evaluate(), velocity);
+}
 
 } // se3
 } // steam
