@@ -13,9 +13,9 @@ project(catch_tests)
 ################################################################################
 ### Misc
 ################################################################################
-# Expose required variable (CATCH_INCLUDE_DIR) to parent scope
-set(CATCH_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty"
-        CACHE INTERNAL "Path to include folder for Catch")
+
+# Find Catch (the unit-test header-only library)
+co_find(catch)
 
 # Disable compiler warnings that Catch throws
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -28,7 +28,6 @@ endif()
 ################################################################################
 ### Specify Build Targets
 ################################################################################
-include_directories(${CATCH_INCLUDE_DIR})
 
 # Build test executable
 add_executable(steam_unit_tests
