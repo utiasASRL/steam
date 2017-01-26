@@ -1,52 +1,77 @@
-# How to Install Steam
+# Dependencies
 
-## Dependencies
-1. __Eigen 3.2.2__ and above (c++ math library). If you are on Ubuntu 14.04, you will need to compile it from source:
-
-  ```
+## Eigen
+In a folder for 3rd party dependencies,
+```bash
 wget http://bitbucket.org/eigen/eigen/get/3.2.5.tar.gz
 tar zxvf 3.2.5.tar.gz
-rm 3.2.5.tar.gz
 cd eigen-eigen-bdd17ee3b1b3/
 mkdir build && cd build
 cmake ..
 sudo make install
-  ```
-2. __lgmath__ (Lie group math library). Follow the procedure from utiasASRL privite repository [INSTALL.md](https://github.com/utiasASRL/lgmath/blob/develop/INSTALL.md).
- 
+```
 
-## Compilation
+## lgmath
+Follow the install instructions [here](https://github.com/utiasASRL/lgmath/blob/develop/INSTALL.md)
+
+# Build
 In your development folder,
-```
+```bash
+mkdir steam-ws && cd $_
 git clone https://github.com/utiasASRL/steam.git
-mkdir build && cd build
-cmake ..
-make
+cd steam && git submodule update --init --remote
 ```
 
-If you've installed a local version of Eigen, you will have to specify by changing the variable to something like this:
-```
-EIGEN3_INCLUDE_DIR=usr/local/include/eigen3 
+Using [catkin](https://github.com/ros/catkin) and [catkin tools](https://github.com/catkin/catkin_tools) (recommended)
+```bash
+cd deps/catkin && catkin build
+cd ../.. && catkin build
 ```
 
-## Unit Tests 
-Just run
+Using CMake (manual)
+```bash
+cd .. && mkdir -p build/catkin_optional && cd $_
+cmake ../../steam/deps/catkin/catkin_optional && make
+cd ../.. && mkdir -p build/catch && cd $_
+cmake ../../steam/deps/catkin/catch && make
+cd ../.. && mkdir -p build/steam && cd $_
+cmake ../../steam && make -j4
 ```
-make test
-```
-to confirm that everything is alright.
 
-## Installation
-Once you validate that the unit tests pass, you can proceed to install the library:
+# CMake Build Options
+
+1. In your steam build folder (`build/steam`[`/steam`])
+1. Open CMake cache editor (`ccmake .` or `cmake-gui .`)
+
+# Install (optional)
+
+Since the catkin build produces a catkin workspace you can overlay, and the CMake build exports packageConfig.cmake files, it is unnecessary to install steam except in production environments. If you are really sure you need to install, you can use the following procedure.
+
+Using catkin tools (recommended)
+```bash
+cd steam
+catkin profile add --copy-active install
+catkin profile set install
+catkin config --install
+catkin build
 ```
+
+Using CMake (manual)
+```bash
+cd build/steam
 sudo make install
 ```
 
-The default location is `/usr/local/`.
+# Uninstall (Optional)
 
-## Uninstall
+If you have installed, and would like to uninstall,
 
+Using catkin tools (recommended)
+```bash
+cd steam && catkin clean -i
 ```
-cd build
-sudo make uninstall
+
+Using CMake (manual)
+```bash
+cd build/steam && sudo make uninstall
 ```
