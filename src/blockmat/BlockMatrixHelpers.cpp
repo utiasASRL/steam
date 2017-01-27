@@ -94,7 +94,8 @@ unsigned int BlockDimIndexing::scalarSize() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-BlockMatrixIndexing::BlockMatrixIndexing() {
+BlockMatrixIndexing::BlockMatrixIndexing()
+  : blkSizeSymmetric_(false) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +110,7 @@ BlockMatrixIndexing::BlockMatrixIndexing(const std::vector<unsigned int>& blkSiz
 //////////////////////////////////////////////////////////////////////////////////////////////
 BlockMatrixIndexing::BlockMatrixIndexing(const std::vector<unsigned int>& blkRowSizes,
                     const std::vector<unsigned int>& blkColSizes)
-  : blkRowIndexing_(blkRowSizes), blkColIndexing_(blkColSizes) {
+  : blkRowIndexing_(blkRowSizes), blkColIndexing_(blkColSizes), blkSizeSymmetric_(false) {
 }
 
 
