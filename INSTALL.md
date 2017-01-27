@@ -11,9 +11,6 @@ cmake ..
 sudo make install
 ```
 
-## lgmath
-Follow the install instructions [here](https://github.com/utiasASRL/lgmath/blob/develop/INSTALL.md)
-
 # Build
 In your development folder,
 ```bash
@@ -34,6 +31,8 @@ cd .. && mkdir -p build/catkin_optional && cd $_
 cmake ../../steam/deps/catkin/catkin_optional && make
 cd ../.. && mkdir -p build/catch && cd $_
 cmake ../../steam/deps/catkin/catch && make
+cd ../.. && mkdir -p build/lgmath && cd $_
+cmake ../../steam/deps/catkin/lgmath && make
 cd ../.. && mkdir -p build/steam && cd $_
 cmake ../../steam && make -j4
 ```
