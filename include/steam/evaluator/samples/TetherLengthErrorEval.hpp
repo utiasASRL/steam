@@ -4,7 +4,10 @@
 /// \author Patrick McGarey, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef STEAM_TETHER_LENGTH_ERROR_EVALUATOR_HPP
+#define STEAM_TETHER_LENGTH_ERROR_EVALUATOR_HPP
+
+// #pragma once
 
 #include <steam.hpp>
 
@@ -58,4 +61,6 @@ private:
 
 };
 
-}
+} //steam
+
+#endif //

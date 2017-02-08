@@ -10,6 +10,12 @@
 
 namespace steam {
 
+// intitialize doubles for Jacobian
+double dx;
+double dy;
+double dz;
+double dr;
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,7 +29,7 @@ TetherLengthErrorEval::~TetherLengthErrorEval() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Returns whether or not an evaluator contains unlocked state variables
+/// \brief Returns whether or not an evaluator contains unlocked state variables.
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool TetherLengthErrorEval::isActive() const {
   return T_b_a_->isActive();
@@ -81,6 +87,7 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate(const Eigen::Matrix<do
 
   // Return Evaluation
   return Eigen::Matrix<double,1,1>(meas_distance - decomposed_tf.distance);
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,19 +99,31 @@ Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedT
   auto &y = decomposed_tf.translation(1);
   auto &z = decomposed_tf.translation(2);
   auto &yaw = decomposed_tf.yaw;
-  auto &distance = decomposed_tf.distance;
+  // auto &distance = decomposed_tf.distance;
   double meas_distance_sq = pow(tether_meas_a_,2) + pow(tether_meas_b_,2);
   meas_distance_sq -= ( 2.0 * tether_meas_a_ * tether_meas_b_ * cos(yaw) );
   double meas_distance = sqrt(meas_distance_sq);
 
   // Precompute Partial Derivatives (dx,dy,dz already are negative since it is a subtracted value)
-  double dx = -x/distance;
-  double dy = -y/distance;
-  double dz = -z/distance;
-  double dr = (tether_meas_a_ * tether_meas_b_ * sin(yaw))/meas_distance;
+  if(decomposed_tf.distance != 0)
+  {
+    dx = -x/decomposed_tf.distance;
+    dy = -y/decomposed_tf.distance;
+    dz = -z/decomposed_tf.distance;
+    dr = (tether_meas_a_ * tether_meas_b_ * sin(yaw))/meas_distance;
+  }
 
   // DEBUGGING: Print Statement
-  //std::cout << "\n\nTetherLengthErrorEval:\nModel:\t" << decomposed_tf.distance << "\nMeas:\t" << meas_distance << "\nError:\t" << (meas_distance - decomposed_tf.distance) << "\nJacs\n  dx:\t" << dx << "\n  dy:\t" << dy << "\n  dz:\t" << dz << "\n\n";
+  std::cout << "\n";
+  std::cout << "length_a:\t" << tether_meas_a_ << "\n";
+  std::cout << "length_b:\t" << tether_meas_b_ << "\n";
+  std::cout << "model_yaw:\t" <<  yaw*(180.0/3.1415) << "\n";
+  std::cout << "model_dist:\t" << decomposed_tf.distance << "\n";
+  std::cout << "meas_dist:\t" << meas_distance << "\n";
+  std::cout << "error_dist:\t" << (meas_distance - decomposed_tf.distance) << "\n";
+  // std::cout << "dx/dy/dz/dr:\t" << dx << "/" << dy << "/" << dz << "/" << dr <<"\n";
+  std::cout << "\n";
+
 
   // Construct Jacobian with respect to x, y, z, and rotation (yaw)
   Eigen::Matrix<double,1,6> jac;
