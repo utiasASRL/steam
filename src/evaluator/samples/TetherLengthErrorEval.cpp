@@ -35,6 +35,9 @@ bool TetherLengthErrorEval::isActive() const {
   return T_b_a_->isActive();
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Decomposes the TF into components.
+//////////////////////////////////////////////////////////////////////////////////////////////
 DecomposedTF TetherLengthErrorEval::decomposeTF(lgmath::se3::Transformation &tf) const {
   DecomposedTF decomposed_tf;
   auto se3Vec = tf.vec();
@@ -43,6 +46,7 @@ DecomposedTF TetherLengthErrorEval::decomposeTF(lgmath::se3::Transformation &tf)
   decomposed_tf.distance = decomposed_tf.translation.norm();
   return decomposed_tf;
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the measurement error
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,7 +57,10 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate() const {
   meas_distance_sq -= ( 2.0 * tether_meas_a_ * tether_meas_b_ * cos(decomposed_tf.yaw) );
   double meas_distance = sqrt(meas_distance_sq);
 
-  return Eigen::Matrix<double,1,1>(meas_distance - decomposed_tf.distance);
+  Eigen::Matrix<double,1,1> result_error;
+  result_error << (meas_distance - decomposed_tf.distance);
+
+  return result_error;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +74,6 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate(const Eigen::Matrix<do
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
   }
   jacs->clear();
-
 
   // Get evaluation tree
   auto blkAutoEvalT_b_a =T_b_a_->getBlockAutomaticEvaluation();
@@ -85,9 +91,10 @@ Eigen::Matrix<double,1,1> TetherLengthErrorEval::evaluate(const Eigen::Matrix<do
   auto newLhs = lhs*tether_err_jac;
   T_b_a_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalT_b_a.getRoot(), jacs);
 
-  // Return Evaluation
-  return Eigen::Matrix<double,1,1>(meas_distance - decomposed_tf.distance);
+  Eigen::Matrix<double,1,1> result_error;
+  result_error << (meas_distance - decomposed_tf.distance);
 
+  return result_error;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,15 +122,14 @@ Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedT
 
   // DEBUGGING: Print Statement
   std::cout << "\n";
-  std::cout << "length_a:\t" << tether_meas_a_ << "\n";
-  std::cout << "length_b:\t" << tether_meas_b_ << "\n";
+  // std::cout << "length_a:\t" << tether_meas_a_ << "\n";
+  // std::cout << "length_b:\t" << tether_meas_b_ << "\n";
   std::cout << "model_yaw:\t" <<  yaw*(180.0/3.1415) << "\n";
   std::cout << "model_dist:\t" << decomposed_tf.distance << "\n";
   std::cout << "meas_dist:\t" << meas_distance << "\n";
   std::cout << "error_dist:\t" << (meas_distance - decomposed_tf.distance) << "\n";
   // std::cout << "dx/dy/dz/dr:\t" << dx << "/" << dy << "/" << dz << "/" << dr <<"\n";
   std::cout << "\n";
-
 
   // Construct Jacobian with respect to x, y, z, and rotation (yaw)
   Eigen::Matrix<double,1,6> jac;
