@@ -24,6 +24,7 @@ struct ComponentsTF {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief tether length error function evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
+//Probably a 4,6 or 3,6
 class ImuFilterErrorEval : public ErrorEvaluator<1,6>::type
 {
 public:
@@ -31,10 +32,9 @@ public:
   typedef boost::shared_ptr<ImuFilterErrorEval> Ptr;
   typedef boost::shared_ptr<const ImuFilterErrorEval> ConstPtr;
 
-  ImuFilterErrorEval(const double & imu_meas_roll_,
-                        const double & imu_meas_pitch_,
-                        const double & imu_meas_yaw_,
-                        const se3::TransformEvaluator::ConstPtr& T_b_a);
+  ImuFilterErrorEval(const std::vector<double> & imu_meas_rpy_a,
+                     const std::vector<double> & imu_meas_rpy_b,
+                     const se3::TransformEvaluator::ConstPtr& T_b_a);
 
   virtual ~ImuFilterErrorEval();
 
@@ -51,16 +51,15 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the general 'evaluation', with Jacobians
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::Matrix<double,1,1> evaluate(const Eigen::Matrix<double,1,1>& lhs,
-                        std::vector<Jacobian<1,6> >* jacs) const;
-
-  Eigen::Matrix<double,1,6> TetherModelJacobian(ComponentsTF &decomposed_tf) const;
+  // virtual Eigen::Matrix<double,1,1> evaluate(const Eigen::Matrix<double,1,1>& lhs,
+  //                       std::vector<Jacobian<1,6> >* jacs) const;
+  //
+  // Eigen::Matrix<double,1,6> TetherModelJacobian(ComponentsTF &decomposed_tf) const;
 
 private:
   ComponentsTF componentTF(lgmath::se3::Transformation &tf) const;
-  double imu_meas_roll_;
-  double imu_meas_pitch_;
-  double imu_meas_yaw_;
+  std::vector<double> imu_meas_rpy_a_;
+  std::vector<double> imu_meas_rpy_b_;
   se3::TransformEvaluator::ConstPtr T_b_a_;
 
 };

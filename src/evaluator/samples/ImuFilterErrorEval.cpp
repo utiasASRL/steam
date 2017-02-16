@@ -12,14 +12,19 @@
 
 namespace steam {
 
+//Declare Variables for Rotation Matrix
+Eigen::Matrix<double,3,3> R_x;
+Eigen::Matrix<double,3,3> R_y;
+Eigen::Matrix<double,3,3> R_z;
+Eigen::Matrix<double,3,3> R;
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-ImuFilterErrorEval::ImuFilterErrorEval(const double & imu_meas_roll,
-                                       const double & imu_meas_pitch,
-                                       const double & imu_meas_yaw,
-                                       const se3::TransformEvaluator::ConstPtr& T_b_a)
-  : imu_meas_roll_(imu_meas_roll), imu_meas_pitch_(imu_meas_pitch), imu_meas_yaw_(imu_meas_yaw), T_b_a_(T_b_a) {
+ImuFilterErrorEval::ImuFilterErrorEval(const std::vector<double> & imu_meas_rpy_a,
+                                       const std::vector<double> & imu_meas_rpy_b,
+                                       const se3::TransformEvaluator::ConstPtr & T_b_a)
+  : imu_meas_rpy_a_(imu_meas_rpy_a), imu_meas_rpy_b_(imu_meas_rpy_b), T_b_a_(T_b_a) {
 }
 
 ImuFilterErrorEval::~ImuFilterErrorEval() {
@@ -44,15 +49,50 @@ ComponentsTF ImuFilterErrorEval::componentTF(lgmath::se3::Transformation &tf) co
   return component_tf;
 }
 
+// Calculates rotation matrix given euler angles.
+
+Eigen::Matrix<double,3,3> Euler2Rotation(std::vector<double> rpy)
+{
+    // Calculate rotation about x axis
+    R_x << 1, 0,           0,
+           0, cos(rpy[0]), -sin(rpy[0]),
+           0, sin(rpy[0]),  cos(rpy[0]);
+    // Calculate rotation about y axis
+    R_y << cos(rpy[1]),  0, sin(rpy[1]),
+           0,            1, 0,
+          -sin(rpy[1]),  0, cos(rpy[1]);
+
+    // Calculate rotation about z axis
+    R_z << cos(rpy[2]), -sin(rpy[2]), 0,
+           sin(rpy[2]),  cos(rpy[2]), 0,
+           0,           0,            1;
+    // Combined rotation matrix
+    R = R_z * R_y * R_x;
+
+    return R;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the measurement error
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,1,1> ImuFilterErrorEval::evaluate() const {
   auto T_b_a = T_b_a_->evaluate();
   auto component_tf = componentTF(T_b_a);
-  // double meas_distance_sq = pow(tether_meas_a_,2) + pow(tether_meas_b_,2);
-  // meas_distance_sq -= ( 2.0 * tether_meas_a_ * tether_meas_b_ * cos(component_tf.yaw) );
-  // double meas_distance = sqrt(meas_distance_sq);
+
+  // Get Rotation Matrix for two IMU Filter states
+  Eigen::Matrix<double,3,3> R_meas_a = Euler2Rotation(imu_meas_rpy_a_);
+  Eigen::Matrix<double,3,3> R_meas_b = Euler2Rotation(imu_meas_rpy_b_);
+
+  // Calculate a Relative rotation from b to a
+  Eigen::Matrix<double,3,3> R_meas_a_inv = R_meas_a.inverse();
+  Eigen::Matrix<double,3,3> R_meas_b_a = R_meas_b*R_meas_a_inv;
+
+  // Get Rotation Matrix for Model (function accepts vector of doubles)
+  std::vector<double> model_rpy = {component_tf.roll,component_tf.pitch,component_tf.yaw};
+  Eigen::Matrix<double,3,3>  R_model_b_a = Euler2Rotation(model_rpy);
+
+  // Eigen::Matrix<double,3,3> result_error;
+  // result_error << R_meas_b_a*R_model_b_a;
 
   Eigen::Matrix<double,1,1> result_error;
   result_error << (0);
@@ -60,60 +100,16 @@ Eigen::Matrix<double,1,1> ImuFilterErrorEval::evaluate() const {
   return result_error;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Interface for the general 'evaluation', with Jacobians
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<double,1,1> ImuFilterErrorEval::evaluate(const Eigen::Matrix<double,1,1>& lhs,
-                        std::vector<Jacobian<1,6> >* jacs) const {
-
-  // Check and initialize jacobian array
-  if (jacs == NULL) {
-    throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
-  }
-  jacs->clear();
-
-  // Get evaluation tree
-  auto blkAutoEvalT_b_a =T_b_a_->getBlockAutomaticEvaluation();
-
-  // Get evaluation from the tree
-  auto T_b_a = blkAutoEvalT_b_a.getValue();
-
-  auto component_tf = componentTF(T_b_a);
-  // double meas_distance_sq = pow(tether_meas_a_,2) + pow(tether_meas_b_,2);
-  // meas_distance_sq -= ( 2.0 * tether_meas_a_ * tether_meas_b_ * cos(component_tf.yaw) );
-  // double meas_distance = sqrt(meas_distance_sq);
-
-  // Get Jacobians
-  Eigen::Matrix<double,1,6> tether_err_jac = TetherModelJacobian(component_tf);
-  auto newLhs = lhs*tether_err_jac;
-  T_b_a_->appendBlockAutomaticJacobians(newLhs, blkAutoEvalT_b_a.getRoot(), jacs);
-
-  Eigen::Matrix<double,1,1> result_error;
-  result_error << (0);
-
-  return result_error;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Error Jacobian (includes measured distance since it contains part of the state)
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<double,1,6> ImuFilterErrorEval::TetherModelJacobian(ComponentsTF &component_tf) const {
-
-  // DEBUGGING: Print Statement
-  std::cout << "\n";
-  std::cout << "meas_roll:\t" << imu_meas_roll_ << "\n";
-  std::cout << "meas_pitch:\t" << imu_meas_pitch_ << "\n";
-  std::cout << "meas_yaw:\t" << imu_meas_yaw_ << "\n";
-  std::cout << "model_roll:\t" << component_tf.roll << "\n";
-  std::cout << "model_pitch:\t" << component_tf.pitch << "\n";
-  std::cout << "model_yaw:\t" << component_tf.yaw << "\n";
-  std::cout << "\n";
-
-  // Construct Jacobian with respect to x, y, z, and rotation (yaw)
-  Eigen::Matrix<double,1,6> jac;
-  // jac << dx, dy, dz, droll, dpitch, dyaw;
-  jac << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-  return jac;
-}
+// Jacobian is simply from pre-existing blockauto function for computing Jacobian of 4x4 transformation Matrix
+// This will require that first we convert our 3x3 into a 4x4 (should this be done before error calc... probably)
+// So to convert a 3x3 matrix to a 4x4, you simply copy in the values for the 3x3 upper left block, like so:
+// [ a11  a12  a13 ]
+// [ a21  a22  a23 ]
+// [ a31  a32  a33 ]
+// That 3x3 becomes this 4x4:
+// [ a11  a12  a13  0 ]
+// [ a21  a22  a23  0 ]
+// [ a31  a32  a33  0 ]
+// [   0    0    0  1 ]
 
 } // steam
