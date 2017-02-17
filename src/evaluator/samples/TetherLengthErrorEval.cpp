@@ -39,6 +39,8 @@ bool TetherLengthErrorEval::isActive() const {
 /// \brief Decomposes the TF into components.
 //////////////////////////////////////////////////////////////////////////////////////////////
 DecomposedTF TetherLengthErrorEval::decomposeTF(lgmath::se3::Transformation &tf) const {
+  // TODO: Check out other ways to compute displacement and yaw.
+  // example: tf.r_ba_ina()
   DecomposedTF decomposed_tf;
   auto se3Vec = tf.vec();
   decomposed_tf.yaw =  se3Vec(5);
