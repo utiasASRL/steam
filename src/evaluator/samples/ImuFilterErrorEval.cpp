@@ -41,6 +41,8 @@ bool ImuFilterErrorEval::isActive() const {
 /// \brief Decomposes the TF into components.
 //////////////////////////////////////////////////////////////////////////////////////////////
 ComponentsTF ImuFilterErrorEval::componentTF(lgmath::se3::Transformation &tf) const {
+  // TODO: Check out other ways to compute displacement and yaw.
+  // example: tf.r_ba_ina()
   ComponentsTF component_tf;
   auto se3Vec = tf.vec();
   component_tf.roll =  se3Vec(3);
@@ -89,27 +91,25 @@ Eigen::Matrix<double,1,1> ImuFilterErrorEval::evaluate() const {
 
   // Get Rotation Matrix for Model (function accepts vector of doubles)
   std::vector<double> model_rpy = {component_tf.roll,component_tf.pitch,component_tf.yaw};
-  Eigen::Matrix<double,3,3>  R_model_b_a = Euler2Rotation(model_rpy);
+  Eigen::Matrix<double,3,3> R_model_b_a = Euler2Rotation(model_rpy);
 
-  // Eigen::Matrix<double,3,3> result_error;
-  // result_error << R_meas_b_a*R_model_b_a;
+  // Get Rotation Error
+  Eigen::Matrix<double,3,3> R_error = R_meas_b_a*R_model_b_a.inverse();
 
-  Eigen::Matrix<double,1,1> result_error;
-  result_error << (0);
+  // convert result to a 4x4 transformation matrix to use with blockauto Jacobian
+  Eigen::Matrix<double,4,4> T_error;
+  // Set to Identity to make bottom row of Matrix 0,0,0,1
+  T_error.setIdentity();
+  // set rotation matrix as upper 3x3 in a 4x4
+  T_error.block<3,3>(0,0) = R_error;
 
-  return result_error;
+  Eigen::Matrix<double,1,1> reutrn_error;
+  reutrn_error << (0);
+
+  return reutrn_error;
 }
 
 // Jacobian is simply from pre-existing blockauto function for computing Jacobian of 4x4 transformation Matrix
-// This will require that first we convert our 3x3 into a 4x4 (should this be done before error calc... probably)
-// So to convert a 3x3 matrix to a 4x4, you simply copy in the values for the 3x3 upper left block, like so:
-// [ a11  a12  a13 ]
-// [ a21  a22  a23 ]
-// [ a31  a32  a33 ]
-// That 3x3 becomes this 4x4:
-// [ a11  a12  a13  0 ]
-// [ a21  a22  a23  0 ]
-// [ a31  a32  a33  0 ]
-// [   0    0    0  1 ]
+// http://stackoverflow.com/questions/25504397/eigen-combine-rotation-and-translation-into-one-matrix
 
 } // steam
