@@ -43,7 +43,7 @@ DecomposedTF TetherLengthErrorEval::decomposeTF(lgmath::se3::Transformation &tf)
   // example: tf.r_ba_ina()
   DecomposedTF decomposed_tf;
   auto se3Vec = tf.vec();
-  decomposed_tf.yaw =  se3Vec(5);
+  decomposed_tf.yaw =  se3Vec(5); // this is not the same as yaw, find purtubrbation as 1−C*C^T = [dr dp dy]
   decomposed_tf.translation = se3Vec.head<3>();
   decomposed_tf.distance = decomposed_tf.translation.norm();
   return decomposed_tf;
@@ -123,15 +123,15 @@ Eigen::Matrix<double,1,6> TetherLengthErrorEval::TetherModelJacobian(DecomposedT
   }
 
   // DEBUGGING: Print Statement
-  std::cout << "\n";
+  // std::cout << "\n";
   // std::cout << "length_a:\t" << tether_meas_a_ << "\n";
   // std::cout << "length_b:\t" << tether_meas_b_ << "\n";
-  std::cout << "model_yaw:\t" <<  yaw*(180.0/3.1415) << "\n";
-  std::cout << "model_dist:\t" << decomposed_tf.distance << "\n";
-  std::cout << "meas_dist:\t" << meas_distance << "\n";
-  std::cout << "error_dist:\t" << (meas_distance - decomposed_tf.distance) << "\n";
+  // std::cout << "model_yaw:\t" <<  yaw*(180.0/3.1415) << "\n";
+  // std::cout << "model_dist:\t" << decomposed_tf.distance << "\n";
+  // std::cout << "meas_dist:\t" << meas_distance << "\n";
+  // std::cout << "error_dist:\t" << (meas_distance - decomposed_tf.distance) << "\n";
   // std::cout << "dx/dy/dz/dr:\t" << dx << "/" << dy << "/" << dz << "/" << dr <<"\n";
-  std::cout << "\n";
+  // std::cout << "\n";
 
   // Construct Jacobian with respect to x, y, z, and rotation (yaw)
   Eigen::Matrix<double,1,6> jac;

@@ -159,7 +159,9 @@ void SteamTrajInterface::addPosePrior(const steam::Time& time,
   }
 
   // Set up loss function, noise model, and error function
-  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  //TODO: Added robust cost on velocity prior
+  steam::GemanMcClureLossFunc::Ptr sharedLossFunc(new steam::GemanMcClureLossFunc(1));
+  //steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
   steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(cov));
   steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(pose, knotRef->getPose()));
 
