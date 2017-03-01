@@ -39,13 +39,29 @@ bool TetherLengthErrorEval::isActive() const {
 /// \brief Decomposes the TF into components.
 //////////////////////////////////////////////////////////////////////////////////////////////
 DecomposedTF TetherLengthErrorEval::decomposeTF(lgmath::se3::Transformation &tf) const {
-  // TODO: Check out other ways to compute displacement and yaw.
-  // example: tf.r_ba_ina()
   DecomposedTF decomposed_tf;
+  auto T = tf.C_ba();
+  Eigen::Matrix3d R = T.matrix();
+  double yaw;
+  // check if singular
+  double singular = sqrt(R(0,0) * R(0,0) +  R(1,0) * R(1,0));
+  if (singular < 1e-6) {
+    yaw = 0;
+    std::cout << "WARN: singularity, setting yaw = 0" << "\n";
+  }
+  else {
+    yaw = atan2(R(1,0),R(0,0));
+  }
+  decomposed_tf.yaw =  yaw;
   auto se3Vec = tf.vec();
-  decomposed_tf.yaw =  se3Vec(5); // this is not the same as yaw, find purtubrbation as 1−C*C^T = [dr dp dy]
+  // decomposed_tf.yaw =  se3Vec(5); // this is not the same as yaw its in se3 space
   decomposed_tf.translation = se3Vec.head<3>();
   decomposed_tf.distance = decomposed_tf.translation.norm();
+  // std::cout << "\n";
+  // std::cout << "2,1_2,2:\t" << atan2(R(2,1),R(2,2))* (180/3.14159) << "\n";
+  // std::cout << "1,0_0,0:\t" << atan2(R(1,0),R(0,0))* (180/3.14159) << "\n";
+  // std::cout << "se3vec:\t" << se3Vec(5) * (180/3.14159) << "\n";
+  // std::cout << "\n";
   return decomposed_tf;
 }
 
