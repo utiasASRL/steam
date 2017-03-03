@@ -39,29 +39,56 @@ bool TetherLengthErrorEval::isActive() const {
 /// \brief Decomposes the TF into components.
 //////////////////////////////////////////////////////////////////////////////////////////////
 DecomposedTF TetherLengthErrorEval::decomposeTF(lgmath::se3::Transformation &tf) const {
+
   DecomposedTF decomposed_tf;
-  auto T = tf.C_ba();
-  Eigen::Matrix3d R = T.matrix();
+
+  // first get rotation, then convert from lg to eigen
+  Eigen::Matrix3d R = tf.C_ba().matrix();
+
   double yaw;
+
   // check if singular
-  double singular = sqrt(R(0,0) * R(0,0) +  R(1,0) * R(1,0));
-  if (singular < 1e-6) {
+  double sy = sqrt(R(0,0) * R(0,0) +  R(1,0) * R(1,0));
+
+  if (sy < 1e-6) {
     yaw = 0;
     std::cout << "WARN: singularity, setting yaw = 0" << "\n";
   }
   else {
     yaw = atan2(R(1,0),R(0,0));
   }
+
   decomposed_tf.yaw =  yaw;
-  auto se3Vec = tf.vec();
-  // decomposed_tf.yaw =  se3Vec(5); // this is not the same as yaw its in se3 space
-  decomposed_tf.translation = se3Vec.head<3>();
+  decomposed_tf.translation = tf.r_ab_inb(); // this is similar to se3
   decomposed_tf.distance = decomposed_tf.translation.norm();
+
+  // Uses se3vec function which causes inaccuracies
+  // auto se3Vec = tf.vec();
+  // auto se3_yaw =  se3Vec(5);
+  // auto se3_translation = se3Vec.head<3>();
+  // auto se3_distance = se3_translation.norm();
+  // decomposed_tf.yaw =  se3_yaw;
+  // decomposed_tf.translation = se3_translation;
+  // decomposed_tf.distance = se3_distance;
+
+  //print statements (debugging)
   // std::cout << "\n";
-  // std::cout << "2,1_2,2:\t" << atan2(R(2,1),R(2,2))* (180/3.14159) << "\n";
-  // std::cout << "1,0_0,0:\t" << atan2(R(1,0),R(0,0))* (180/3.14159) << "\n";
-  // std::cout << "se3vec:\t" << se3Vec(5) * (180/3.14159) << "\n";
+  // std::cout << "yaw_ba:\t" << decomposed_tf.yaw * (180/3.14159) << "\n";
+  // std::cout << "se3yaw:\t" << se3_yaw * (180/3.14159) << "\n";
   // std::cout << "\n";
+  // std::cout << "d:\t" << decomposed_tf.distance << "\n";
+  // std::cout << "d_se3:\t" << se3_distance << "\n";
+  // std::cout << "\n";
+  // std::cout << "x_ab:\t" << decomposed_tf.translation(0) << "\n";
+  // std::cout << "x_se3:\t" << se3_translation(0) << "\n";
+  // std::cout << "\n";
+  // std::cout << "y_ab:\t" << decomposed_tf.translation(1) << "\n";
+  // std::cout << "y_se3:\t" << se3_translation(1) << "\n";
+  // std::cout << "\n";
+  // std::cout << "z_ab:\t" << decomposed_tf.translation(2) << "\n";
+  // std::cout << "z_se3:\t" << se3_translation(2) << "\n";
+  // std::cout << "\n";
+
   return decomposed_tf;
 }
 
