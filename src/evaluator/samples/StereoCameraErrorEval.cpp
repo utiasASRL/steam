@@ -48,6 +48,9 @@ T_query_map_(T_query_map) {
   // compute the dialated phi;
   dialated_phi_.setZero();
   dialated_phi_.block(0,0,3,3) = landmark_cov;
+  if(!positiveDefinite<3>(landmark_cov)) {
+    std::cout <<  "\nmigrated cov is bad!!!\n";
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,20 +59,43 @@ T_query_map_(T_query_map) {
 Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::evaluate() {
   // TODO: Check to see if we need to recaulculate (add a change flag to steam variables.)
 
-  // evaluate the steam transform evaluator
-  const auto &T_l_p = T_query_map_->evaluate();
+  // Add the measurement noise.
+  last_computed_cov_ = meas_noise_;
 
-  // compute the camera model jacobian based on the transformed mean.
-  camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_,T_l_p*mean_);
+  if(!positiveDefinite<4>(meas_noise_)) {
+    std::cout << "measurement noise is bad!!";
+  }
+  // evaluate the steam transform evaluator
+  const lgmath::se3::Transformation T_l_p = T_query_map_->evaluate();
 
   // Compute the new landmark noise
-  auto lm_noise = camera_jacobian_j_ * T_l_p.matrix() * dialated_phi_ * 
-                   T_l_p.matrix().transpose() * camera_jacobian_j_.transpose();
+  Eigen::Matrix<double,4,4> lm_noise_l = T_l_p.matrix() * dialated_phi_ * T_l_p.matrix().transpose();
 
-  // Add the measurement noise.
-  last_computed_cov_ = meas_noise_ + lm_noise;
+  Eigen::Matrix<double,4,3> dialation_matrix;
+  dialation_matrix.setZero();
+  dialation_matrix.block(0,0,3,3) = Eigen::Matrix<double,3,3>::Identity();
+  Eigen::Matrix<double,3,3> lm_noise_l_3 = dialation_matrix.transpose() * lm_noise_l * dialation_matrix;
 
-  // return the new noise.
+  if(positiveDefinite<3>(lm_noise_l_3)) {
+    // compute the camera model jacobian based on the transformed mean.
+    camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_,T_l_p*mean_);
+
+    Eigen::Matrix<double,4,4> lm_noise = camera_jacobian_j_ * lm_noise_l * camera_jacobian_j_.transpose();
+    Eigen::Matrix<double,3,3> lm_noise_3 = dialation_matrix.transpose() * lm_noise * dialation_matrix;
+
+    if(positiveDefinite<3>(lm_noise_3)) {
+      last_computed_cov_ += lm_noise;
+    } else {
+      std::cout << "\nmigrated noise is not positive definite!!\n";
+    }
+    // return the new noise.
+  } else {
+    std::cout << "\nlm_noise_l is bad!!\n";
+  }
+
+  if (!positiveDefinite<4>(last_computed_cov_)) {
+    std::cout << "sum of noise is bad...";
+  }
   return last_computed_cov_;
 }
 

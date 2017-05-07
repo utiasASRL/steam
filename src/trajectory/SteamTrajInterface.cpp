@@ -27,6 +27,21 @@ SteamTrajInterface::SteamTrajInterface(bool allowExtrapolation) :
   Qc_inv_(Eigen::Matrix<double,6,6>::Identity()), allowExtrapolation_(allowExtrapolation) {
 }
 
+double SteamTrajInterface::getPosePriorCost() {
+  if(posePriorFactor_ != nullptr) {
+    return posePriorFactor_->cost();
+  } else {
+    return 0.0;
+  }
+}
+
+double SteamTrajInterface::getVelocityPriorCost() {
+  if(velocityPriorFactor_ != nullptr) {
+    return velocityPriorFactor_->cost();
+  } else {
+    return 0.0;
+  }
+}
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////

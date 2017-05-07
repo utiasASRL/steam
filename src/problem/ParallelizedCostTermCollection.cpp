@@ -32,6 +32,13 @@ void ParallelizedCostTermCollection::add(const CostTermBase::ConstPtr& costTerm)
   costTerms_.push_back(costTerm);
 }
 
+std::vector<double> ParallelizedCostTermCollection::costs() const {
+  std::vector<double> costs;
+  for (auto &cost_term : costTerms_) {
+    costs.push_back(cost_term->cost());
+  }
+  return costs;
+}
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute the cost from the collection of cost terms
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +55,12 @@ double ParallelizedCostTermCollection::cost() const {
   {
     #pragma omp for reduction(+:cost)
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      cost += costTerms_.at(i)->cost();
+      double cost_i = costTerms_.at(i)->cost();
+      if(isnan(cost_i) == false) {
+        cost += costTerms_.at(i)->cost();
+      } else {
+        std::cout << "nan cost term!";
+      }
     }
   }
   return cost;
