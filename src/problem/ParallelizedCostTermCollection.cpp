@@ -100,9 +100,13 @@ void ParallelizedCostTermCollection::buildGaussNewtonTerms(
   {
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
-
-      costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
-
+      try {
+       costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
+      } catch (const std::exception & e) {
+       std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
+      } catch (...) {
+       std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
+      }
     } // end cost term loop
   } // end parallel
 }
