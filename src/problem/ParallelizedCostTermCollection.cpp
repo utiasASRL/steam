@@ -55,11 +55,14 @@ double ParallelizedCostTermCollection::cost() const {
   {
     #pragma omp for reduction(+:cost)
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      double cost_i = costTerms_.at(i)->cost();
-      if(isnan(cost_i) == false) {
-        cost += costTerms_.at(i)->cost();
-      } else {
-        std::cout << "nan cost term!";
+      try {
+        double cost_i = costTerms_.at(i)->cost();
+	if(isnan(cost_i)) { std::cout << "nan cost term!"; }
+	else { cost += cost_i; }
+      } catch (const std::exception & e) {
+        std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
+      } catch (...) {
+        std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
       }
     }
   }
