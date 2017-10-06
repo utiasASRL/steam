@@ -79,7 +79,7 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::
     throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
   }
 
-  // Get iterator to first element with time equal to or great than 'time'
+  // Get iterator to first element with time equal to or greater than 'time'
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
       = knotMap_.lower_bound(time.nanosecs());
 
@@ -130,6 +130,60 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::
   // Create interpolated evaluator
   return SteamTrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
 }
+
+SteamTrajVar SteamTrajInterface::getInterpTrajVal(const steam::Time& time) {
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or greater than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+     = knotMap_.lower_bound(time.nanosecs());
+
+  // Check if time is passed the last entry
+  if (it1 == knotMap_.end()) {
+
+   // If we allow extrapolation, return constant-velocity interpolated entry
+   if (allowExtrapolation_) {
+     --it1; // should be safe, as we checked that the map was not empty..
+     const SteamTrajVar::Ptr& endKnot = it1->second;
+     return *endKnot;
+   } else {
+     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+   }
+  }
+
+  // Check if we requested time exactly
+  if (it1->second->getTime() == time) {
+     const SteamTrajVar::Ptr& knot = it1->second;
+     // return state variable exactly (no interp)
+     return *knot;
+  }
+
+  // Check if we requested before first time
+  if (it1 == knotMap_.begin()) {
+    // If we allow extrapolation, return constant-velocity interpolated entry
+    if (allowExtrapolation_) {
+     const SteamTrajVar::Ptr& startKnot = it1->second;
+     return *startKnot;
+    } else {
+     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    }
+  }
+
+  // Get iterators bounding the time interval
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                            "should not trigger... report to a STEAM contributor.");
+  }
+
+  // Create interpolated evaluator
+  SteamTrajPoseInterpEval::Ptr pose = SteamTrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
+
+  return pose->evaluateVelocity();
+ }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
