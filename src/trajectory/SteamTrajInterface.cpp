@@ -297,9 +297,9 @@ Eigen::Matrix<double,12,12> SteamTrajInterface::extrapCovariance(
     throw std::runtime_error("[GpTrajectory][extrapCovariance] map was empty");
   }
 
-  // Get iterator to last element
+  // Get iterator to one element past the last
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it
-      = --knotMap_.end();
+      = knotMap_.end();
 
   // Check that requested time is past or equal to the last element
   if (it != knotMap_.lower_bound(time.nanosecs())) {
@@ -307,6 +307,7 @@ Eigen::Matrix<double,12,12> SteamTrajInterface::extrapCovariance(
   }
 
   // Extrapolate pose
+  --it;
   const SteamTrajVar::Ptr& endKnot = it->second;
   TransformEvaluator::Ptr T_t_k =
       ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());

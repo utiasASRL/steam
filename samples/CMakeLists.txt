@@ -40,3 +40,7 @@ target_link_libraries(SimpleTrajectoryPrior steam ${DEPEND_LIBS})
 # simple example of trajectory interface for prior, combined with bundle adjustment
 add_executable(SimpleBAandTrajPrior ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBAandTrajPrior.cpp)
 target_link_libraries(SimpleBAandTrajPrior steam ${DEPEND_LIBS})
+
+# simple example of trajectory interface for prior with covariance extrapolation
+add_executable(SimpleTrajectoryPriorCovExtrap ${CMAKE_CURRENT_SOURCE_DIR}/SimpleTrajectoryPriorCovExtrap.cpp)
+target_link_libraries(SimpleTrajectoryPriorCovExtrap steam ${DEPEND_LIBS})
