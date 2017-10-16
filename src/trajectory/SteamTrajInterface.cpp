@@ -286,5 +286,65 @@ void SteamTrajInterface::getActiveStateVariables(
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Extrapolation input covariance to designated time
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Matrix<double,12,12> SteamTrajInterface::extrapCovariance(
+    const Eigen::Matrix<double,12,12>& covariance, const steam::Time& time) const {
+
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][extrapCovariance] map was empty");
+  }
+
+  // Get iterator to last element
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it
+      = --knotMap_.end();
+
+  // Check that requested time is past or equal to the last element
+  if (it != knotMap_.lower_bound(time.nanosecs())) {
+    throw std::runtime_error("[GpTrajectory][extrapCovariance] requested time invalid"); 
+  }
+
+  // Extrapolate pose
+  const SteamTrajVar::Ptr& endKnot = it->second;
+  TransformEvaluator::Ptr T_t_k =
+      ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());
+
+  // Transform covariance to local frame
+  Eigen::Matrix<double,6,1> xi_tk = T_t_k->evaluate().vec();
+  Eigen::Matrix<double,6,1> varpi_t = endKnot->getVelocity()->getValue();
+  Eigen::Matrix<double,6,6> Jac_tk = lgmath::se3::vec2jac(xi_tk);
+  Eigen::Matrix<double,6,6> Jac_tk_inv = lgmath::se3::vec2jacinv(xi_tk);
+
+  Eigen::Matrix<double,12,12> Gamma, Gamma_inv, Xi;
+  Gamma.block<6,6>(0,0) = Gamma.block<6,6>(6,6) = Jac_tk_inv;
+  Gamma.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(varpi_t)*Jac_tk_inv;
+  Gamma.block<6,6>(0,6) = Eigen::MatrixXd::Zero(6, 6);
+  Gamma_inv.block<6,6>(0,0) = Gamma_inv.block<6,6>(6,6) = Jac_tk;
+  Gamma_inv.block<6,6>(6,0) = -0.5*Jac_tk*lgmath::se3::curlyhat(varpi_t);
+  Gamma_inv.block<6,6>(0,6) = Eigen::MatrixXd::Zero(6, 6);
+  Xi = Eigen::MatrixXd::Zero(12, 12);
+  Xi.block<6,6>(0,0) = lgmath::se3::tranAd(T_t_k->evaluate().matrix());
+
+  Eigen::Matrix<double,12,12> cov_local = 
+      Gamma*(covariance - Xi*covariance*Xi.transpose())*Gamma.transpose();
+
+  // Extrapolate
+  double dt = (time - endKnot->getTime()).seconds();
+  Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
+  Eigen::Matrix<double,12,12> Q_t, Phi_t;
+  Q_t.block<6,6>(0,0) = 1.0/3.0*dt*dt*dt*Qc;
+  Q_t.block<6,6>(6,0) = Q_t.block<6,6>(0,6) = 0.5*dt*dt*Qc;
+  Q_t.block<6,6>(6,6) = dt*Qc;
+  Phi_t = Eigen::MatrixXd::Identity(12,12);
+  Phi_t.block<6,6>(0,6) = dt*Eigen::MatrixXd::Identity(6,6);
+
+  Eigen::Matrix<double,12,12> cov_extrap_local = Phi_t*cov_local*Phi_t.transpose() + Q_t;
+
+  // Transform extrapoloated covariance to global frame
+  return Gamma_inv*cov_extrap_local*Gamma_inv.transpose() + Xi*covariance*Xi.transpose();
+}
+
 } // se3
 } // steam
