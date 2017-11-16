@@ -34,6 +34,7 @@
 #include <steam/evaluator/samples/TransformErrorEval.hpp>
 #include <steam/evaluator/samples/PositionErrorEval.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/samples/PointToPointErrorEval.hpp>
 
 // evaluator - block auto diff
 #include <steam/evaluator/blockauto/EvalTreeNode.hpp>
