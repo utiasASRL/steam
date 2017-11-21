@@ -34,9 +34,9 @@ SteamTrajPoseInterpEval::SteamTrajPoseInterpEval(const Time& time,
 
   // Calculate 'lambda' interpolation values
   lambda11_ = 1.0 - psi11_;
-  lambda12_ = tau - T*psi11_ - psi12_;
+  lambda12_ = tau - psi11_ - psi12_;
   lambda21_ = -psi21_;
-  lambda22_ = 1.0 - psi21_ - psi22_;
+  lambda22_ = 1.0 - T*psi21_ - psi22_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,15 +101,9 @@ lgmath::se3::Transformation SteamTrajPoseInterpEval::evaluate() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 SteamTrajVar SteamTrajPoseInterpEval::evaluateVelocity() {
-
-  double tau = (time_ - knot1_->getTime()).seconds();
-  double T = (knot2_->getTime() - knot1_->getTime()).seconds();
-  double ratio = tau/T;
 
   // Get relative matrix info
    lgmath::se3::Transformation T_21 = knot2_->getPose()->evaluate()/knot1_->getPose()->evaluate();
@@ -125,20 +119,8 @@ SteamTrajVar SteamTrajPoseInterpEval::evaluateVelocity() {
                                      psi11_*xi_21 +
                                      psi12_*J_21_inv*knot2_->getVelocity()->getValue();
 
-   // Calculate interpolated relative transformation matrix
-   lgmath::se3::Transformation T_i1(xi_i1);
-
-   // evaluate the transformation matrix at the interpolated time
-   lgmath::se3::Transformation T_t =  T_i1*knot1_->getPose()->evaluate();
-
-   // Get relative matrix info
-   lgmath::se3::Transformation T_t1 = T_t/knot1_->getPose()->evaluate();
-
-   // Get se3 algebra of relative matrix
-   Eigen::Matrix<double,6,1> xi_t1 = T_t1.vec();
-
    // Calculate the 6x6 associated Jacobian
-   Eigen::Matrix<double,6,6> J_t1 = lgmath::se3::vec2jac(xi_t1);
+   Eigen::Matrix<double,6,6> J_t1 = lgmath::se3::vec2jac(xi_i1);
 
    // Calculate interpolated relative se3 algebra
    Eigen::Matrix<double,6,1> xi_it = J_t1*(lambda22_*knot1_->getVelocity()->getValue() +
