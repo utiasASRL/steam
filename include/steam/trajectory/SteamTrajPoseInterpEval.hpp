@@ -102,7 +102,7 @@ class SteamTrajPoseInterpEval : public TransformEvaluator
       EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
       std::vector<Jacobian<6,6> >* outJacobians) const;
 
- protected:
+ private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Implementation for Block Automatic Differentiation
