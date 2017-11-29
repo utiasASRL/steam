@@ -71,6 +71,7 @@ class ParallelizedCostTermCollection : public CostTermBase
                                      BlockSparseMatrix* approximateHessian,
                                      BlockVector* gradientVector) const;
 
+  virtual std::vector<double> costs() const;
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
