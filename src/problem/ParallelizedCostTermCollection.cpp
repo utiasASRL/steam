@@ -57,8 +57,11 @@ double ParallelizedCostTermCollection::cost() const {
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
       try {
         double cost_i = costTerms_.at(i)->cost();
-	if(std::isnan(cost_i)) { std::cout << "nan cost term!"; }
-	else { cost += cost_i; }
+        if(std::isnan(cost_i)) {
+          std::cout << "nan cost term!";
+        } else {
+          cost += cost_i;
+        }
       } catch (const std::exception & e) {
         std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
       } catch (...) {
