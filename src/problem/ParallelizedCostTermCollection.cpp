@@ -55,11 +55,17 @@ double ParallelizedCostTermCollection::cost() const {
   {
     #pragma omp for reduction(+:cost)
     for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      double cost_i = costTerms_.at(i)->cost();
-      if(isnan(cost_i) == false) {
-        cost += costTerms_.at(i)->cost();
-      } else {
-        std::cout << "nan cost term!";
+      try {
+        double cost_i = costTerms_.at(i)->cost();
+        if(std::isnan(cost_i)) {
+          std::cout << "nan cost term!";
+        } else {
+          cost += cost_i;
+        }
+      } catch (const std::exception & e) {
+        std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
+      } catch (...) {
+        std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
       }
     }
   }
@@ -101,11 +107,11 @@ void ParallelizedCostTermCollection::buildGaussNewtonTerms(
     #pragma omp for
     for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
       try {
-	costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
+        costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
       } catch (const std::exception & e) {
-	std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
+        std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
       } catch (...) {
-	std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
+        std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
       }
     } // end cost term loop
   } // end parallel
