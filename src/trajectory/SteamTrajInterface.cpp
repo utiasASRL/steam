@@ -131,7 +131,7 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::
   return SteamTrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
 }
 
-SteamTrajVar SteamTrajInterface::getInterpTrajVal(const steam::Time& time) {
+Eigen::VectorXd SteamTrajInterface::getVelocity(const steam::Time& time) {
   // Check that map is not empty
   if (knotMap_.empty()) {
     throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
@@ -148,7 +148,7 @@ SteamTrajVar SteamTrajInterface::getInterpTrajVal(const steam::Time& time) {
    if (allowExtrapolation_) {
      --it1; // should be safe, as we checked that the map was not empty..
      const SteamTrajVar::Ptr& endKnot = it1->second;
-     return *endKnot;
+     return endKnot->getVelocity()->getValue();
    } else {
      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
    }
@@ -158,7 +158,7 @@ SteamTrajVar SteamTrajInterface::getInterpTrajVal(const steam::Time& time) {
   if (it1->second->getTime() == time) {
      const SteamTrajVar::Ptr& knot = it1->second;
      // return state variable exactly (no interp)
-     return *knot;
+     return knot->getVelocity()->getValue();
   }
 
   // Check if we requested before first time
@@ -166,7 +166,7 @@ SteamTrajVar SteamTrajInterface::getInterpTrajVal(const steam::Time& time) {
     // If we allow extrapolation, return constant-velocity interpolated entry
     if (allowExtrapolation_) {
      const SteamTrajVar::Ptr& startKnot = it1->second;
-     return *startKnot;
+     return startKnot->getVelocity()->getValue();
     } else {
      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
@@ -179,10 +179,54 @@ SteamTrajVar SteamTrajInterface::getInterpTrajVal(const steam::Time& time) {
                             "should not trigger... report to a STEAM contributor.");
   }
 
-  // Create interpolated evaluator
-  SteamTrajPoseInterpEval::Ptr pose = SteamTrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
+  // OK, we actually need to interpolate.
+  // Follow a similar setup to SteamTrajPoseInterpEval
 
-  return pose->evaluateVelocity();
+  // Convenience defs
+  auto &knot1 = it1->second;
+  auto &knot2 = it2->second;
+
+  // Calculate time constants
+  double tau = (time - knot1->getTime()).seconds();
+  double T = (knot2->getTime() - knot1->getTime()).seconds();
+  double ratio = tau/T;
+  double ratio2 = ratio*ratio;
+  double ratio3 = ratio2*ratio;
+
+  // Calculate 'psi' interpolation values
+  double psi11 = 3.0*ratio2 - 2.0*ratio3;
+  double psi12 = tau*(ratio2 - ratio);
+  double psi21 = 6.0*(ratio - ratio2)/T;
+  double psi22 = 3.0*ratio2 - 2.0*ratio;
+
+  // Calculate (some of the) 'lambda' interpolation values
+  double lambda12 = tau - psi11 - psi12;
+  double lambda22 = 1.0 - T*psi21 - psi22;
+
+  // Get relative matrix info
+  lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
+
+  // Get se3 algebra of relative matrix (and cache it)
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+
+  // Calculate the 6x6 associated Jacobian (and cache it)
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12*knot1->getVelocity()->getValue() +
+                                   psi11*xi_21 +
+                                   psi12*J_21_inv*knot2->getVelocity()->getValue();
+
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_t1 = lgmath::se3::vec2jac(xi_i1);
+
+  // Calculate interpolated relative se3 algebra
+  Eigen::VectorXd xi_it = J_t1*(lambda22*knot1->getVelocity()->getValue() +
+                                   psi21*xi_21 +
+                                   psi22*J_21_inv*knot2->getVelocity()->getValue()
+                                   );
+
+   return xi_it;
  }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

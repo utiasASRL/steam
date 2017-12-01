@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
   solver.optimize();
 
   // Get velocity at interpolated time
-  auto curr_vel = traj.getInterpTrajVal(states.at(0).time+0.5*delT);
+  auto curr_vel = traj.getVelocity(states.at(0).time+0.5*delT);
 
   ///
   /// Print results
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
             << "First Vel:                   " << states.at(0).velocity->getValue().transpose() << std::endl
             << "Second Vel:                  " << states.at(1).velocity->getValue().transpose() << std::endl
             << "Last Vel:                    " << states.back().velocity->getValue().transpose() << std::endl
-            << "Interp. Vel (t=t0+0.5*delT): " << curr_vel.getVelocity()->getValue().transpose() << std::endl;
+            << "Interp. Vel (t=t0+0.5*delT): " << curr_vel.transpose() << std::endl;
 
   return 0;
 }

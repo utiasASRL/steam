@@ -101,37 +101,6 @@ lgmath::se3::Transformation SteamTrajPoseInterpEval::evaluate() const {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Evaluate the transformation matrix
-//////////////////////////////////////////////////////////////////////////////////////////////
-SteamTrajVar SteamTrajPoseInterpEval::evaluateVelocity() {
-
-  // Get relative matrix info
-   lgmath::se3::Transformation T_21 = knot2_->getPose()->evaluate()/knot1_->getPose()->evaluate();
-
-   // Get se3 algebra of relative matrix (and cache it)
-   Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
-
-   // Calculate the 6x6 associated Jacobian (and cache it)
-   Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-
-   // Calculate interpolated relative se3 algebra
-   Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->getVelocity()->getValue() +
-                                     psi11_*xi_21 +
-                                     psi12_*J_21_inv*knot2_->getVelocity()->getValue();
-
-   // Calculate the 6x6 associated Jacobian
-   Eigen::Matrix<double,6,6> J_t1 = lgmath::se3::vec2jac(xi_i1);
-
-   // Calculate interpolated relative se3 algebra
-   Eigen::Matrix<double,6,1> xi_it = J_t1*(lambda22_*knot1_->getVelocity()->getValue() +
-                                     psi21_*xi_21 +
-                                     psi22_*J_21_inv*knot2_->getVelocity()->getValue()
-                                     );
-
-   return SteamTrajVar(time_, SteamTrajPoseInterpEval::MakeShared(time_,knot1_,knot2_),steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(xi_it)));
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* SteamTrajPoseInterpEval::evaluateTree() const {
