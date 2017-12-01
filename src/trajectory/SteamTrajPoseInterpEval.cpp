@@ -34,7 +34,7 @@ SteamTrajPoseInterpEval::SteamTrajPoseInterpEval(const Time& time,
 
   // Calculate 'lambda' interpolation values
   lambda11_ = 1.0 - psi11_;
-  lambda12_ = tau - psi11_ - psi12_;
+  lambda12_ = tau - T*psi11_ - psi12_;
   lambda21_ = -psi21_;
   lambda22_ = 1.0 - T*psi21_ - psi22_;
 }

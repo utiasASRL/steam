@@ -200,7 +200,7 @@ Eigen::VectorXd SteamTrajInterface::getVelocity(const steam::Time& time) {
   double psi22 = 3.0*ratio2 - 2.0*ratio;
 
   // Calculate (some of the) 'lambda' interpolation values
-  double lambda12 = tau - psi11 - psi12;
+  double lambda12 = tau - T*psi11 - psi12;
   double lambda22 = 1.0 - T*psi21 - psi22;
 
   // Get relative matrix info
