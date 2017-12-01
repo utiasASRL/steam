@@ -22,10 +22,6 @@ class SteamTrajPoseInterpEval : public TransformEvaluator
 {
  public:
 
-  /// Shared pointer typedefs for readability
-  typedef boost::shared_ptr<SteamTrajPoseInterpEval> Ptr;
-  typedef boost::shared_ptr<const SteamTrajPoseInterpEval> ConstPtr;
-
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,11 +102,6 @@ class SteamTrajPoseInterpEval : public TransformEvaluator
   void appendJacobiansImpl(const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
                            EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                            std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Timestamp of trajectory variable
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  steam::Time time_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief First (earlier) knot

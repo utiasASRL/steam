@@ -17,7 +17,7 @@ namespace se3 {
 SteamTrajPoseInterpEval::SteamTrajPoseInterpEval(const Time& time,
                                    const SteamTrajVar::ConstPtr& knot1,
                                    const SteamTrajVar::ConstPtr& knot2) :
-  time_(time), knot1_(knot1), knot2_(knot2) {
+  knot1_(knot1), knot2_(knot2) {
 
   // Calculate time constants
   double tau = (time - knot1->getTime()).seconds();
