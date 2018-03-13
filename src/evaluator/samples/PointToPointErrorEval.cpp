@@ -48,17 +48,22 @@ bool PointToPointErrorEval::isActive() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 4-d measurement error (ul vl ur vr)
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector4d PointToPointErrorEval::evaluate() const {
+Eigen::Vector3d PointToPointErrorEval::evaluate() const {
 
 	// Return error (between measurement and point estimate projected in camera frame)
 	// return ref_a_ - (T_b_a_->evaluate().inverse() * read_b_);
-	return read_b_ - T_b_a_->evaluate() * ref_a_;
+	// return read_b_ - T_b_a_->evaluate() * ref_a_;
+
+	Eigen::Matrix<double, 3, 4> D; D.setZero();
+	D.topLeftCorner(3,3) = Eigen::MatrixXd::Identity(3,3);
+	Eigen::Vector3d res = D*(read_b_ - T_b_a_->evaluate() * ref_a_);
+	return res;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the 4-d measurement error (ul vl ur vr) and Jacobians
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector4d PointToPointErrorEval::evaluate(const Eigen::Matrix4d& lhs, std::vector<Jacobian<4,6> >* jacs) const {
+Eigen::Vector3d PointToPointErrorEval::evaluate(const Eigen::Matrix3d& lhs, std::vector<Jacobian<3,6> >* jacs) const {
 
 	// Check and initialize jacobian array
 	if (jacs == NULL) {
@@ -77,18 +82,23 @@ Eigen::Vector4d PointToPointErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
 	// const lgmath::se3::Transformation T_ba = T_b_a_->evaluate();
 	// const Eigen::Vector4d read_a = T_ba.inverse() * read_b_;
 	const Eigen::Vector4d ref_b = T_ba * ref_a_;
-
 	// Get Jacobians
 
 	// Eigen::Matrix<double, 4, 6> newLhs = -lhs*lgmath::se3::point2fs(read_a.head<3>());
 	// Eigen::Matrix<double, 4, 6> newLhs = lhs*T_ba.adjoint()*lgmath::se3::point2fs(read_a.head<3>());
-	Eigen::Matrix<double, 4, 6> newLhs = -lhs*lgmath::se3::point2fs(ref_b.head<3>());
+
+	// Projection matrix to eliminate the last element
+	Eigen::Matrix<double, 3, 4> D; D.setZero();
+	D.topLeftCorner(3,3) = Eigen::MatrixXd::Identity(3,3);
+	Eigen::Matrix<double, 3, 6> newLhs = -lhs*D*lgmath::se3::point2fs(ref_b.head<3>());
 
 	T_b_a_->appendBlockAutomaticJacobians(newLhs, blkAutoTransform.getRoot(), jacs);
 
 	// Return evaluation
 	// return ref_a_ - read_a;
-	return read_b_ - ref_b;
+	// return read_b_ - ref_b;
+	Eigen::Vector3d res = D*(read_b_ - ref_b);
+	return res;
 }
 
 

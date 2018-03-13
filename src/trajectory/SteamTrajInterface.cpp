@@ -10,6 +10,7 @@
 
 #include <steam/trajectory/SteamTrajPoseInterpEval.hpp>
 #include <steam/trajectory/SteamTrajPriorFactor.hpp>
+#include <steam/trajectory/SteamCustomPriorFactor.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
@@ -35,6 +36,12 @@ SteamTrajInterface::SteamTrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv,
   Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Set the P_inv for the custom prior factor
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::setPInv(const Eigen::Matrix<double,12,12>& P_inv){
+  P_inv_ = P_inv;
+}
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a new knot
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,6 +233,7 @@ void SteamTrajInterface::appendPriorCostTerms(
 
   // All prior factors will use an L2 loss function
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  // steam::GemanMcClureLossFunc::Ptr sharedLossFunc(new steam::GemanMcClureLossFunc(1));
 
   // Initialize first iterator
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1 = knotMap_.begin();
@@ -286,5 +294,50 @@ void SteamTrajInterface::getActiveStateVariables(
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get the custom trajectory prior terms
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::appendCustomPriorCostTerms(
+  const ParallelizedCostTermCollection::Ptr& costTerms) const {
+
+// If empty, return none
+if (knotMap_.empty()) {
+  return;
+}
+
+// All prior factors will use an L2 loss function
+steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+
+// Initialize first iterator
+std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1 = knotMap_.begin();
+if (it1 == knotMap_.end()) {
+  throw std::runtime_error("No knots...");
+}
+
+// Iterate through all states.. if any are unlocked, supply a prior term
+std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; ++it2;
+for (; it2 != knotMap_.end(); ++it1, ++it2) {
+
+  // Get knots
+  const SteamTrajVar::ConstPtr& knot1 = it1->second;
+  const SteamTrajVar::ConstPtr& knot2 = it2->second;
+
+  // Check if any of the variables are unlocked
+  if(knot1->getPose()->isActive()  || !knot1->getVelocity()->isLocked() ||
+     knot2->getPose()->isActive()  || !knot2->getVelocity()->isLocked() ) {
+
+    // Generate 12 x 12 information matrix for GP prior factor
+    steam::BaseNoiseModelX::Ptr sharedGPNoiseModel(
+          new steam::StaticNoiseModelX(P_inv_, steam::INFORMATION));
+
+    // Create cost term
+    steam::se3::SteamCustomPriorFactor::Ptr errorfunc(
+          new steam::se3::SteamCustomPriorFactor(knot1, knot2));
+    steam::WeightedLeastSqCostTermX::Ptr cost(
+          new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
+    costTerms->add(cost);
+  }
+}
+}
 } // se3
 } // steam

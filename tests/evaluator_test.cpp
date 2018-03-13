@@ -111,13 +111,13 @@ void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const in
 	//-------------
 		
 	// Set the NoiseModel (R_i) to identity
-	steam::BaseNoiseModel<4>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<4>(Eigen::Matrix4d::Identity()));
+	steam::BaseNoiseModel<3>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<3>(Eigen::Matrix3d::Identity()));
 
 	// Set the LossFunction to L2 (least-squared)
 	steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
 	// Define our cost term
-	typedef steam::WeightedLeastSqCostTerm<4,6> Cost;
+	typedef steam::WeightedLeastSqCostTerm<3,6> Cost;
 
 	// Build the cost terms
 	Cost::Ptr cost_0(new Cost(error_0, sharedNoiseModel, sharedLossFunc));
