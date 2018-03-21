@@ -80,6 +80,9 @@ class SteamTrajInterface
   void getActiveStateVariables(
       std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
+  double getPosePriorCost();
+  double getVelocityPriorCost();
+
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////

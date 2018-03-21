@@ -75,7 +75,23 @@ class LandmarkNoiseEvaluator : public NoiseEvaluator<4> {
   virtual Eigen::Matrix<double,4,4> evaluate();
 
  private:
- 
+  template <int N>
+  bool positiveDefinite(const Eigen::Matrix<double,N,N> &matrix) {
+  
+    // Initialize an eigen value solver
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,N,N>> 
+       eigsolver(matrix, Eigen::EigenvaluesOnly);
+
+    // Check the minimum eigen value
+    auto positive_definite = eigsolver.eigenvalues().minCoeff() > 0;
+    if (!positive_definite) {
+      std::cout << "Covariance \n" << matrix << "\n must be positive definite. "
+                << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff();
+    }
+    
+    return positive_definite;
+  }
+
   /// \brief The stereo camera intrinsics.
   CameraIntrinsics::ConstPtr intrinsics_;
 
