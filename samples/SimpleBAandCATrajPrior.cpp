@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
   traj_states_ic[0].pose->setLock(true);
 
   // Lock the first velocity as well
-  traj_states_ic[0].velocity->setLock(true);
+  // traj_states_ic[0].velocity->setLock(true);
 
   // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size());
@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
     const TrajStateVar& state = traj_states_ic.at(i);
     problem.addStateVariable(state.pose);
     problem.addStateVariable(state.velocity);
-    // problem.addStateVariable(state.acceleration);
+    problem.addStateVariable(state.acceleration);
   }
 
   // Add landmark variables
