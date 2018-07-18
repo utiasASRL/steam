@@ -4,8 +4,8 @@
 /// \author Tim Tang, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_TRAJECTORY_VAR_HPP
-#define STEAM_TRAJECTORY_VAR_HPP
+#ifndef STEAM_CA_TRAJECTORY_VAR_HPP
+#define STEAM_CA_TRAJECTORY_VAR_HPP
 
 #include <Eigen/Core>
 
@@ -81,4 +81,4 @@ class SteamCATrajVar
 } // se3
 } // steam
 
-#endif // STEAM_TRAJECTORY_VAR_HPP
+#endif // STEAM_CA_TRAJECTORY_VAR_HPP

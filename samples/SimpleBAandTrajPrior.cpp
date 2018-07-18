@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
   // Setup Trajectory
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     TrajStateVar& state = traj_states_ic.at(i);
-   // std::cout << i << ": \n " << state.velocity->getValue() << "\n";
+    std::cout << i << ": \n " << state.pose->getValue() << "\n";
   }
   return 0;
 }

@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBAandTrajPrior.cpp
+/// \file SimpleBAandCATrajPrior.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
 ///        with relative landmarks and trajectory smoothing factors.
 ///
-/// \author Sean Anderson, ASRL
+/// \author Tim Tang, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -19,6 +19,7 @@ struct TrajStateVar {
   steam::Time time;
   steam::se3::TransformStateVar::Ptr pose;
   steam::VectorSpaceStateVar::Ptr velocity;
+  steam::VectorSpaceStateVar::Ptr acceleration;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,28 +114,35 @@ int main(int argc, char** argv) {
   // Zero velocity
   Eigen::Matrix<double,6,1> initVelocity; initVelocity.setZero();
 
+  // Zero acceleration
+  Eigen::Matrix<double,6,1> initAcceleration; initAcceleration.setZero();
+
   // Setup state variables using initial condition
   for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
     TrajStateVar temp;
     temp.time = steam::Time(dataset.frames_ic[i].time);
     temp.pose = steam::se3::TransformStateVar::Ptr(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
     temp.velocity = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
-    std::cout << i << " : " << dataset.frames_ic[i].time << " " << dataset.frames_ic[i].T_k0;
+    temp.acceleration = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initAcceleration));
+    // std::cout << i << " : " << dataset.frames_ic[i].time << " " << dataset.frames_ic[i].T_k0;
     traj_states_ic.push_back(temp);
   }
 
   // Setup Trajectory
-  steam::se3::SteamTrajInterface traj(Qc_inv);
+  steam::se3::SteamCATrajInterface traj(Qc_inv);
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     TrajStateVar& state = traj_states_ic.at(i);
     steam::se3::TransformStateEvaluator::Ptr temp =
         steam::se3::TransformStateEvaluator::MakeShared(state.pose);
-    traj.add(state.time, temp, state.velocity);
+    traj.add(state.time, temp, state.velocity, state.acceleration);
   }
 
   // Lock first pose (otherwise entire solution is 'floating')
   //  **Note: alternatively we could add a prior to the first pose.
   traj_states_ic[0].pose->setLock(true);
+
+  // Lock the first velocity as well
+  traj_states_ic[0].velocity->setLock(true);
 
   // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size());
@@ -241,6 +249,7 @@ int main(int argc, char** argv) {
     const TrajStateVar& state = traj_states_ic.at(i);
     problem.addStateVariable(state.pose);
     problem.addStateVariable(state.velocity);
+    // problem.addStateVariable(state.acceleration);
   }
 
   // Add landmark variables
@@ -270,7 +279,7 @@ int main(int argc, char** argv) {
   // Setup Trajectory
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     TrajStateVar& state = traj_states_ic.at(i);
-   // std::cout << i << ": \n " << state.velocity->getValue() << "\n";
+    std::cout << i << ": \n " << state.pose->getValue() << "\n";
   }
   return 0;
 }
