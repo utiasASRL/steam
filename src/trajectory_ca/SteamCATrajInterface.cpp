@@ -14,6 +14,7 @@
 
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
 #include <steam/evaluator/blockauto/transform/ConstVelTransformEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/ConstAccTransformEvaluator.hpp>
 
 namespace steam {
 namespace se3 {
@@ -97,7 +98,9 @@ TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam
       --it1; // should be safe, as we checked that the map was not empty..
       const SteamCATrajVar::Ptr& endKnot = it1->second;
       TransformEvaluator::Ptr T_t_k =
-          ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time - endKnot->getTime());
+          ConstAccTransformEvaluator::MakeShared(endKnot->getVelocity(),
+                                                 endKnot->getAcceleration(),
+                                                 time - endKnot->getTime());
       return compose(T_t_k, endKnot->getPose());
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
