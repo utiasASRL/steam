@@ -23,10 +23,17 @@ SteamCATrajPoseInterpEval::SteamCATrajPoseInterpEval(const Time& time,
   double t1 = knot1->getTime().seconds();
   double t2 = knot2->getTime().seconds();
   double tau = time.seconds();
+
+  // Cheat by calculating deltas wrt t1, so we can avoid super large values
+  tau = tau-t1;
+  t2 = t2-t1;
+  t1 = 0;
   
   double T = (knot2->getTime() - knot1->getTime()).seconds();
   double delta_tau = (time - knot1->getTime()).seconds();
   double delta_kappa = (knot2->getTime()-time).seconds();
+
+  // std::cout << t1 << " " << t2 << " " << tau << std::endl;
 
   double T2 = T*T;
   double T3 = T2*T;
@@ -46,6 +53,9 @@ SteamCATrajPoseInterpEval::SteamCATrajPoseInterpEval(const Time& time,
   // Calculate 'lambda' interpolation values
   lambda12_ = delta_tau*delta_kappa3/T4*(t2 - 4*t1 + 3*tau);
   lambda13_ = delta_tau2*delta_kappa3/(2*T3);
+
+  // std::cout << "omega11_" << omega11_ << std::endl;
+  // std::cout << "ratio: " << t1*t1 - 5*t1*t2 + 3*t1*tau + 10*t2*t2 - 15*t2*tau + 6*tau*tau << std::endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,6 +121,15 @@ lgmath::se3::Transformation SteamCATrajPoseInterpEval::evaluate() const {
   lgmath::se3::Transformation T_i1(xi_i1);
 
   // Return `global' interpolated transform
+  // std::cout << "Interpolated xi_i1: " << std::endl;
+  // std::cout << xi_i1.transpose() << std::endl;
+
+  // std::cout << "part1: " << lambda12_*knot1_->getVelocity()->getValue().transpose() << std::endl;
+  // std::cout << "part2: " << lambda13_*knot1_->getAcceleration()->getValue().transpose() << std::endl;
+  // std::cout << "part3: " << omega11_*xi_21.transpose() << std::endl;
+  // std::cout << "part4: " << (omega12_*J_21_inv*knot2_->getVelocity()->getValue()).transpose() << std::endl;
+  // std::cout << "part5: " << (omega13_*(-0.5*varpicurl2*knot2_->getVelocity()->getValue())).transpose() << std::endl;
+  // std::cout << "part6: " << (omega13_*J_21_inv*knot2_->getAcceleration()->getValue()).transpose() << std::endl;
   return T_i1*knot1_->getPose()->evaluate();
 }
 
