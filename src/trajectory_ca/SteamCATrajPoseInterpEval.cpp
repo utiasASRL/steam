@@ -54,6 +54,7 @@ SteamCATrajPoseInterpEval::SteamCATrajPoseInterpEval(const Time& time,
   lambda12_ = delta_tau*delta_kappa3/T4*(t2 - 4*t1 + 3*tau);
   lambda13_ = delta_tau2*delta_kappa3/(2*T3);
 
+  // std::cout << "CA interpolation!" << std::endl;
   // std::cout << "omega11_" << omega11_ << std::endl;
   // std::cout << "ratio: " << t1*t1 - 5*t1*t2 + 3*t1*tau + 10*t2*t2 - 15*t2*tau + 6*tau*tau << std::endl;
 }

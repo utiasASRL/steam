@@ -82,7 +82,7 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
     // Construct jacobian
     Eigen::Matrix<double,18,6> jacobian;
     jacobian.topRows<6>() = -Jinv_12;
-    jacobian.block<6,6>(6,0) = -0.5*lgmath::se3::curlyhat(knot2_->getVelocity()->getValue())*Jinv_12;
+    jacobian.block<6,6>(6,0) = -0.5*v2curl*Jinv_12;
     jacobian.bottomRows<6>() = -0.25*v2curl*v2curl*Jinv_12 - 0.5*a2curl*Jinv_12;
 
     // Get Jacobians
@@ -98,7 +98,7 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
     // Construct jacobian
     Eigen::Matrix<double,18,6> jacobian;
     jacobian.topRows<6>() = J_21_inv;
-    jacobian.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2_->getVelocity()->getValue())*J_21_inv;
+    jacobian.block<6,6>(6,0) = 0.5*v2curl*J_21_inv;
     jacobian.bottomRows<6>() = 0.25*v2curl*v2curl*J_21_inv + 0.5*a2curl*J_21_inv;
 
     // Get Jacobians
@@ -155,6 +155,8 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
     jacobian.block<6,6>(6,0) = -deltaTime*Eigen::Matrix<double,6,6>::Identity();
     jacobian.bottomRows<6>() = -Eigen::Matrix<double,6,6>::Identity();
     jacref.jac = lhs * jacobian;
+
+    // std::cout << jacobian << std::endl;
   }
 
   // Knot 2 acceleration
@@ -182,6 +184,8 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
   error.head<6>() = xi_21 - deltaTime*knot1_->getVelocity()->getValue() - 0.5*dt2*knot1_->getAcceleration()->getValue();
   error.segment<6>(6) = J_21_inv*knot2_->getVelocity()->getValue() - knot1_->getVelocity()->getValue() - deltaTime*knot1_->getAcceleration()->getValue();
   error.tail<6>() = -0.5*w*knot2_->getVelocity()->getValue() + J_21_inv*knot2_->getAcceleration()->getValue() - knot1_->getAcceleration()->getValue();
+  
+  // std::cout << error.transpose() << std::endl;
   return error;
 }
 

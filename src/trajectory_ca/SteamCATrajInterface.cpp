@@ -93,7 +93,7 @@ TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam
   // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
 
-    // If we allow extrapolation, return constant-velocity interpolated entry
+    // If we allow extrapolation, return constant-acceleration interpolated entry
     if (allowExtrapolation_) {
       --it1; // should be safe, as we checked that the map was not empty..
       const SteamCATrajVar::Ptr& endKnot = it1->second;
@@ -117,12 +117,13 @@ TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam
   // Check if we requested before first time
   if (it1 == knotMap_.begin()) {
 
-    // If we allow extrapolation, return constant-velocity interpolated entry
+    // If we allow extrapolation, return constant-acceleration interpolated entry
     if (allowExtrapolation_) {
       const SteamCATrajVar::Ptr& startKnot = it1->second;
       TransformEvaluator::Ptr T_t_k =
-          ConstVelTransformEvaluator::MakeShared(startKnot->getVelocity(),
-                                                 time - startKnot->getTime());
+      ConstAccTransformEvaluator::MakeShared(startKnot->getVelocity(),
+                                             startKnot->getAcceleration(),
+                                             time - startKnot->getTime());
       return compose(T_t_k, startKnot->getPose());
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
@@ -169,6 +170,7 @@ void SteamCATrajInterface::addPosePrior(const steam::Time& time,
 
   // Set up loss function, noise model, and error function
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  // steam::GemanMcClureLossFunc::Ptr sharedLossFunc(new steam::GemanMcClureLossFunc(1));
   steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(cov));
   steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(pose, knotRef->getPose()));
 
@@ -252,7 +254,8 @@ void SteamCATrajInterface::appendPriorCostTerms(
 
     // Check if any of the variables are unlocked
     if(knot1->getPose()->isActive()  || !knot1->getVelocity()->isLocked() ||
-       knot2->getPose()->isActive()  || !knot2->getVelocity()->isLocked() ) {
+       knot2->getPose()->isActive()  || !knot2->getVelocity()->isLocked() ||
+       !knot2->getAcceleration()->isLocked()  || !knot2->getAcceleration()->isLocked()) {
 
       // Generate 18 x 18 information matrix for GP prior factor
       Eigen::Matrix<double,18,18> Qi_inv;
@@ -269,6 +272,8 @@ void SteamCATrajInterface::appendPriorCostTerms(
       Qi_inv.block<6,6>(12,0) = Qi_inv.block<6,6>(0,12) = 60.0 * one_over_dt3 * Qc_inv_;
       Qi_inv.block<6,6>(12,6) = Qi_inv.block<6,6>(6,12) = -36.0 * one_over_dt2 * Qc_inv_;
       
+      // std::cout << Qi_inv.block<6,6>(12,0) << std::endl << std::endl;
+      // std::cout << Qi_inv.block<6,6>(0,12) << std::endl;
       steam::BaseNoiseModelX::Ptr sharedGPNoiseModel(
             new steam::StaticNoiseModelX(Qi_inv, steam::INFORMATION));
 
