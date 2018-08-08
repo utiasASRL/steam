@@ -185,7 +185,6 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
   error.segment<6>(6) = J_21_inv*knot2_->getVelocity()->getValue() - knot1_->getVelocity()->getValue() - deltaTime*knot1_->getAcceleration()->getValue();
   error.tail<6>() = -0.5*w*knot2_->getVelocity()->getValue() + J_21_inv*knot2_->getAcceleration()->getValue() - knot1_->getAcceleration()->getValue();
   
-  // std::cout << error.transpose() << std::endl;
   return error;
 }
 

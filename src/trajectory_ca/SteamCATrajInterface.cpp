@@ -170,7 +170,6 @@ void SteamCATrajInterface::addPosePrior(const steam::Time& time,
 
   // Set up loss function, noise model, and error function
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
-  // steam::GemanMcClureLossFunc::Ptr sharedLossFunc(new steam::GemanMcClureLossFunc(1));
   steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(cov));
   steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(pose, knotRef->getPose()));
 
@@ -203,7 +202,7 @@ void SteamCATrajInterface::addVelocityPrior(const steam::Time& time,
 
   // Check that the pose is not locked
   if(knotRef->getVelocity()->isLocked()) {
-    throw std::runtime_error("[GpTrajectory][addVelocityPrior] tried to add prior to locked pose.");
+    throw std::runtime_error("[GpTrajectory][addVelocityPrior] tried to add prior to locked velocity.");
   }
 
   // Set up loss function, noise model, and error function
@@ -217,6 +216,44 @@ void SteamCATrajInterface::addVelocityPrior(const steam::Time& time,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a unary acceleration prior factor at a knot time. Note that only a single acceleration
+///        prior should exist on a trajectory, adding a second will overwrite the first.
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamCATrajInterface::addAccelerationPrior(const steam::Time& time,
+  const Eigen::Matrix<double,6,1>& acceleration,
+  const Eigen::Matrix<double,6,6>& cov) {
+
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+  throw std::runtime_error("[GpTrajectory][addVelocityPrior] map was empty.");
+  }
+
+  // Try to find knot at same time
+  std::map<boost::int64_t, SteamCATrajVar::Ptr>::const_iterator it = knotMap_.find(time.nanosecs());
+  if (it == knotMap_.end()) {
+  throw std::runtime_error("[GpTrajectory][addVelocityPrior] no knot at provided time.");
+  }
+
+  // Get reference
+  const SteamCATrajVar::Ptr& knotRef = it->second;
+
+  // Check that the pose is not locked
+  if(knotRef->getAcceleration()->isLocked()) {
+  throw std::runtime_error("[GpTrajectory][addAccelerationPrior] tried to add prior to locked acceleration.");
+  }
+
+  // Set up loss function, noise model, and error function
+  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(cov));
+  steam::VectorSpaceErrorEval<6,6>::Ptr errorfunc(new steam::VectorSpaceErrorEval<6,6>(acceleration, knotRef->getAcceleration()));
+
+  // Create cost term
+  accelerationPriorFactor_ = steam::WeightedLeastSqCostTerm<6,6>::Ptr(
+    new steam::WeightedLeastSqCostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get cost terms associated with the prior for unlocked parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamCATrajInterface::appendPriorCostTerms(
@@ -227,16 +264,19 @@ void SteamCATrajInterface::appendPriorCostTerms(
     return;
   }
 
-  // Check for pose or velocity priors
+  // Check for pose, velocity priors, and acceleration priors
   if (posePriorFactor_) {
     costTerms->add(posePriorFactor_);
   }
   if (velocityPriorFactor_) {
     costTerms->add(velocityPriorFactor_);
   }
-
+  if (accelerationPriorFactor_) {
+    costTerms->add(accelerationPriorFactor_);
+  }
   // All prior factors will use an L2 loss function
   steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  // steam::GemanMcClureLossFunc::Ptr sharedLossFunc(new steam::GemanMcClureLossFunc(1));
 
   // Initialize first iterator
   std::map<boost::int64_t, SteamCATrajVar::Ptr>::const_iterator it1 = knotMap_.begin();
