@@ -40,3 +40,15 @@ target_link_libraries(SimpleTrajectoryPrior steam ${DEPEND_LIBS})
 # simple example of trajectory interface for prior, combined with bundle adjustment
 add_executable(SimpleBAandTrajPrior ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBAandTrajPrior.cpp)
 target_link_libraries(SimpleBAandTrajPrior steam ${DEPEND_LIBS})
+
+# simple example of constant acceleration trajectory interface for prior, combined with bundle adjustment
+add_executable(SimpleBAandCATrajPrior ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBAandCATrajPrior.cpp)
+target_link_libraries(SimpleBAandCATrajPrior steam ${DEPEND_LIBS})
+
+# simple example of constant acceleration trajectory interface for prior, combined with p2p error terms
+add_executable(SimpleP2PandCATrajPrior ${CMAKE_CURRENT_SOURCE_DIR}/SimpleP2PandCATrajPrior.cpp)
+target_link_libraries(SimpleP2PandCATrajPrior steam ${DEPEND_LIBS})
+
+# simple example of constant acceleration trajectory interface for prior, combined with p2p error terms
+add_executable(MotionDistortedP2PandCATrajPrior ${CMAKE_CURRENT_SOURCE_DIR}/MotionDistortedP2PandCATrajPrior.cpp)
+target_link_libraries(MotionDistortedP2PandCATrajPrior steam ${DEPEND_LIBS})
