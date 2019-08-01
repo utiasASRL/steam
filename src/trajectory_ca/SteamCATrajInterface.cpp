@@ -141,6 +141,135 @@ TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam
   return SteamCATrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
 }
 
+Eigen::VectorXd SteamCATrajInterface::getVelocity(const steam::Time& time) {
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or greater than 'time'
+  std::map<boost::int64_t, SteamCATrajVar::Ptr>::const_iterator it1
+     = knotMap_.lower_bound(time.nanosecs());
+
+  // Check if time is passed the last entry
+  if (it1 == knotMap_.end()) {
+
+   // If we allow extrapolation, return constant-velocity interpolated entry
+   if (allowExtrapolation_) {
+     --it1; // should be safe, as we checked that the map was not empty..
+     const SteamCATrajVar::Ptr& endKnot = it1->second;
+     return endKnot->getVelocity()->getValue();
+   } else {
+     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+   }
+  }
+
+  // Check if we requested time exactly
+  if (it1->second->getTime() == time) {
+     const SteamCATrajVar::Ptr& knot = it1->second;
+     // return state variable exactly (no interp)
+     return knot->getVelocity()->getValue();
+  }
+
+  // Check if we requested before first time
+  if (it1 == knotMap_.begin()) {
+    // If we allow extrapolation, return constant-velocity interpolated entry
+    if (allowExtrapolation_) {
+     const SteamCATrajVar::Ptr& startKnot = it1->second;
+     return startKnot->getVelocity()->getValue();
+    } else {
+     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    }
+  }
+
+  // Get iterators bounding the time interval
+  std::map<boost::int64_t, SteamCATrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
+    throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
+                            "should not trigger... report to a STEAM contributor.");
+  }
+
+  // OK, we actually need to interpolate.
+  // Follow a similar setup to SteamCATrajPoseInterpEval
+
+  // Convenience defs
+  auto &knot1 = it1->second;
+  auto &knot2 = it2->second;
+
+  double t1 = knot1->getTime().seconds();
+  double t2 = knot2->getTime().seconds();
+  double tau = time.seconds();
+
+  // Cheat by calculating deltas wrt t1, so we can avoid super large values
+  tau = tau-t1;
+  t2 = t2-t1;
+  t1 = 0;
+  
+  double T = (knot2->getTime() - knot1->getTime()).seconds();
+  double delta_tau = (time - knot1->getTime()).seconds();
+  double delta_kappa = (knot2->getTime()-time).seconds();
+
+  // std::cout << t1 << " " << t2 << " " << tau << std::endl;
+
+  double T2 = T*T;
+  double T3 = T2*T;
+  double T4 = T3*T;
+  double T5 = T4*T;
+
+  double delta_tau2 = delta_tau*delta_tau;
+  double delta_tau3 = delta_tau2*delta_tau;
+  double delta_tau4 = delta_tau3*delta_tau;
+  double delta_kappa2 = delta_kappa*delta_kappa;
+  double delta_kappa3 = delta_kappa2*delta_kappa;
+
+  // Calculate 'omega' interpolation values
+  double omega11 = delta_tau3/T5*(t1*t1 - 5*t1*t2 + 3*t1*tau + 10*t2*t2 - 15*t2*tau + 6*tau*tau);
+  double omega12 = delta_tau3*delta_kappa/T4*(t1 - 4*t2 + 3*tau);
+  double omega13 = delta_tau3*delta_kappa2/(2*T3);
+
+  double omega21 = 30*delta_tau2/T5*(6*delta_kappa2-4*delta_tau*T+8*delta_tau*delta_kappa-6*T*delta_kappa+3*delta_tau2+T2);
+  double omega22 = -delta_tau2/T4*(90*delta_kappa2-64*delta_tau*T+120*delta_tau*delta_kappa-96*T*delta_kappa+45*delta_tau2+18*T2);
+  double omega23 = delta_tau2/(2*T3)*(30*delta_kappa2-24*delta_tau*T+40*delta_tau*delta_kappa-36*T*delta_kappa+15*delta_tau2+9*T2);
+
+  // Calculate 'lambda' interpolation values
+  double lambda12 = delta_tau*delta_kappa3/T4*(t2 - 4*t1 + 3*tau);
+  double lambda13 = delta_tau2*delta_kappa3/(2*T3);
+
+  double lambda22 = -(90*delta_tau2*delta_kappa2-56*delta_tau3*T+45*delta_tau4-T4+120*delta_tau3*delta_kappa+12*delta_tau2*T2-84*delta_tau2*T*delta_kappa)/T4;
+  double lambda23 = -delta_tau/(2*T3)*(3*delta_tau*T2-16*delta_tau2*T+15*delta_tau3-2*T3+30*delta_tau*delta_kappa2+40*delta_tau2*delta_kappa-24*delta_tau*T*delta_kappa);
+
+  // Get relative matrix info
+  lgmath::se3::Transformation T_21 = knot2->getPose()->evaluate()/knot1->getPose()->evaluate();
+
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+
+  // Intermediate variable
+  Eigen::Matrix<double,6,6> varpicurl2 = lgmath::se3::curlyhat(J_21_inv*knot2->getVelocity()->getValue());
+
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12*knot1->getVelocity()->getValue() +
+                                    lambda13*knot1->getAcceleration()->getValue() +
+                                    omega11*xi_21 +
+                                    omega12*J_21_inv*knot2->getVelocity()->getValue()+
+                                    omega13*(-0.5*varpicurl2*knot2->getVelocity()->getValue() + J_21_inv*knot2->getAcceleration()->getValue());
+
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_t1 = lgmath::se3::vec2jac(xi_i1);
+
+  // Calculate interpolated relative se3 algebra
+  Eigen::VectorXd xi_it = J_t1*(lambda22*knot1->getVelocity()->getValue() +
+                                lambda23*knot1->getAcceleration()->getValue() +
+                                omega21*xi_21 +
+                                omega22*J_21_inv*knot2->getVelocity()->getValue() +
+                                omega23*(-0.5*varpicurl2*knot2->getVelocity()->getValue() + J_21_inv*knot2->getAcceleration()->getValue()));
+
+   return xi_it;
+ }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
 ///        should exist on a trajectory, adding a second will overwrite the first.
