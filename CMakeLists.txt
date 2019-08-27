@@ -110,9 +110,9 @@ else(OPENMP_FOUND)
 endif(OPENMP_FOUND)
 
 # find Lie Group Math
-find_package(LGMath REQUIRED)
-include_directories(${LGMath_INCLUDE_DIRS})
-set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${LGMath_LIBRARIES})
+find_package(lgmath REQUIRED)
+include_directories(${lgmath_INCLUDE_DIRS})
+set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${lgmath_LIBRARIES})
 
 # find Boost
 find_package(Boost REQUIRED system)
