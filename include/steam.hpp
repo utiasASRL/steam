@@ -62,5 +62,6 @@
 // trajectory
 #include <steam/trajectory/SteamTrajInterface.hpp>
 #include <steam/trajectory_ca/SteamCATrajInterface.hpp>
+#include <steam/trajectory_singer/SteamSingerTrajInterface.hpp>
 
 #endif // STEAM_ESTIMATION_LIBRARY_HPP
