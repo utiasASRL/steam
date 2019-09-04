@@ -28,7 +28,8 @@ class SteamSingerTrajPoseInterpEval : public TransformEvaluator
   SteamSingerTrajPoseInterpEval(const Time& time,
                             const SteamSingerTrajVar::ConstPtr& knot1,
                             const SteamSingerTrajVar::ConstPtr& knot2,
-                            const Eigen::Matrix<double,6,6>& alpha);
+                            const Eigen::Matrix<double,6,6>& alpha,
+                            const Eigen::Matrix<double,6,6>& alpha_inv);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
@@ -36,7 +37,28 @@ class SteamSingerTrajPoseInterpEval : public TransformEvaluator
   static Ptr MakeShared(const Time& time,
                         const SteamSingerTrajVar::ConstPtr& knot1,
                         const SteamSingerTrajVar::ConstPtr& knot2,
-                        const Eigen::Matrix<double,6,6>& alpha);
+                        const Eigen::Matrix<double,6,6>& alpha,
+                        const Eigen::Matrix<double,6,6>& alpha_inv);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Constructor
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  SteamSingerTrajPoseInterpEval(const Time& time,
+                            const SteamSingerTrajVar::ConstPtr& knot1,
+                            const SteamSingerTrajVar::ConstPtr& knot2,
+                            const Eigen::Matrix<double,6,6>& alpha,
+                            const Eigen::Matrix<double,6,6>& alpha_inv,
+                            const Eigen::Matrix<double,18,18>& Q_inv);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Pseudo constructor - return a shared pointer to a new instance
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  static Ptr MakeShared(const Time& time,
+                        const SteamSingerTrajVar::ConstPtr& knot1,
+                        const SteamSingerTrajVar::ConstPtr& knot2,
+                        const Eigen::Matrix<double,6,6>& alpha,
+                        const Eigen::Matrix<double,6,6>& alpha_inv,
+                        const Eigen::Matrix<double,18,18>& Q_inv);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -105,8 +127,8 @@ class SteamSingerTrajPoseInterpEval : public TransformEvaluator
                            EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
                            std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
 
-  Eigen::Matrix<double,18,18> getQmatrix(const double& dt);
-  Eigen::Matrix<double,18,18> getTranMatrix(const double& dt);
+  inline Eigen::Matrix<double,18,18> getQmatrix(const double& dt);
+  inline Eigen::Matrix<double,18,18> getTranMatrix(const double& dt);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief First (earlier) knot
@@ -139,6 +161,12 @@ class SteamSingerTrajPoseInterpEval : public TransformEvaluator
     // double lambda22_;
 
   Eigen::Matrix<double,6,6> alpha_;
+  Eigen::Matrix<double,6,6> alpha2_;
+  Eigen::Matrix<double,6,6> alpha3_;
+  Eigen::Matrix<double,6,6> alpha_inv_;
+  Eigen::Matrix<double,6,6> alpha2_inv_;
+  Eigen::Matrix<double,6,6> alpha3_inv_;
+  Eigen::Matrix<double,6,6> alpha4_inv_;
 };
 
 } // se3

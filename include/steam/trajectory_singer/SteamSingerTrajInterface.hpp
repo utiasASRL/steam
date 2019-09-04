@@ -37,7 +37,7 @@ class SteamSingerTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  SteamSingerTrajInterface(const Eigen::Matrix<double,6,6>& Qc, const Eigen::Matrix<double,6,6>& alpha, bool allowExtrapolation = false);
+  SteamSingerTrajInterface(const Eigen::Matrix<double,6,6>& Qc, const Eigen::Matrix<double,6,6>& alpha, const Eigen::Matrix<double,6,6>& alpha_inv, bool allowExtrapolation = false);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
@@ -54,7 +54,7 @@ class SteamSingerTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time) const;
+  TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time, bool usePrecomputedQinv = false) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
@@ -88,6 +88,10 @@ class SteamSingerTrajInterface
   void getActiveStateVariables(
       std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
+  Eigen::Matrix<double,18,18> precomputeInterpQinv(const double& dt);
+
+  Eigen::Matrix<double,18,18> Q_inv_interp_;
+
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,6 +99,7 @@ class SteamSingerTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   Eigen::Matrix<double,6,6> Qc_;
   Eigen::Matrix<double,6,6> alpha_;
+  Eigen::Matrix<double,6,6> alpha_inv_;
 
 
   //////////////////////////////////////////////////////////////////////////////////////////////

@@ -17,8 +17,9 @@ SingerTransformEvaluator::SingerTransformEvaluator(
     const VectorSpaceStateVar::Ptr& velocity, 
     const VectorSpaceStateVar::Ptr& acceleration, 
     const Time& time,
-    const Eigen::Matrix<double,6,6>& alpha) : velocity_(velocity), acceleration_(acceleration),
-  time_(time), alpha_(alpha) {
+    const Eigen::Matrix<double,6,6>& alpha,
+    const Eigen::Matrix<double,6,6>& alpha_inv) : velocity_(velocity), acceleration_(acceleration),
+  time_(time), alpha_(alpha), alpha_inv_(alpha) {
 
   if(velocity->getPerturbDim() != 6) {
     throw std::invalid_argument("[ConstVelTransformEval] velocity was not 6D.");
@@ -32,9 +33,10 @@ SingerTransformEvaluator::Ptr SingerTransformEvaluator::MakeShared(
     const VectorSpaceStateVar::Ptr& velocity, 
     const VectorSpaceStateVar::Ptr& acceleration,
     const Time& time,
-    const Eigen::Matrix<double,6,6>& alpha) {
+    const Eigen::Matrix<double,6,6>& alpha,
+    const Eigen::Matrix<double,6,6>& alpha_inv) {
   return SingerTransformEvaluator::Ptr(new SingerTransformEvaluator(velocity, 
-    acceleration, time, alpha));
+    acceleration, time, alpha, alpha_inv));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,8 +61,7 @@ void SingerTransformEvaluator::getActiveStateVariables(
 /// \brief Evaluate the transformation matrix
 //////////////////////////////////////////////////////////////////////////////////////////////
 lgmath::se3::Transformation SingerTransformEvaluator::evaluate() const {
-  Eigen::Matrix<double, 6,6> alpha_inv=alpha_.inverse();
-  Eigen::Matrix<double, 6,6> alpha2_inv=alpha_inv*alpha_inv;
+  Eigen::Matrix<double, 6,6> alpha2_inv=alpha_inv_*alpha_inv_;
   Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue() +
   (alpha_*time_.seconds()-Eigen::Matrix<double,6,6>::Identity()+(-alpha_*time_.seconds()).exp())*alpha2_inv*acceleration_->getValue();
   return lgmath::se3::Transformation(xi);
@@ -70,8 +71,7 @@ lgmath::se3::Transformation SingerTransformEvaluator::evaluate() const {
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 EvalTreeNode<lgmath::se3::Transformation>* SingerTransformEvaluator::evaluateTree() const {
-  Eigen::Matrix<double, 6,6> alpha_inv=alpha_.inverse();
-  Eigen::Matrix<double, 6,6> alpha2_inv=alpha_inv*alpha_inv;
+  Eigen::Matrix<double, 6,6> alpha2_inv=alpha_inv_*alpha_inv_;
   // Make new leaf node -- note we get memory from the pool
   EvalTreeNode<lgmath::se3::Transformation>* result = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
   Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue() +
@@ -90,8 +90,7 @@ void SingerTransformEvaluator::appendJacobiansImpl(
     std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
 
   if (!velocity_->isLocked()) {
-    Eigen::Matrix<double, 6,6> alpha_inv=alpha_.inverse();
-    Eigen::Matrix<double, 6,6> alpha2_inv=alpha_inv*alpha_inv;
+    Eigen::Matrix<double, 6,6> alpha2_inv=alpha_inv_*alpha_inv_;
 
     // Make jacobian
     Eigen::Matrix<double,6,1> xi = time_.seconds() * velocity_->getValue() +

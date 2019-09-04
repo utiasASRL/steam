@@ -30,7 +30,7 @@ class SteamSingerTrajPriorFactor : public ErrorEvaluatorX
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
   SteamSingerTrajPriorFactor(const SteamSingerTrajVar::ConstPtr& knot1,
-                       const SteamSingerTrajVar::ConstPtr& knot2, const Eigen::Matrix<double,6,6>& alpha);
+                       const SteamSingerTrajVar::ConstPtr& knot2, const Eigen::Matrix<double,6,6>& alpha, const Eigen::Matrix<double,6,6>& alpha_inv);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -60,6 +60,7 @@ class SteamSingerTrajPriorFactor : public ErrorEvaluatorX
   SteamSingerTrajVar::ConstPtr knot2_;
 
   Eigen::Matrix<double,6,6> alpha_;
+  Eigen::Matrix<double,6,6> alpha_inv_;
 };
 
 } // se3

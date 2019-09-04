@@ -52,7 +52,9 @@ int main(int argc, char** argv) {
   Eigen::Array<double, 1,6> alpha_diag;
   alpha_diag << 50, 50,50,50,50,50;
   Eigen::Matrix<double, 6,6> alpha; alpha.setZero();
+  Eigen::Matrix<double, 6,6> alpha_inv; alpha_inv.setZero();
     alpha.diagonal() = alpha_diag;
+    alpha_inv.diagonal() = 1.0/alpha_diag;
 
   ///
   /// Parse Dataset
@@ -135,7 +137,7 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  steam::se3::SteamSingerTrajInterface traj(Qc, alpha);
+  steam::se3::SteamSingerTrajInterface traj(Qc, alpha, alpha_inv);
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     TrajStateVar& state = traj_states_ic.at(i);
     steam::se3::TransformStateEvaluator::Ptr temp =

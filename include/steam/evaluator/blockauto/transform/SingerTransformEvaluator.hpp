@@ -29,7 +29,8 @@ class SingerTransformEvaluator : public TransformEvaluator
   SingerTransformEvaluator(const VectorSpaceStateVar::Ptr& velocity, 
                              const VectorSpaceStateVar::Ptr& acceleration, 
                              const Time& time,
-                             const Eigen::Matrix<double,6,6>& alpha);
+                             const Eigen::Matrix<double,6,6>& alpha,
+                             const Eigen::Matrix<double,6,6>& alpha_inv);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
@@ -37,7 +38,8 @@ class SingerTransformEvaluator : public TransformEvaluator
   static Ptr MakeShared(const VectorSpaceStateVar::Ptr& velocity, 
                         const VectorSpaceStateVar::Ptr& acceleration, 
                         const Time& time,
-                        const Eigen::Matrix<double,6,6>& alpha);
+                        const Eigen::Matrix<double,6,6>& alpha,
+                        const Eigen::Matrix<double,6,6>& alpha_inv);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Returns whether or not an evaluator contains unlocked state variables
@@ -116,6 +118,7 @@ class SingerTransformEvaluator : public TransformEvaluator
   Time time_;
 
   Eigen::Matrix<double,6,6> alpha_;
+  Eigen::Matrix<double,6,6> alpha_inv_;
 };
 
 } // se3

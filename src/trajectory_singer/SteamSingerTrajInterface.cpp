@@ -7,7 +7,7 @@
 #include <steam/trajectory_singer/SteamSingerTrajInterface.hpp>
 
 #include <lgmath.hpp>
-#include <unsupported/Eigen/MatrixFunctions>
+// #include <unsupported/Eigen/MatrixFunctions>
 
 #include <steam/trajectory_singer/SteamSingerTrajPoseInterpEval.hpp>
 #include <steam/trajectory_singer/SteamSingerTrajPriorFactor.hpp>
@@ -32,9 +32,9 @@ SteamSingerTrajInterface::SteamSingerTrajInterface(bool allowExtrapolation) :
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-SteamSingerTrajInterface::SteamSingerTrajInterface(const Eigen::Matrix<double,6,6>& Qc, const Eigen::Matrix<double,6,6>& alpha,
+SteamSingerTrajInterface::SteamSingerTrajInterface(const Eigen::Matrix<double,6,6>& Qc, const Eigen::Matrix<double,6,6>& alpha, const Eigen::Matrix<double,6,6>& alpha_inv,
                                        bool allowExtrapolation) :
-  Qc_(Qc), alpha_(alpha), allowExtrapolation_(allowExtrapolation) {
+  Qc_(Qc), alpha_(alpha), alpha_inv_(alpha_inv), allowExtrapolation_(allowExtrapolation) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,10 +77,37 @@ void SteamSingerTrajInterface::add(const steam::Time& time,
                   std::pair<boost::int64_t, SteamSingerTrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
+Eigen::Matrix<double,18,18> SteamSingerTrajInterface::precomputeInterpQinv(const double& dt) {
+  double dt2=dt*dt;
+  double dt3=dt2*dt;
+  Eigen::Matrix<double,6,6> alpha2=alpha_*alpha_;
+  Eigen::Matrix<double,6,6> alpha3=alpha2*alpha_;
+  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv_*alpha_inv_;
+  Eigen::Matrix<double,6,6> alpha3_inv=alpha2_inv*alpha_inv_;
+  Eigen::Matrix<double,6,6> alpha4_inv=alpha3_inv*alpha_inv_;
+  Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
+  Eigen::Matrix<double,6,6> expon2; expon2.setZero();
+  expon2.diagonal()=(-2*dt*alpha_).diagonal().array().exp();
+  Eigen::Matrix<double,6,6> expon; expon.setZero();
+  expon.diagonal()=(-dt*alpha_).diagonal().array().exp();
+  
+  Eigen::Matrix<double, 18, 18> Q_interp;
+  Q_interp.block<6,6>(0,0) = alpha4_inv*(eye-expon2+2*alpha_*dt+(2.0/3.0)*alpha3*dt3-2*alpha2*dt2-4*alpha_*dt*expon);
+  Q_interp.block<6,6>(6,6) = alpha2_inv*(4*expon-3*eye-expon2+2*alpha_*dt);
+  Q_interp.block<6,6>(12,12) = (eye-expon2);;
+  Q_interp.block<6,6>(6,0) = Q_interp.block<6,6>(0,6) = alpha3_inv*(expon2+eye-2*expon+2*alpha_*dt*expon-2*alpha_*dt+alpha2*dt2);
+  Q_interp.block<6,6>(12,0) = Q_interp.block<6,6>(0,12) = alpha2_inv*(eye-expon2-2*alpha_*dt*expon);
+  Q_interp.block<6,6>(12,6) = Q_interp.block<6,6>(6,12) = alpha_inv_*(expon2+eye-2*expon);
+
+  Q_inv_interp_=Q_interp.inverse();
+  return Q_inv_interp_;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
-TransformEvaluator::ConstPtr SteamSingerTrajInterface::getInterpPoseEval(const steam::Time& time) const {
+TransformEvaluator::ConstPtr SteamSingerTrajInterface::getInterpPoseEval(const steam::Time& time, bool usePrecomputedQinv) const {
 
   // Check that map is not empty
   if (knotMap_.empty()) {
@@ -102,7 +129,7 @@ TransformEvaluator::ConstPtr SteamSingerTrajInterface::getInterpPoseEval(const s
           SingerTransformEvaluator::MakeShared(endKnot->getVelocity(),
                                                  endKnot->getAcceleration(),
                                                  time - endKnot->getTime(),
-                                                 alpha_);
+                                                 alpha_, alpha_inv_);
       return compose(T_t_k, endKnot->getPose());
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time. 1");
@@ -125,7 +152,7 @@ TransformEvaluator::ConstPtr SteamSingerTrajInterface::getInterpPoseEval(const s
       SingerTransformEvaluator::MakeShared(startKnot->getVelocity(),
                                              startKnot->getAcceleration(),
                                              time - startKnot->getTime(),
-                                             alpha_);
+                                             alpha_, alpha_inv_);
       return compose(T_t_k, startKnot->getPose());
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
@@ -140,7 +167,10 @@ TransformEvaluator::ConstPtr SteamSingerTrajInterface::getInterpPoseEval(const s
   }
 
   // Create interpolated evaluator
-  return SteamSingerTrajPoseInterpEval::MakeShared(time, it1->second, it2->second, alpha_);
+  if (usePrecomputedQinv) {
+    return SteamSingerTrajPoseInterpEval::MakeShared(time, it1->second, it2->second, alpha_, alpha_inv_, Q_inv_interp_);
+  }
+  return SteamSingerTrajPoseInterpEval::MakeShared(time, it1->second, it2->second, alpha_, alpha_inv_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -309,14 +339,15 @@ void SteamSingerTrajInterface::appendPriorCostTerms(
       // double one_over_dt5 = one_over_dt4*one_over_dt;
 
       Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
-      Eigen::Matrix<double,6,6> expon2=(-2*dt*alpha_).exp();
-      Eigen::Matrix<double,6,6> expon=(-dt*alpha_).exp();
+      Eigen::Matrix<double,6,6> expon2; expon2.setZero();
+      expon2.diagonal()=(-2*dt*alpha_).diagonal().array().exp();
+      Eigen::Matrix<double,6,6> expon; expon.setZero();
+      expon.diagonal()=(-dt*alpha_).diagonal().array().exp();
       Eigen::Matrix<double,6,6> alpha2=alpha_*alpha_;
       Eigen::Matrix<double,6,6> alpha3=alpha2*alpha_;
-      Eigen::Matrix<double,6,6> alpha_inv=alpha_.inverse();
-      Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv*alpha_inv;
-      Eigen::Matrix<double,6,6> alpha3_inv=alpha2_inv*alpha_inv;
-      Eigen::Matrix<double,6,6> alpha4_inv=alpha3_inv*alpha_inv;
+      Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv_*alpha_inv_;
+      Eigen::Matrix<double,6,6> alpha3_inv=alpha2_inv*alpha_inv_;
+      Eigen::Matrix<double,6,6> alpha4_inv=alpha3_inv*alpha_inv_;
       double dt2=dt*dt;
       double dt3=dt2*dt;
 
@@ -325,7 +356,7 @@ void SteamSingerTrajInterface::appendPriorCostTerms(
       Qi.block<6,6>(12,12) = Qc_*(eye-expon2);;
       Qi.block<6,6>(6,0) = Qi.block<6,6>(0,6) = Qc_*alpha3_inv*(expon2+eye-2*expon+2*alpha_*dt*expon-2*alpha_*dt+alpha2*dt2);
       Qi.block<6,6>(12,0) = Qi.block<6,6>(0,12) = Qc_*alpha2_inv*(eye-expon2-2*alpha_*dt*expon);
-      Qi.block<6,6>(12,6) = Qi.block<6,6>(6,12) = Qc_*alpha_inv*(expon2+eye-2*expon);
+      Qi.block<6,6>(12,6) = Qi.block<6,6>(6,12) = Qc_*alpha_inv_*(expon2+eye-2*expon);
       
       // std::cout << Qi.block<6,6>(12,0) << std::endl << std::endl;
       // std::cout << Qi.block<6,6>(0,12) << std::endl;
@@ -335,7 +366,7 @@ void SteamSingerTrajInterface::appendPriorCostTerms(
 
       // Create cost term
       steam::se3::SteamSingerTrajPriorFactor::Ptr errorfunc(
-            new steam::se3::SteamSingerTrajPriorFactor(knot1, knot2, alpha_));
+            new steam::se3::SteamSingerTrajPriorFactor(knot1, knot2, alpha_, alpha_inv_));
       steam::WeightedLeastSqCostTermX::Ptr cost(
             new steam::WeightedLeastSqCostTermX(errorfunc, sharedGPNoiseModel, sharedLossFunc));
       costTerms->add(cost);

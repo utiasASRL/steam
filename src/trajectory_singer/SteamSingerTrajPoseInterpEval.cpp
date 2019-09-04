@@ -7,7 +7,7 @@
 #include <steam/trajectory_singer/SteamSingerTrajPoseInterpEval.hpp>
 
 #include <lgmath.hpp>
-#include <unsupported/Eigen/MatrixFunctions>
+// #include <unsupported/Eigen/MatrixFunctions>
 namespace steam {
 namespace se3 {
 
@@ -17,8 +17,9 @@ namespace se3 {
 SteamSingerTrajPoseInterpEval::SteamSingerTrajPoseInterpEval(const Time& time,
                                    const SteamSingerTrajVar::ConstPtr& knot1,
                                    const SteamSingerTrajVar::ConstPtr& knot2,
-                                   const Eigen::Matrix<double,6,6>& alpha) :
-  knot1_(knot1), knot2_(knot2), alpha_(alpha) {
+                                   const Eigen::Matrix<double,6,6>& alpha,
+                                   const Eigen::Matrix<double,6,6>& alpha_inv) :
+  knot1_(knot1), knot2_(knot2), alpha_(alpha), alpha_inv_(alpha_inv) {
 
   // Calculate time constants
   double t1 = knot1->getTime().seconds();
@@ -34,6 +35,11 @@ SteamSingerTrajPoseInterpEval::SteamSingerTrajPoseInterpEval(const Time& time,
   double delta_tau = (time - knot1->getTime()).seconds();
   double delta_kappa = (knot2->getTime()-time).seconds();
 
+  alpha2_=alpha_*alpha_;
+  alpha3_=alpha2_*alpha_;
+  alpha2_inv_=alpha_inv_*alpha_inv_;
+  alpha3_inv_=alpha2_inv_*alpha_inv_;
+  alpha4_inv_=alpha3_inv_*alpha_inv_;
   
 
   Eigen::Matrix<double,18,18> Q_delta_tau = getQmatrix(delta_tau);
@@ -93,46 +99,142 @@ SteamSingerTrajPoseInterpEval::SteamSingerTrajPoseInterpEval(const Time& time,
 SteamSingerTrajPoseInterpEval::Ptr SteamSingerTrajPoseInterpEval::MakeShared(const Time& time,
                                                    const SteamSingerTrajVar::ConstPtr& knot1,
                                                    const SteamSingerTrajVar::ConstPtr& knot2,
-                                                   const Eigen::Matrix<double,6,6>& alpha) {
-  return SteamSingerTrajPoseInterpEval::Ptr(new SteamSingerTrajPoseInterpEval(time, knot1, knot2, alpha));
+                                                   const Eigen::Matrix<double,6,6>& alpha,
+                                                   const Eigen::Matrix<double,6,6>& alpha_inv) {
+  return SteamSingerTrajPoseInterpEval::Ptr(new SteamSingerTrajPoseInterpEval(time, knot1, knot2, alpha, alpha_inv));
 }
 
-Eigen::Matrix<double,18,18> SteamSingerTrajPoseInterpEval::getQmatrix(const double& dt) {
-  Eigen::Matrix<double,6,6> alpha2=alpha_*alpha_;
-  Eigen::Matrix<double,6,6> alpha3=alpha2*alpha_;
-  Eigen::Matrix<double,6,6> alpha_inv=alpha_.inverse();
-  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv*alpha_inv;
-  Eigen::Matrix<double,6,6> alpha3_inv=alpha2_inv*alpha_inv;
-  Eigen::Matrix<double,6,6> alpha4_inv=alpha3_inv*alpha_inv;
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Constructor
+//////////////////////////////////////////////////////////////////////////////////////////////
+SteamSingerTrajPoseInterpEval::SteamSingerTrajPoseInterpEval(const Time& time,
+                                   const SteamSingerTrajVar::ConstPtr& knot1,
+                                   const SteamSingerTrajVar::ConstPtr& knot2,
+                                   const Eigen::Matrix<double,6,6>& alpha,
+                                   const Eigen::Matrix<double,6,6>& alpha_inv,
+                                   const Eigen::Matrix<double,18,18>& Q_inv) :
+  knot1_(knot1), knot2_(knot2), alpha_(alpha), alpha_inv_(alpha_inv) {
+
+  // Calculate time constants
+  double t1 = knot1->getTime().seconds();
+  double t2 = knot2->getTime().seconds();
+  double tau = time.seconds();
+
+  // Cheat by calculating deltas wrt t1, so we can avoid super large values
+  // tau = tau-t1;
+  // t2 = t2-t1;
+  // t1 = 0;
+  
+  double T = (knot2->getTime() - knot1->getTime()).seconds();
+  double delta_tau = (time - knot1->getTime()).seconds();
+  double delta_kappa = (knot2->getTime()-time).seconds();
+
+  alpha2_=alpha_*alpha_;
+  alpha3_=alpha2_*alpha_;
+  alpha2_inv_=alpha_inv_*alpha_inv_;
+  alpha3_inv_=alpha2_inv_*alpha_inv_;
+  alpha4_inv_=alpha3_inv_*alpha_inv_;
+  
+
+  Eigen::Matrix<double,18,18> Q_delta_tau = getQmatrix(delta_tau);
+
+  // double dt=delta_tau;
+  // double dt2=dt*dt;
+  // double dt3=dt2*dt;
+  // Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
+  // Eigen::Matrix<double,6,6> expon2=(-2*dt*alpha_).exp();
+  // Eigen::Matrix<double,6,6> expon=(-dt*alpha_).exp();
+  
+
+  // Q_delta_tau.block<6,6>(0,0) = alpha4_inv*(eye-expon2+2*alpha_*dt+(2.0/3.0)*alpha3*dt3-2*alpha2*dt2-4*alpha_*dt*expon);
+  // Q_delta_tau.block<6,6>(6,6) = alpha2_inv*(4*expon-3*eye-expon2+2*alpha_*dt);
+  // Q_delta_tau.block<6,6>(12,12) = (eye-expon2);;
+  // Q_delta_tau.block<6,6>(6,0) = Q_delta_tau.block<6,6>(0,6) = alpha3_inv*(expon2+eye-2*expon+2*alpha_*dt*expon-2*alpha_*dt+alpha2*dt2);
+  // Q_delta_tau.block<6,6>(12,0) = Q_delta_tau.block<6,6>(0,12) = alpha2_inv*(eye-expon2-2*alpha_*dt*expon);
+  // Q_delta_tau.block<6,6>(12,6) = Q_delta_tau.block<6,6>(6,12) = alpha_inv*(expon2+eye-2*expon);
+
+  // Eigen::Matrix<double,18,18> Q_T = getQmatrix(T);
+
+  // dt=T;
+  // dt2=dt*dt;
+  // dt3=dt2*dt;
+  // expon2=(-2*dt*alpha_).exp();
+  // expon=(-dt*alpha_).exp();
+  
+
+  // Q_T.block<6,6>(0,0) = alpha4_inv*(eye-expon2+2*alpha_*dt+(2.0/3.0)*alpha3*dt3-2*alpha2*dt2-4*alpha_*dt*expon);
+  // Q_T.block<6,6>(6,6) = alpha2_inv*(4*expon-3*eye-expon2+2*alpha_*dt);
+  // Q_T.block<6,6>(12,12) = (eye-expon2);;
+  // Q_T.block<6,6>(6,0) = Q_T.block<6,6>(0,6) = alpha3_inv*(expon2+eye-2*expon+2*alpha_*dt*expon-2*alpha_*dt+alpha2*dt2);
+  // Q_T.block<6,6>(12,0) = Q_T.block<6,6>(0,12) = alpha2_inv*(eye-expon2-2*alpha_*dt*expon);
+  // Q_T.block<6,6>(12,6) = Q_T.block<6,6>(6,12) = alpha_inv*(expon2+eye-2*expon);
+
+  Eigen::Matrix<double,18,18> trans_delta_kappa=getTranMatrix(delta_kappa);
+
+  Eigen::Matrix<double,18,18> omega=Q_delta_tau*trans_delta_kappa*Q_inv;
+
+  Eigen::Matrix<double,18,18> trans_delta_tau=getTranMatrix(delta_tau);
+  Eigen::Matrix<double,18,18> trans_T=getTranMatrix(T);
+
+  Eigen::Matrix<double,18,18> lambda=trans_delta_tau-omega*trans_T;
+
+  omega11_=omega.block<6,6>(0,0);
+  omega12_=omega.block<6,6>(0,6);
+  omega13_=omega.block<6,6>(0,12);
+  lambda12_=lambda.block<6,6>(0,6);
+  lambda13_=lambda.block<6,6>(0,12);
+  // std::cout << t1 << " " << t2 << " " << tau << std::endl;
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Pseudo constructor - return a shared pointer to a new instance
+//////////////////////////////////////////////////////////////////////////////////////////////
+SteamSingerTrajPoseInterpEval::Ptr SteamSingerTrajPoseInterpEval::MakeShared(const Time& time,
+                                                   const SteamSingerTrajVar::ConstPtr& knot1,
+                                                   const SteamSingerTrajVar::ConstPtr& knot2,
+                                                   const Eigen::Matrix<double,6,6>& alpha,
+                                                   const Eigen::Matrix<double,6,6>& alpha_inv, const Eigen::Matrix<double,18,18>& Q_inv) {
+  return SteamSingerTrajPoseInterpEval::Ptr(new SteamSingerTrajPoseInterpEval(time, knot1, knot2, alpha, alpha_inv, Q_inv));
+}
+
+inline Eigen::Matrix<double,18,18> SteamSingerTrajPoseInterpEval::getQmatrix(const double& dt) {
+  // Eigen::Matrix<double,6,6> alpha2=alpha_*alpha_;
+  // Eigen::Matrix<double,6,6> alpha3=alpha2*alpha_;
+  // Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv_*alpha_inv_;
+  // Eigen::Matrix<double,6,6> alpha3_inv=alpha2_inv*alpha_inv_;
+  // Eigen::Matrix<double,6,6> alpha4_inv=alpha3_inv*alpha_inv_;
 
   Eigen::Matrix<double,18,18> Q;
 
   double dt2=dt*dt;
   double dt3=dt2*dt;
   Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
-  Eigen::Matrix<double,6,6> expon2=(-2*dt*alpha_).exp();
-  Eigen::Matrix<double,6,6> expon=(-dt*alpha_).exp();
+  Eigen::Matrix<double,6,6> expon2; expon2.setZero();
+  expon2.diagonal()=(-2*dt*alpha_).diagonal().array().exp();
+  Eigen::Matrix<double,6,6> expon; expon.setZero();
+  expon.diagonal()=(-dt*alpha_).diagonal().array().exp();
   
 
-  Q.block<6,6>(0,0) = alpha4_inv*(eye-expon2+2*alpha_*dt+(2.0/3.0)*alpha3*dt3-2*alpha2*dt2-4*alpha_*dt*expon);
-  Q.block<6,6>(6,6) = alpha2_inv*(4*expon-3*eye-expon2+2*alpha_*dt);
+  Q.block<6,6>(0,0) = alpha4_inv_*(eye-expon2+2*alpha_*dt+(2.0/3.0)*alpha3_*dt3-2*alpha2_*dt2-4*alpha_*dt*expon);
+  Q.block<6,6>(6,6) = alpha2_inv_*(4*expon-3*eye-expon2+2*alpha_*dt);
   Q.block<6,6>(12,12) = (eye-expon2);;
-  Q.block<6,6>(6,0) = Q.block<6,6>(0,6) = alpha3_inv*(expon2+eye-2*expon+2*alpha_*dt*expon-2*alpha_*dt+alpha2*dt2);
-  Q.block<6,6>(12,0) = Q.block<6,6>(0,12) = alpha2_inv*(eye-expon2-2*alpha_*dt*expon);
-  Q.block<6,6>(12,6) = Q.block<6,6>(6,12) = alpha_inv*(expon2+eye-2*expon);
+  Q.block<6,6>(6,0) = Q.block<6,6>(0,6) = alpha3_inv_*(expon2+eye-2*expon+2*alpha_*dt*expon-2*alpha_*dt+alpha2_*dt2);
+  Q.block<6,6>(12,0) = Q.block<6,6>(0,12) = alpha2_inv_*(eye-expon2-2*alpha_*dt*expon);
+  Q.block<6,6>(12,6) = Q.block<6,6>(6,12) = alpha_inv_*(expon2+eye-2*expon);
 
   return Q;
 }
 
-Eigen::Matrix<double,18,18> SteamSingerTrajPoseInterpEval::getTranMatrix(const double& dt) {
-  Eigen::Matrix<double,6,6> alpha_inv=alpha_.inverse();
-  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv*alpha_inv;
-  Eigen::Matrix<double,6,6> expon=(-dt*alpha_).exp();
+inline Eigen::Matrix<double,18,18> SteamSingerTrajPoseInterpEval::getTranMatrix(const double& dt) {
+  // Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv_*alpha_inv_;
+  Eigen::Matrix<double,6,6> expon; expon.setZero();
+  expon.diagonal()=(-dt*alpha_).diagonal().array().exp();
   Eigen::Matrix<double,18,18> phi=Eigen::Matrix<double,18,18>::Identity();
   Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
   phi.block<6,6>(0,6)=dt*eye;
-  phi.block<6,6>(0,12)=(-eye+dt*alpha_+expon)*alpha2_inv;
-  phi.block<6,6>(6,12)=(eye-expon)*alpha_inv;
+  phi.block<6,6>(0,12)=(-eye+dt*alpha_+expon)*alpha2_inv_;
+  phi.block<6,6>(6,12)=(eye-expon)*alpha_inv_;
   phi.block<6,6>(12,12)=expon;
   return phi;
 }

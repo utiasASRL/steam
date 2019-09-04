@@ -8,7 +8,7 @@
 
 #include <lgmath.hpp>
 
-#include <unsupported/Eigen/MatrixFunctions>
+// #include <unsupported/Eigen/MatrixFunctions>
 
 namespace steam {
 namespace se3 {
@@ -17,8 +17,9 @@ namespace se3 {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 SteamSingerTrajPriorFactor::SteamSingerTrajPriorFactor(const SteamSingerTrajVar::ConstPtr& knot1,
-                                               const SteamSingerTrajVar::ConstPtr& knot2, const Eigen::Matrix<double,6,6>& alpha) :
-  knot1_(knot1), knot2_(knot2), alpha_(alpha) {
+                                               const SteamSingerTrajVar::ConstPtr& knot2, const Eigen::Matrix<double,6,6>& alpha,
+                                               const Eigen::Matrix<double,6,6>& alpha_inv) :
+  knot1_(knot1), knot2_(knot2), alpha_(alpha), alpha_inv_(alpha_inv) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,12 +45,12 @@ Eigen::VectorXd SteamSingerTrajPriorFactor::evaluate() const {
   double dt = (knot2_->getTime() - knot1_->getTime()).seconds();
 
   Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
-  Eigen::Matrix<double,6,6> expon=(-alpha_*dt).exp();
-  Eigen::Matrix<double,6,6> alpha_inv=alpha_.inverse();
-  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv*alpha_inv;
+  Eigen::Matrix<double,6,6> expon; expon.setZero();
+  expon.diagonal()=(-dt*alpha_).diagonal().array().exp();
+  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv_*alpha_inv_;
 
   Eigen::Matrix<double,6,6> C1=alpha2_inv*(alpha_*dt-eye+expon);
-  Eigen::Matrix<double,6,6> C2=alpha_inv*(eye-expon);
+  Eigen::Matrix<double,6,6> C2=alpha_inv_*(eye-expon);
   Eigen::Matrix<double,6,6> C3=expon;
 
   Eigen::Matrix<double,18,1> error;
@@ -91,12 +92,12 @@ Eigen::VectorXd SteamSingerTrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
   double deltaTime = (knot2_->getTime() - knot1_->getTime()).seconds();
 
   Eigen::Matrix<double,6,6> eye=Eigen::Matrix<double,6,6>::Identity();
-  Eigen::Matrix<double,6,6> expon=(-alpha_*deltaTime).exp();
-  Eigen::Matrix<double,6,6> alpha_inv=alpha_.inverse();
-  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv*alpha_inv;
+  Eigen::Matrix<double,6,6> expon; expon.setZero();
+  expon.diagonal()=(-deltaTime*alpha_).diagonal().array().exp();
+  Eigen::Matrix<double,6,6> alpha2_inv=alpha_inv_*alpha_inv_;
 
   Eigen::Matrix<double,6,6> C1=alpha2_inv*(alpha_*deltaTime-eye+expon);
-  Eigen::Matrix<double,6,6> C2=alpha_inv*(eye-expon);
+  Eigen::Matrix<double,6,6> C2=alpha_inv_*(eye-expon);
   Eigen::Matrix<double,6,6> C3=expon;
 
   // Knot 1 transform
