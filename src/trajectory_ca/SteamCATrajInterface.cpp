@@ -158,7 +158,12 @@ Eigen::VectorXd SteamCATrajInterface::getVelocity(const steam::Time& time) {
    if (allowExtrapolation_) {
      --it1; // should be safe, as we checked that the map was not empty..
      const SteamCATrajVar::Ptr& endKnot = it1->second;
-     return endKnot->getVelocity()->getValue();
+
+     auto dt=(time-endKnot->getTime()).seconds();
+     auto xi_tk=endKnot->getVelocity()->getValue()*dt+0.5*dt*dt*endKnot->getAcceleration()->getValue();
+
+     Eigen::Matrix<double,6,6> J_tk = lgmath::se3::vec2jac(xi_tk);
+     return J_tk*(endKnot->getVelocity()->getValue()+endKnot->getAcceleration()->getValue()*dt);
    } else {
      throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
    }
