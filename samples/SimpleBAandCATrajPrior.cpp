@@ -129,7 +129,14 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  steam::se3::SteamCATrajInterface traj(Qc_inv);
+  // steam::se3::SteamCATrajInterface ca_traj(Qc_inv);
+  // steam::se3::SteamTrajInterface *traj_ptr=&ca_traj;
+  // steam::se3::SteamTrajInterface traj=&traj_ptr;
+
+  steam::se3::SteamCATrajInterface ca_traj(Qc_inv);
+  steam::se3::SteamTrajInterface &traj{ca_traj};
+
+  // steam::se3::SteamCATrajInterface traj(Qc_inv);
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     TrajStateVar& state = traj_states_ic.at(i);
     steam::se3::TransformStateEvaluator::Ptr temp =

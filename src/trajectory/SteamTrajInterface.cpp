@@ -84,6 +84,12 @@ void SteamTrajInterface::add(const steam::Time& time,
                   std::pair<boost::int64_t, SteamTrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
+void SteamTrajInterface::add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& acceleration) {
+  add(time, T_k0, velocity);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////

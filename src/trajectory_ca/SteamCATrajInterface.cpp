@@ -20,23 +20,6 @@ namespace steam {
 namespace se3 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Constructor
-///        Note, without providing Qc, the trajectory can be used safely for interpolation,
-///        but should not be used for estimation.
-//////////////////////////////////////////////////////////////////////////////////////////////
-SteamCATrajInterface::SteamCATrajInterface(bool allowExtrapolation) :
-  Qc_inv_(Eigen::Matrix<double,6,6>::Identity()), allowExtrapolation_(allowExtrapolation) {
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Constructor
-//////////////////////////////////////////////////////////////////////////////////////////////
-SteamCATrajInterface::SteamCATrajInterface(const Eigen::Matrix<double,6,6>& Qc_inv,
-                                       bool allowExtrapolation) :
-  Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a new knot
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamCATrajInterface::add(const SteamCATrajVar::Ptr& knot) {
@@ -456,25 +439,25 @@ void SteamCATrajInterface::appendPriorCostTerms(
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get active state variables in the trajectory
-//////////////////////////////////////////////////////////////////////////////////////////////
-void SteamCATrajInterface::getActiveStateVariables(
-    std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
+// //////////////////////////////////////////////////////////////////////////////////////////////
+// /// \brief Get active state variables in the trajectory
+// //////////////////////////////////////////////////////////////////////////////////////////////
+// void SteamCATrajInterface::getActiveStateVariables(
+//     std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
 
-  // Iterate over trajectory
-  std::map<boost::int64_t, SteamCATrajVar::Ptr>::const_iterator it;
-  for (it = knotMap_.begin(); it != knotMap_.end(); ++it) {
+//   // Iterate over trajectory
+//   std::map<boost::int64_t, SteamCATrajVar::Ptr>::const_iterator it;
+//   for (it = knotMap_.begin(); it != knotMap_.end(); ++it) {
 
-    // Append active states in transform evaluator
-    it->second->getPose()->getActiveStateVariables(outStates);
+//     // Append active states in transform evaluator
+//     it->second->getPose()->getActiveStateVariables(outStates);
 
-    // Check if velocity is locked
-    if (!it->second->getVelocity()->isLocked()) {
-      (*outStates)[it->second->getVelocity()->getKey().getID()] = it->second->getVelocity();
-    }
-  }
-}
+//     // Check if velocity is locked
+//     if (!it->second->getVelocity()->isLocked()) {
+//       (*outStates)[it->second->getVelocity()->getKey().getID()] = it->second->getVelocity();
+//     }
+//   }
+// }
 
 } // se3
 } // steam
