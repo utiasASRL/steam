@@ -1,14 +1,13 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SteamCATrajInterface.hpp
+/// \file SteamTrajInterface.hpp
 ///
-/// \author Tim Tang, ASRL
+/// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STEAM_CA_TRAJECTORY_INTERFACE_HPP
-#define STEAM_CA_TRAJECTORY_INTERFACE_HPP
+#ifndef STEAM_TRAJECTORY_INTERFACE_TEMPLATE_HPP
+#define STEAM_TRAJECTORY_INTERFACE_TEMPLATE_HPP
 
-#include <steam/trajectory_ca/SteamCATrajVar.hpp>
-#include <steam/trajectory/SteamTrajInterfaceTemplate.hpp>
+#include <steam/trajectory/SteamTrajInterfaceBase.hpp>
 
 namespace steam {
 namespace se3 {
@@ -17,52 +16,50 @@ namespace se3 {
 /// \brief The trajectory class wraps a set of state variables to provide an interface
 ///        that allows for continuous-time pose interpolation.
 //////////////////////////////////////////////////////////////////////////////////////////////
-class SteamCATrajInterface : public SteamTrajInterfaceTemplate<SteamCATrajVar>
+template<typename STV>
+class SteamTrajInterfaceTemplate : public SteamTrajInterfaceBase
 {
  public:
 
-  using SteamTrajInterfaceTemplate<SteamCATrajVar>::SteamTrajInterfaceTemplate;
-  using SteamTrajInterfaceTemplate<SteamCATrajVar>::add;
+  using SteamTrajInterfaceBase::SteamTrajInterfaceBase;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity,
-           const VectorSpaceStateVar::Ptr& acceleration) override;
+  void add(const typename STV::Ptr& knot);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get evaluator
+  /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
+  ///        should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time) const;
+  void addPosePrior(const steam::Time& time, const lgmath::se3::Transformation& pose,
+                    const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get velocity evaluator
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  Eigen::VectorXd getVelocity(const steam::Time& time);
-
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Add a unary acceleration prior factor at a knot time. Note that only a single acceleration
+  /// \brief Add a unary velocity prior factor at a knot time. Note that only a single velocity
   ///        prior should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void addAccelerationPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& acceleration,
-    const Eigen::Matrix<double,6,6>& cov);
+  void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& velocity,
+                        const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
+  /// \brief Get active state variables in the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void appendPriorCostTerms(const ParallelizedCostTermCollection::Ptr& costTerms) const;
+  void getActiveStateVariables(
+      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
- private:
+ protected:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  /// \brief Acceleration prior
+  /// \brief Ordered map of knots
   //////////////////////////////////////////////////////////////////////////////////////////////
-  steam::WeightedLeastSqCostTerm<6,6>::Ptr accelerationPriorFactor_;
+  std::map<boost::int64_t, typename STV::Ptr> knotMap_;
 
 };
 
 } // se3
 } // steam
 
-#endif // STEAM_CA_TRAJECTORY_INTERFACE_HPP
+#include <steam/trajectory/SteamTrajInterfaceTemplate-inl.hpp>
+
+#endif // STEAM_TRAJECTORY_INTERFACE_TEMPLATE_HPP

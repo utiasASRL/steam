@@ -119,7 +119,8 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  steam::se3::SteamTrajInterface traj(Qc_inv);
+  steam::se3::SteamTrajInterface cv_traj(Qc_inv);
+  steam::se3::SteamTrajInterfaceBase &traj{cv_traj};
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     steam::se3::SteamTrajVar& state = traj_states_ic.at(i);
     steam::Time temp_time = state.getTime();
