@@ -33,20 +33,20 @@ class SteamTrajInterfaceTemplate : public SteamTrajInterfaceBase
   ///        should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
   void addPosePrior(const steam::Time& time, const lgmath::se3::Transformation& pose,
-                    const Eigen::Matrix<double,6,6>& cov);
+                    const Eigen::Matrix<double,6,6>& cov) override;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a unary velocity prior factor at a knot time. Note that only a single velocity
   ///        prior should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
   void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& velocity,
-                        const Eigen::Matrix<double,6,6>& cov);
+                        const Eigen::Matrix<double,6,6>& cov) override;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get active state variables in the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   void getActiveStateVariables(
-      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
+      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const override;
 
  protected:
 

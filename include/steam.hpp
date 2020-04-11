@@ -60,6 +60,7 @@
 #include <steam/state/LandmarkStateVar.hpp>
 
 // trajectory
+#include <steam/trajectory/SteamTrajInterfaceBase.hpp>
 #include <steam/trajectory/SteamTrajInterface.hpp>
 #include <steam/trajectory_ca/SteamCATrajInterface.hpp>
 

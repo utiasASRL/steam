@@ -13,9 +13,7 @@
 
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>
 #include <steam/problem/ParallelizedCostTermCollection.hpp>
-
-#include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
-#include <steam/evaluator/blockauto/transform/ConstVelTransformEvaluator.hpp>
+#include <steam/evaluator/samples/TransformErrorEval.hpp>
 
 namespace steam {
 namespace se3 {
@@ -80,6 +78,13 @@ class SteamTrajInterfaceBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& velocity,
                         const Eigen::Matrix<double,6,6>& cov);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Add a unary acceleration prior factor at a knot time. Note that only a single acceleration
+  ///        prior should exist on a trajectory, adding a second will overwrite the first.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual void addAccelerationPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& acceleration,
+    const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get binary cost terms associated with the prior for active parts of the trajectory

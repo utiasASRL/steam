@@ -83,6 +83,13 @@ void SteamTrajInterfaceBase::addVelocityPrior(const steam::Time& time, const Eig
                       const Eigen::Matrix<double,6,6>& cov) {}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Add a unary acceleration prior factor at a knot time. Note that only a single acceleration
+///        prior should exist on a trajectory, adding a second will overwrite the first.
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterfaceBase::addAccelerationPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& acceleration,
+  const Eigen::Matrix<double,6,6>& cov) {}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajInterfaceBase::appendPriorCostTerms(const ParallelizedCostTermCollection::Ptr& costTerms) const {}

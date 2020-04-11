@@ -7,7 +7,7 @@
 #ifndef STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP
 #define STEAM_VECTOR_SPACE_ERROR_EVALUATOR_HPP
 
-#include <steam.hpp>
+#include <steam/evaluator/ErrorEvaluator.hpp>
 
 namespace steam {
 

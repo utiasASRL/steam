@@ -6,14 +6,7 @@
 
 #include <steam/trajectory/SteamTrajInterfaceTemplate.hpp>
 
-#include <lgmath.hpp>
-
-#include <steam/trajectory/SteamTrajPoseInterpEval.hpp>
-#include <steam/trajectory/SteamTrajPriorFactor.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
-
-#include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
-#include <steam/evaluator/blockauto/transform/ConstVelTransformEvaluator.hpp>
 
 namespace steam {
 namespace se3 {
