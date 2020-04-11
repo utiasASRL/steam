@@ -60,37 +60,37 @@ class SteamTrajInterfaceBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get transform evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time) const = 0;
+  virtual TransformEvaluator::ConstPtr getInterpPoseEval(const steam::Time& time) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get velocity evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual Eigen::VectorXd getVelocity(const steam::Time& time) = 0;
+  virtual Eigen::VectorXd getVelocity(const steam::Time& time);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
   ///        should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void addPosePrior(const steam::Time& time, const lgmath::se3::Transformation& pose,
-                    const Eigen::Matrix<double,6,6>& cov) = 0;
+                    const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a unary velocity prior factor at a knot time. Note that only a single velocity
   ///        prior should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& velocity,
-                        const Eigen::Matrix<double,6,6>& cov) = 0;
+                        const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual void appendPriorCostTerms(const ParallelizedCostTermCollection::Ptr& costTerms) const = 0;
+  virtual void appendPriorCostTerms(const ParallelizedCostTermCollection::Ptr& costTerms) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get active state variables in the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void getActiveStateVariables(
-      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const = 0;
+      std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const;
 
 
  protected:
