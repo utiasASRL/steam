@@ -15,8 +15,8 @@ namespace se3 {
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
 SteamCATrajPoseInterpEval::SteamCATrajPoseInterpEval(const Time& time,
-                                   const SteamCATrajVar::ConstPtr& knot1,
-                                   const SteamCATrajVar::ConstPtr& knot2) :
+                                   const SteamTrajVar::ConstPtr& knot1,
+                                   const SteamTrajVar::ConstPtr& knot2) :
   knot1_(knot1), knot2_(knot2) {
 
   // Calculate time constants
@@ -63,8 +63,8 @@ SteamCATrajPoseInterpEval::SteamCATrajPoseInterpEval(const Time& time,
 /// \brief Pseudo constructor - return a shared pointer to a new instance
 //////////////////////////////////////////////////////////////////////////////////////////////
 SteamCATrajPoseInterpEval::Ptr SteamCATrajPoseInterpEval::MakeShared(const Time& time,
-                                                   const SteamCATrajVar::ConstPtr& knot1,
-                                                   const SteamCATrajVar::ConstPtr& knot2) {
+                                                   const SteamTrajVar::ConstPtr& knot1,
+                                                   const SteamTrajVar::ConstPtr& knot2) {
   return SteamCATrajPoseInterpEval::Ptr(new SteamCATrajPoseInterpEval(time, knot1, knot2));
 }
 

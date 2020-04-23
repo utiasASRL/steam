@@ -14,8 +14,8 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Constructor
 //////////////////////////////////////////////////////////////////////////////////////////////
-SteamCATrajPriorFactor::SteamCATrajPriorFactor(const SteamCATrajVar::ConstPtr& knot1,
-                                               const SteamCATrajVar::ConstPtr& knot2) :
+SteamCATrajPriorFactor::SteamCATrajPriorFactor(const SteamTrajVar::ConstPtr& knot1,
+                                               const SteamTrajVar::ConstPtr& knot2) :
   knot1_(knot1), knot2_(knot2) {
 }
 

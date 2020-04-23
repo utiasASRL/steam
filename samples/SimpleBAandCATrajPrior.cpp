@@ -129,10 +129,6 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  // steam::se3::SteamCATrajInterface ca_traj(Qc_inv);
-  // steam::se3::SteamTrajInterface *traj_ptr=&ca_traj;
-  // steam::se3::SteamTrajInterface traj=&traj_ptr;
-
   steam::se3::SteamCATrajInterface ca_traj(Qc_inv);
   steam::se3::SteamTrajInterface &traj{ca_traj};
 
@@ -141,7 +137,10 @@ int main(int argc, char** argv) {
     TrajStateVar& state = traj_states_ic.at(i);
     steam::se3::TransformStateEvaluator::Ptr temp =
         steam::se3::TransformStateEvaluator::MakeShared(state.pose);
+    // steam::se3::SteamCATrajVar::Ptr traj_var(new steam::se3::SteamCATrajVar(state.time, temp, state.velocity, state.acceleration));
+    // traj.add(traj_var);
     traj.add(state.time, temp, state.velocity, state.acceleration);
+    
   }
 
   // Lock first pose (otherwise entire solution is 'floating')
