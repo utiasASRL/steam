@@ -137,9 +137,9 @@ int main(int argc, char** argv) {
     TrajStateVar& state = traj_states_ic.at(i);
     steam::se3::TransformStateEvaluator::Ptr temp =
         steam::se3::TransformStateEvaluator::MakeShared(state.pose);
-    // steam::se3::SteamCATrajVar::Ptr traj_var(new steam::se3::SteamCATrajVar(state.time, temp, state.velocity, state.acceleration));
-    // traj.add(traj_var);
-    traj.add(state.time, temp, state.velocity, state.acceleration);
+    steam::se3::SteamCATrajVar::Ptr traj_var(new steam::se3::SteamCATrajVar(state.time, temp, state.velocity, state.acceleration));
+    traj.add(traj_var);
+    // traj.add(state.time, temp, state.velocity, state.acceleration);
     
   }
 

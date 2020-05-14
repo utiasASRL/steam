@@ -22,18 +22,6 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a new knot
 //////////////////////////////////////////////////////////////////////////////////////////////
-// void SteamCATrajInterface::add(const SteamTrajVar::Ptr& knot) {
-
-//   // Todo, check that time does not already exist in map?
-
-//   // Insert in map
-//   knotMap_.insert(knotMap_.end(),
-//                   std::pair<boost::int64_t, SteamTrajVar::Ptr>(knot->getTime().nanosecs(), knot));
-// }
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Add a new knot
-//////////////////////////////////////////////////////////////////////////////////////////////
 void SteamCATrajInterface::add(const steam::Time& time,
                              const se3::TransformEvaluator::Ptr& T_k0,
                              const VectorSpaceStateVar::Ptr& velocity,
@@ -364,26 +352,6 @@ void SteamCATrajInterface::appendPriorCostTerms(
     }
   }
 }
-
-// //////////////////////////////////////////////////////////////////////////////////////////////
-// /// \brief Get active state variables in the trajectory
-// //////////////////////////////////////////////////////////////////////////////////////////////
-// void SteamCATrajInterface::getActiveStateVariables(
-//     std::map<unsigned int, steam::StateVariableBase::Ptr>* outStates) const {
-
-//   // Iterate over trajectory
-//   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it;
-//   for (it = knotMap_.begin(); it != knotMap_.end(); ++it) {
-
-//     // Append active states in transform evaluator
-//     it->second->getPose()->getActiveStateVariables(outStates);
-
-//     // Check if velocity is locked
-//     if (!it->second->getVelocity()->isLocked()) {
-//       (*outStates)[it->second->getVelocity()->getKey().getID()] = it->second->getVelocity();
-//     }
-//   }
-// }
 
 } // se3
 } // steam
