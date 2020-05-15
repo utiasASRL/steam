@@ -9,7 +9,7 @@
 
 #include <Eigen/Core>
 
-#include <steam/trajectory_ca/SteamCATrajInterface.hpp>
+#include <steam/trajectory/SteamCATrajInterface.hpp>
 #include <steam/evaluator/ErrorEvaluator.hpp>
 
 namespace steam {

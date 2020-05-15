@@ -4,7 +4,7 @@
 /// \author Tim Tang, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/trajectory_ca/SteamCATrajPriorFactor.hpp>
+#include <steam/trajectory/SteamCATrajPriorFactor.hpp>
 
 #include <lgmath.hpp>
 

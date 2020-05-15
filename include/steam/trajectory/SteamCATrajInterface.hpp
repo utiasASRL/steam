@@ -11,7 +11,7 @@
 
 #include <steam/common/Time.hpp>
 
-#include <steam/trajectory_ca/SteamCATrajVar.hpp>
+#include <steam/trajectory/SteamCATrajVar.hpp>
 #include <steam/trajectory/SteamTrajInterface.hpp>
 
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>

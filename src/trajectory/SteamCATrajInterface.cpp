@@ -4,12 +4,12 @@
 /// \author Tim Tang, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/trajectory_ca/SteamCATrajInterface.hpp>
+#include <steam/trajectory/SteamCATrajInterface.hpp>
 
 #include <lgmath.hpp>
 
-#include <steam/trajectory_ca/SteamCATrajPoseInterpEval.hpp>
-#include <steam/trajectory_ca/SteamCATrajPriorFactor.hpp>
+#include <steam/trajectory/SteamCATrajPoseInterpEval.hpp>
+#include <steam/trajectory/SteamCATrajPriorFactor.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
 
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>

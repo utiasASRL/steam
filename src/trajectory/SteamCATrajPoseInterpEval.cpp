@@ -4,7 +4,7 @@
 /// \author Tim Tang, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <steam/trajectory_ca/SteamCATrajPoseInterpEval.hpp>
+#include <steam/trajectory/SteamCATrajPoseInterpEval.hpp>
 
 #include <lgmath.hpp>
 
