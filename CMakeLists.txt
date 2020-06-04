@@ -41,7 +41,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(EXTERNAL_LIBS "")
 
 # find Eigen
-find_package(Eigen3 3.2.2 REQUIRED)
+find_package(Eigen3 REQUIRED)  # vtr3 change: new eigen version
 message(STATUS "FOUND: Eigen3 version ${EIGEN3_VERSION} found in ${EIGEN3_INCLUDE_DIR}")
 include_directories(${EIGEN3_INCLUDE_DIR})
 
@@ -60,6 +60,9 @@ find_package(Boost REQUIRED system)
 include_directories(${Boost_INCLUDE_DIRS})
 set(DEPEND_LIBS ${Boost_LIBRARIES})
 
+add_definitions(-DEIGEN_DONT_VECTORIZE=1)  # vtr3 change : issue in ubuntu 20.04
+add_definitions(-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT=1)
+
 ################################################################################
 ### Enable find_package()
 ################################################################################
@@ -75,7 +78,7 @@ co_export(
 ### Specify Build Targets
 ################################################################################
 
-##### Main Library 
+##### Main Library
 
 # Find the header and source files
 file(GLOB_RECURSE HEADER_FILES "include/*.hpp")
