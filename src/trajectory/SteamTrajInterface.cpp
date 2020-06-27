@@ -104,16 +104,13 @@ void SteamTrajInterface::add(const steam::Time& time, const se3::TransformEvalua
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
 TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::Time& time) const {
-
   // Check that map is not empty
   if (knotMap_.empty()) {
     throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
   }
-
   // Get iterator to first element with time equal to or greater than 'time'
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
       = knotMap_.lower_bound(time.nanosecs());
-
   // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
 
@@ -128,7 +125,6 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
   }
-
   // Check if we requested time exactly
   if (it1->second->getTime() == time) {
 
@@ -150,14 +146,12 @@ TransformEvaluator::ConstPtr SteamTrajInterface::getInterpPoseEval(const steam::
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
   }
-
   // Get iterators bounding the time interval
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
   if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
                              "should not trigger... report to a STEAM contributor.");
   }
-
   // Create interpolated evaluator
   return SteamTrajPoseInterpEval::MakeShared(time, it1->second, it2->second);
 }

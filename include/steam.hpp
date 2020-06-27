@@ -35,6 +35,8 @@
 #include <steam/evaluator/samples/TransformErrorEval.hpp>
 #include <steam/evaluator/samples/PositionErrorEval.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/samples/LinearFuncErrorEval.hpp>
+#include <steam/evaluator/samples/ImuErrorEval.hpp>
 #include <steam/evaluator/samples/PointToPointErrorEval.hpp>
 
 // evaluator - block auto diff

@@ -51,7 +51,6 @@ void SteamCATrajInterface::add(const steam::Time& time,
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
 TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam::Time& time) const {
-
   // Check that map is not empty
   if (knotMap_.empty()) {
     throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
