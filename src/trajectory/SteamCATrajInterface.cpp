@@ -246,6 +246,48 @@ Eigen::VectorXd SteamCATrajInterface::getVelocity(const steam::Time& time) {
    return xi_it;
  }
 
+ Eigen::VectorXd SteamCATrajInterface::getAcceleration(const steam::Time& time) {
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or greater than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+     = knotMap_.lower_bound(time.nanosecs());
+
+  // Check if time is passed the last entry
+  if (it1 == knotMap_.end()) {
+
+   // If we allow extrapolation, return constant-velocity interpolated entry
+   if (allowExtrapolation_) {
+     --it1; // should be safe, as we checked that the map was not empty..
+     const SteamTrajVar::Ptr& endKnot = it1->second;
+     return endKnot->getAcceleration()->getValue();
+   } else {
+     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+   }
+  }
+
+  // Check if we requested time exactly
+  // if (it1->second->getTime() == time) {
+     const SteamTrajVar::Ptr& knot = it1->second;
+     // return state variable exactly (no interp)
+     return knot->getAcceleration()->getValue();
+  // }
+
+  // // Check if we requested before first time
+  // if (it1 == knotMap_.begin()) {
+  //   // If we allow extrapolation, return constant-velocity interpolated entry
+  //   if (allowExtrapolation_) {
+  //    const SteamTrajVar::Ptr& startKnot = it1->second;
+  //    return startKnot->getAcceleration()->getValue();
+  //   } else {
+  //    throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+  //   }
+  // }
+ }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a unary acceleration prior factor at a knot time. Note that only a single acceleration
 ///        prior should exist on a trajectory, adding a second will overwrite the first.
