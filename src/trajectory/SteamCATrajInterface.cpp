@@ -47,6 +47,32 @@ void SteamCATrajInterface::add(const steam::Time& time,
                   std::pair<boost::int64_t, SteamCATrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
+void SteamCATrajInterface::add(const steam::Time& time,
+                             const se3::TransformEvaluator::Ptr& T_k0,
+                             const VectorSpaceStateVar::Ptr& velocity,
+                             const VectorSpaceStateVar::Ptr& acceleration,
+                             const Eigen::Matrix<double,18,18> cov) {
+
+  // Check velocity input
+  if (velocity->getPerturbDim() != 6) {
+    throw std::invalid_argument("invalid velocity size");
+  }
+
+  // Check acceleration input
+  if (acceleration->getPerturbDim() != 6) {
+    throw std::invalid_argument("invalid acceleration size");
+  }
+
+  // Todo, check that time does not already exist in map?
+
+  // Make knot
+  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, velocity, acceleration, cov));
+
+  // Insert in map
+  knotMap_.insert(knotMap_.end(),
+                  std::pair<boost::int64_t, SteamCATrajVar::Ptr>(time.nanosecs(), newEntry));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,6 +424,60 @@ void SteamCATrajInterface::appendPriorCostTerms(
       costTerms->add(cost);
     }
   }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get interpolated/extrapolated covariance at given time, for now only support at knot times
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamCATrajInterface::getCovariance(const steam::Time& time) const {
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or great than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+      = knotMap_.lower_bound(time.nanosecs());
+
+  // Check if time is passed the last entry
+  if (it1 == knotMap_.end()) {
+    --it1; // last knot
+    // If we allow extrapolation
+    // if (allowExtrapolation_) {
+    //   return extrapCovariance(solver, time);
+    // } else {
+    // throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    // }
+  }
+
+  // Check if we requested time exactly
+  // if (it1->second->getTime() == time) {
+    // return covariance exactly (no interp)
+  if (it1->second->covarianceSet()) {
+    return it1->second->getCovariance();
+  }  
+  std::map<unsigned int, steam::StateVariableBase::Ptr> outState;
+  it1->second->getPose()->getActiveStateVariables(&outState);
+  
+  std::vector<steam::StateKey> keys;
+  keys.push_back(outState.begin()->second->getKey());
+  keys.push_back(it1->second->getVelocity()->getKey());
+  keys.push_back(it1->second->getAcceleration()->getKey());
+
+  steam::BlockMatrix covariance = solver_->queryCovarianceBlock(keys);
+
+  Eigen::Matrix<double,18,18> output;
+  output.block<6,6>(0,0) = covariance.copyAt(0,0);
+  output.block<6,6>(0,6) = covariance.copyAt(0,1);
+  output.block<6,6>(0,12) = covariance.copyAt(0,2);
+  output.block<6,6>(6,0) = covariance.copyAt(1,0);
+  output.block<6,6>(6,6) = covariance.copyAt(1,1);
+  output.block<6,6>(6,12) = covariance.copyAt(1,2);
+  output.block<6,6>(12,0) = covariance.copyAt(2,0);
+  output.block<6,6>(12,6) = covariance.copyAt(2,1);
+  output.block<6,6>(12,12) = covariance.copyAt(2,2);
+  return output;
+  // }
 }
 
 } // se3

@@ -37,6 +37,11 @@ class SteamCATrajInterface : public SteamTrajInterface
            const VectorSpaceStateVar::Ptr& velocity,
            const VectorSpaceStateVar::Ptr& acceleration);
 
+  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& acceleration,
+           const Eigen::Matrix<double,18,18> cov);
+
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,6 +68,11 @@ class SteamCATrajInterface : public SteamTrajInterface
   /// \brief Get binary cost terms associated with the prior for active parts of the trajectory
   //////////////////////////////////////////////////////////////////////////////////////////////
   void appendPriorCostTerms(const ParallelizedCostTermCollection::Ptr& costTerms) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get interpolated/extrapolated covariance at given time
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  Eigen::MatrixXd getCovariance(const steam::Time& time) const;
 
 
  private:

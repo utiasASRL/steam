@@ -34,6 +34,9 @@ class SteamTrajVar
   SteamTrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
                const VectorSpaceStateVar::Ptr& velocity);
 
+  SteamTrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+               const VectorSpaceStateVar::Ptr& velocity, const Eigen::Matrix<double,12,12> cov);
+
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get pose evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,6 +57,10 @@ class SteamTrajVar
   //////////////////////////////////////////////////////////////////////////////////////////////
   const steam::Time& getTime() const;
 
+  const Eigen::Matrix<double,12,12> getCovariance() const;
+
+  bool covarianceSet() const;
+
  private:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +77,10 @@ class SteamTrajVar
   /// \brief Generalized 6D velocity state variable
   //////////////////////////////////////////////////////////////////////////////////////////////
   VectorSpaceStateVar::Ptr velocity_;
+ 
+ protected:
+  Eigen::MatrixXd cov_;
+  bool cov_set_=false;
 };
 
 } // se3

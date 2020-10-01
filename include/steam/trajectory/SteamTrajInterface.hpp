@@ -16,6 +16,8 @@
 #include <steam/problem/WeightedLeastSqCostTerm.hpp>
 #include <steam/problem/ParallelizedCostTermCollection.hpp>
 
+#include <steam/solver/GaussNewtonSolverBase.hpp>
+
 namespace steam {
 namespace se3 {
 
@@ -50,12 +52,21 @@ class SteamTrajInterface
   void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
            const VectorSpaceStateVar::Ptr& velocity);
 
+  void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity,
+           const Eigen::Matrix<double,12,12> cov);
+
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
            const VectorSpaceStateVar::Ptr& velocity,
            const VectorSpaceStateVar::Ptr& acceleration);
+
+  virtual void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& acceleration,
+           const Eigen::Matrix<double,18,18> cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get transform evaluator
@@ -102,6 +113,16 @@ class SteamTrajInterface
   //////////////////////////////////////////////////////////////////////////////////////////////
   double getVelocityPriorCost();
 
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Store solver in trajectory, needed for querying covariances later
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  void setSolver(std::shared_ptr<GaussNewtonSolverBase> solver);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get interpolated/extrapolated covariance at given time
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  Eigen::MatrixXd getCovariance(const steam::Time& time) const;
+
  protected:
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,6 +149,11 @@ class SteamTrajInterface
   /// \brief Ordered map of knots
   //////////////////////////////////////////////////////////////////////////////////////////////
   std::map<boost::int64_t, SteamTrajVar::Ptr> knotMap_;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Solver used, we use this to query covariances
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  std::shared_ptr<GaussNewtonSolverBase> solver_;
 
 };
 

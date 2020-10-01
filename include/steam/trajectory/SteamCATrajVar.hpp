@@ -37,6 +37,11 @@ class SteamCATrajVar : public SteamTrajVar
                  const VectorSpaceStateVar::Ptr& velocity,
                  const VectorSpaceStateVar::Ptr& acceleration);
 
+  SteamCATrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+                 const VectorSpaceStateVar::Ptr& velocity,
+                 const VectorSpaceStateVar::Ptr& acceleration,
+                 const Eigen::Matrix<double,18,18> cov);
+
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get velocity state variable
   //////////////////////////////////////////////////////////////////////////////////////////////

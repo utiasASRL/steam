@@ -91,6 +91,26 @@ void SteamTrajInterface::add(const steam::Time& time,
                   std::pair<boost::int64_t, SteamTrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
+void SteamTrajInterface::add(const steam::Time& time,
+                             const se3::TransformEvaluator::Ptr& T_k0,
+                             const VectorSpaceStateVar::Ptr& velocity,
+                             const Eigen::Matrix<double,12,12> cov) {
+
+  // Check velocity input
+  if (velocity->getPerturbDim() != 6) {
+    throw std::invalid_argument("invalid velocity size");
+  }
+
+  // Todo, check that time does not already exist in map?
+
+  // Make knot
+  SteamTrajVar::Ptr newEntry(new SteamTrajVar(time, T_k0, velocity, cov));
+
+  // Insert in map
+  knotMap_.insert(knotMap_.end(),
+                  std::pair<boost::int64_t, SteamTrajVar::Ptr>(time.nanosecs(), newEntry));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add a new knot
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,6 +118,13 @@ void SteamTrajInterface::add(const steam::Time& time, const se3::TransformEvalua
            const VectorSpaceStateVar::Ptr& velocity,
            const VectorSpaceStateVar::Ptr& acceleration) {
   add(time, T_k0, velocity);
+}
+
+void SteamTrajInterface::add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& acceleration,
+           const Eigen::Matrix<double,18,18> cov) {
+  add(time, T_k0, velocity, cov.topLeftCorner<12,12>());
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,6 +414,91 @@ void SteamTrajInterface::appendPriorCostTerms(
       costTerms->add(cost);
     }
   }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Store solver in trajectory, needed for querying covariances later
+//////////////////////////////////////////////////////////////////////////////////////////////
+void SteamTrajInterface::setSolver(std::shared_ptr<GaussNewtonSolverBase> solver) {
+  solver_ = solver;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get interpolated/extrapolated covariance at given time, for now only support at knot times
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::getCovariance(const steam::Time& time) const {
+
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
+  }
+
+  // Get iterator to first element with time equal to or great than 'time'
+  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+      = knotMap_.lower_bound(time.nanosecs());
+
+  // Check if time is passed the last entry
+  if (it1 == knotMap_.end()) {
+    --it1;
+    // If we allow extrapolation
+    // if (allowExtrapolation_) {
+    //   return extrapCovariance(solver, time);
+    // } else {
+    //   throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+    // }
+  }
+
+  // Check if we requested time exactly
+  // if (it1->second->getTime() == time) {
+    // check if the state variable at time has associated covariacne
+    if (it1->second->covarianceSet()) {
+      return it1->second->getCovariance();
+    }  
+    // return covariance exactly (no interp)
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState;
+    it1->second->getPose()->getActiveStateVariables(&outState);
+    
+    std::vector<steam::StateKey> keys;
+    keys.push_back(outState.begin()->second->getKey());
+    keys.push_back(it1->second->getVelocity()->getKey());
+
+    steam::BlockMatrix covariance = solver_->queryCovarianceBlock(keys);
+
+    Eigen::Matrix<double,12,12> output;
+    output.block<6,6>(0,0) = covariance.copyAt(0,0);
+    output.block<6,6>(0,6) = covariance.copyAt(0,1);
+    output.block<6,6>(6,0) = covariance.copyAt(1,0);
+    output.block<6,6>(6,6) = covariance.copyAt(1,1);
+    return output;
+  // }
+
+  // // TODO(DAVID): Be able to handle locked states
+  // // Check if state is locked
+  // std::map<unsigned int, steam::StateVariableBase::Ptr> states;
+  // it1->second->getPose()->getActiveStateVariables(&states);
+  // if (states.size() == 0) {
+  //   throw std::runtime_error("Attempted covariance interpolation with locked states");
+  // }
+
+  // // TODO(DAVID): Extrapolation behind first entry
+  
+  // // Check if we requested before first time
+  // if (it1 == knotMap_.begin()) {
+
+  //   // If we allow extrapolation, return constant-velocity interpolated entry
+  //   if (allowExtrapolation_) {
+  //     const SteamTrajVar::Ptr& startKnot = it1->second;
+  //     TransformEvaluator::Ptr T_t_k =
+  //         ConstVelTransformEvaluator::MakeShared(startKnot->getVelocity(),
+  //                                                time - startKnot->getTime());
+  //     return compose(T_t_k, startKnot->getPose());
+  //   } else {
+  //     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
+  //   }
+  // }
+  
+
+  // return interpCovariance(solver, time);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

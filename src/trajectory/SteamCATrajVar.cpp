@@ -31,6 +31,13 @@ SteamCATrajVar::SteamCATrajVar(const steam::Time& time,
   }
 }
 
+SteamCATrajVar::SteamCATrajVar(const steam::Time& time,
+             const se3::TransformEvaluator::Ptr& T_k0,
+             const VectorSpaceStateVar::Ptr& velocity,
+             const VectorSpaceStateVar::Ptr& acceleration,
+             const Eigen::Matrix<double,18,18> cov)
+  : SteamCATrajVar(time, T_k0, velocity, acceleration) { cov_set_=true; cov_=cov; }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get acceleration state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
