@@ -57,7 +57,7 @@ class SteamTrajVar
   //////////////////////////////////////////////////////////////////////////////////////////////
   const steam::Time& getTime() const;
 
-  const Eigen::Matrix<double,12,12> getCovariance() const;
+  const Eigen::MatrixXd getCovariance() const;
 
   bool covarianceSet() const;
 

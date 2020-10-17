@@ -52,7 +52,7 @@ const VectorSpaceStateVar::Ptr& SteamTrajVar::getAcceleration() const {
   throw std::runtime_error("Steam trajectory variable does not have an acceleration state!");
 }
 
-const Eigen::Matrix<double,12,12> SteamTrajVar::getCovariance() const {
+const Eigen::MatrixXd SteamTrajVar::getCovariance() const {
   return cov_;
 }
 
