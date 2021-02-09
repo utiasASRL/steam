@@ -34,6 +34,9 @@ class SteamTrajVar
   SteamTrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
                const VectorSpaceStateVar::Ptr& velocity);
 
+  SteamTrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
+               const VectorSpaceStateVar::Ptr& velocity, const Eigen::Matrix<double,12,12> cov);
+
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get pose evaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,9 +48,18 @@ class SteamTrajVar
   const VectorSpaceStateVar::Ptr& getVelocity() const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Get acceleration state variable, to be overriden
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  virtual const VectorSpaceStateVar::Ptr& getAcceleration() const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get timestamp
   //////////////////////////////////////////////////////////////////////////////////////////////
   const steam::Time& getTime() const;
+
+  const Eigen::MatrixXd getCovariance() const;
+
+  bool covarianceSet() const;
 
  private:
 
@@ -65,6 +77,10 @@ class SteamTrajVar
   /// \brief Generalized 6D velocity state variable
   //////////////////////////////////////////////////////////////////////////////////////////////
   VectorSpaceStateVar::Ptr velocity_;
+ 
+ protected:
+  Eigen::MatrixXd cov_;
+  bool cov_set_=false;
 };
 
 } // se3

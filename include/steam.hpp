@@ -25,6 +25,7 @@
 #include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/PositionEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
+#include <steam/evaluator/blockauto/transform/InverseTransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
 
@@ -34,6 +35,9 @@
 #include <steam/evaluator/samples/TransformErrorEval.hpp>
 #include <steam/evaluator/samples/PositionErrorEval.hpp>
 #include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
+#include <steam/evaluator/samples/LinearFuncErrorEval.hpp>
+#include <steam/evaluator/samples/ImuErrorEval.hpp>
+#include <steam/evaluator/samples/PointToPointErrorEval.hpp>
 
 // evaluator - block auto diff
 #include <steam/evaluator/blockauto/EvalTreeNode.hpp>
@@ -59,5 +63,6 @@
 
 // trajectory
 #include <steam/trajectory/SteamTrajInterface.hpp>
+#include <steam/trajectory/SteamCATrajInterface.hpp>
 
 #endif // STEAM_ESTIMATION_LIBRARY_HPP
