@@ -1,15 +1,11 @@
-#include "catch.hpp"
+#include <gtest/gtest.h>
 
 #include <iostream>
 
 #include <steam/blockmat/BlockSparseMatrix.hpp>
 #include <steam/blockmat/BlockVector.hpp>
 
-/////////////////////////////////////////////////////////////////////////////////////////////
-/// Sample Test
-/////////////////////////////////////////////////////////////////////////////////////////////
-TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
-
+TEST(Steam, SparsityPattern) {
   std::vector<unsigned int> blockSizes;
   blockSizes.resize(3);
   blockSizes[0] = 2;
@@ -17,8 +13,10 @@ TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
   blockSizes[2] = 2;
 
   // Setup blocks
-  Eigen::Matrix2d m_tri_diag; m_tri_diag << 2, 1, 1, 2;
-  Eigen::Matrix2d m_tri_offdiag; m_tri_offdiag << 0, 0, 1, 0;
+  Eigen::Matrix2d m_tri_diag;
+  m_tri_diag << 2, 1, 1, 2;
+  Eigen::Matrix2d m_tri_offdiag;
+  m_tri_offdiag << 0, 0, 1, 0;
   Eigen::Matrix2d m_z = Eigen::Matrix2d::Zero();
   Eigen::Matrix2d m_o = Eigen::Matrix2d::Ones();
 
@@ -47,64 +45,61 @@ TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
   tri_ones.add(2, 2, m_o);
 
   // Setup B
-  Eigen::VectorXd b(6); b << 1, 2, 3, 4, 5, 6;
+  Eigen::VectorXd b(6);
+  b << 1, 2, 3, 4, 5, 6;
 
-  SECTION("Test sub sparsity" ) {
-
+  // Test sub sparsity
+  {
     // Maximum sparsity
     Eigen::SparseMatrix<double> eig_sparse = tri.toEigen(true);
-    INFO("case1: " << eig_sparse);
-    INFO("nonzeros: " << eig_sparse.nonZeros());
-    CHECK(eig_sparse.nonZeros() == 14);
+    std::cout << "case1: " << eig_sparse << std::endl;
+    std::cout << "nonzeros: " << eig_sparse.nonZeros() << std::endl;
+    EXPECT_EQ(eig_sparse.nonZeros(), 14);
 
     // Get only block-level sparsity (important for re-using pattern)
     Eigen::SparseMatrix<double> eig_blk_sparse = tri.toEigen(false);
-    INFO("case2: " << eig_blk_sparse);
-    INFO("nonzeros: " << eig_blk_sparse.nonZeros());
-    CHECK(eig_blk_sparse.nonZeros() == 20);
-
+    std::cout << "case2: " << eig_blk_sparse << std::endl;
+    std::cout << "nonzeros: " << eig_blk_sparse.nonZeros() << std::endl;
+    EXPECT_EQ(eig_blk_sparse.nonZeros(), 20);
   }
 
-  SECTION("Test solve" ) {
-
+  // Test solve
+  {
     // Maximum sparsity
     Eigen::SparseMatrix<double> eig_sparse = tri.toEigen(true);
-    INFO("case1: " << eig_sparse);
-    INFO("nonzeros: " << eig_sparse.nonZeros());
+    std::cout << "case1: " << eig_sparse << std::endl;
+    std::cout << "nonzeros: " << eig_sparse.nonZeros() << std::endl;
 
     // Solve sparse
     Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> solver;
     solver.analyzePattern(eig_sparse);
     solver.factorize(eig_sparse);
-    if (solver.info() != Eigen::Success) {
+    if (solver.info() != Eigen::Success)
       throw std::runtime_error("Decomp failure.");
-    }
     Eigen::VectorXd x1 = solver.solve(b);
-    INFO("x1: " << x1.transpose());
+    std::cout << "x1: " << x1.transpose() << std::endl;
 
     // Get only block-level sparsity (important for re-using pattern)
     Eigen::SparseMatrix<double> eig_blk_sparse = tri.toEigen(false);
-    INFO("case2: " << eig_blk_sparse);
-    INFO("nonzeros: " << eig_blk_sparse.nonZeros());
+    std::cout << "case2: " << eig_blk_sparse << std::endl;
+    std::cout << "nonzeros: " << eig_blk_sparse.nonZeros() << std::endl;
 
     // Solve sparse
     solver.analyzePattern(eig_blk_sparse);
     solver.factorize(eig_blk_sparse);
-    if (solver.info() != Eigen::Success) {
+    if (solver.info() != Eigen::Success)
       throw std::runtime_error("Decomp failure.");
-    }
     Eigen::VectorXd x2 = solver.solve(b);
-    INFO("x2: " << x2.transpose());
-    CHECK((x1-x2).norm() < 1e-6);
-
+    std::cout << "x2: " << x2.transpose() << std::endl;
+    EXPECT_LT((x1 - x2).norm(), 1e-6);
   }
 
-  SECTION("Test solve, setting pattern with ones" ) {
-
+  // Test solve, setting pattern with ones
+  {
     // Solve using regular tri-block diagonal
     Eigen::SparseMatrix<double> eig_tri = tri.toEigen();
-    INFO("case1: " << eig_tri);
-    INFO("nonzeros: " << eig_tri.nonZeros());
+    std::cout << "case1: " << eig_tri << std::endl;
+    std::cout << "nonzeros: " << eig_tri.nonZeros() << std::endl;
 
     // Solve sparse
     Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> solver;
@@ -114,12 +109,12 @@ TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
       throw std::runtime_error("Decomp failure.");
     }
     Eigen::VectorXd x1 = solver.solve(b);
-    INFO("x1: " << x1.transpose());
+    std::cout << "x1: " << x1.transpose() << std::endl;
 
     // Set pattern using ones and then solve with tri-block
     Eigen::SparseMatrix<double> eig_tri_ones = tri_ones.toEigen();
-    INFO("case2: " << eig_tri_ones);
-    INFO("nonzeros: " << eig_tri_ones.nonZeros());
+    std::cout << "case2: " << eig_tri_ones << std::endl;
+    std::cout << "nonzeros: " << eig_tri_ones.nonZeros() << std::endl;
 
     // Solve sparse
     solver.analyzePattern(eig_tri_ones);
@@ -128,17 +123,16 @@ TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
       throw std::runtime_error("Decomp failure.");
     }
     Eigen::VectorXd x2 = solver.solve(b);
-    INFO("x2: " << x2.transpose());
-    CHECK((x1-x2).norm() < 1e-6);
-
+    std::cout << "x2: " << x2.transpose() << std::endl;
+    EXPECT_LT((x1 - x2).norm(), 1e-6);
   }
 
-  SECTION("Test solve of matrix with zero blocks, setting pattern with ones" ) {
-
+  // Test solve of matrix with zero blocks, setting pattern with ones
+  {
     // Solve using regular tri-block diagonal
     Eigen::SparseMatrix<double> eig_blkdiag = blkdiag.toEigen();
-    INFO("case1: " << eig_blkdiag);
-    INFO("nonzeros: " << eig_blkdiag.nonZeros());
+    std::cout << "case1: " << eig_blkdiag << std::endl;
+    std::cout << "nonzeros: " << eig_blkdiag.nonZeros() << std::endl;
 
     // Solve sparse
     Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> solver;
@@ -148,12 +142,12 @@ TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
       throw std::runtime_error("Decomp failure.");
     }
     Eigen::VectorXd x1 = solver.solve(b);
-    INFO("x1: " << x1.transpose());
+    std::cout << "x1: " << x1.transpose() << std::endl;
 
     // Set pattern using ones and then solve with tri-block
     Eigen::SparseMatrix<double> eig_tri_ones = tri_ones.toEigen();
-    INFO("case2: " << eig_tri_ones);
-    INFO("nonzeros: " << eig_tri_ones.nonZeros());
+    std::cout << "case2: " << eig_tri_ones << std::endl;
+    std::cout << "nonzeros: " << eig_tri_ones.nonZeros() << std::endl;
 
     // Solve sparse
     solver.analyzePattern(eig_tri_ones);
@@ -162,10 +156,12 @@ TEST_CASE("Test the use of sparsity patterns", "[pattern]" ) {
       throw std::runtime_error("Decomp failure.");
     }
     Eigen::VectorXd x2 = solver.solve(b);
-    INFO("x2: " << x2.transpose());
-    CHECK((x1-x2).norm() < 1e-6);
-
+    std::cout << "x2: " << x2.transpose() << std::endl;
+    EXPECT_LT((x1 - x2).norm(), 1e-6);
   }
+}
 
-
-} // TEST_CASE
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
