@@ -60,6 +60,7 @@ Eigen::Vector4d ComposeLandmarkEvaluator::evaluate() const {
 /// \brief Evaluate the point transformed by the transform evaluator and
 ///        sub-tree of evaluations
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
 EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
 
   // Evaluate transform sub-tree
@@ -80,6 +81,28 @@ EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
   // Return new root node
   return root;
 }
+#else
+EvalTreeNode<Eigen::Vector4d>::Ptr ComposeLandmarkEvaluator::evaluateTree() const {
+
+  // Evaluate transform sub-tree
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr transform = transform_->evaluateTree();
+
+  // Make new leaf node for landmark state variable -- note we get memory from the pool
+  auto landmarkLeaf = std::make_shared<EvalTreeNode<Eigen::Vector4d>>();
+  landmarkLeaf->setValue(landmark_->getValue());
+
+  // Make new root node -- note we get memory from the pool
+  auto root = std::make_shared<EvalTreeNode<Eigen::Vector4d>>();
+  root->setValue(transform->getValue()*landmarkLeaf->getValue());
+
+  // Add children
+  root->addChild(transform);
+  root->addChild(landmarkLeaf);
+
+  // Return new root node
+  return root;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Implementation for Block Automatic Differentiation
@@ -87,12 +110,20 @@ EvalTreeNode<Eigen::Vector4d>* ComposeLandmarkEvaluator::evaluateTree() const {
 template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
 void ComposeLandmarkEvaluator::appendJacobiansImpl(
     const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+    EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif  
     std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
 
   // Cast back to transform
+#ifdef STEAM_USE_OBJECT_POOL  
   EvalTreeNode<lgmath::se3::Transformation>* t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+#else
+  auto t1 = std::static_pointer_cast<EvalTreeNode<lgmath::se3::Transformation>>(evaluationTree->childAt(0));
+#endif
 
   // Check if transform1 is active
   if (transform_->isActive()) {
@@ -116,37 +147,61 @@ void ComposeLandmarkEvaluator::appendJacobiansImpl(
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                   EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+                                  EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif                              
                                   std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,4>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+                              EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif                              
                               std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,4>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+                              EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif                              
                               std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,4>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+                              EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif                              
                               std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,4>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+                              EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif                              
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeLandmarkEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,4>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<Eigen::Vector4d>* evaluationTree,
+#else
+                              EvalTreeNode<Eigen::Vector4d>::Ptr evaluationTree,
+#endif                              
                               std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }

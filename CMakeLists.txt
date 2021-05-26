@@ -5,7 +5,12 @@ project(steam)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-march=native -O3 -Wall -Wno-long-long -pedantic -Wno-unused-function)
-add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4) # define number of threads to be used by OpenMP in steam
+
+# define number of threads to be used by OpenMP in steam
+add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
+# Use a object pool to improve performance but no longer thread safe as the object pool
+# is a singleton and is based on openmp. There is about ~10 gain in speed.
+# add_definitions(-DSTEAM_USE_OBJECT_POOL)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
@@ -16,10 +21,6 @@ find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 find_package(lgmath REQUIRED)
-
-# TODO (yuchen) Check if the two flags are still needed.
-# add_definitions(-DEIGEN_DONT_VECTORIZE=1)  # vtr3 change : issue in ubuntu 20.04
-# add_definitions(-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT=1)
 
 # Libraries
 file(GLOB_RECURSE SOURCE src/*.cpp)

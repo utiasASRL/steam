@@ -29,9 +29,11 @@ EvalTreeNodeBase::~EvalTreeNodeBase() {
 /// \brief Release children and reset internal indexing to zero.
 //////////////////////////////////////////////////////////////////////////////////////////////
 void EvalTreeNodeBase::reset() {
+#ifdef STEAM_USE_OBJECT_POOL
   for (unsigned i = 0; i < numChildren_; i++) {
     children_[i]->release();
   }
+#endif
   for (unsigned i = 0; i < MAX_NUM_CHILDREN_; i++) {
     children_[i] = NULL;
   }
@@ -41,7 +43,11 @@ void EvalTreeNodeBase::reset() {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Add child evaluation node (order of addition is preserved)
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
 void EvalTreeNodeBase::addChild(EvalTreeNodeBase* newChild) {
+#else
+void EvalTreeNodeBase::addChild(EvalTreeNodeBase::Ptr newChild) {
+#endif
 
   // Check for nullptr
   if (newChild != NULL) {
@@ -51,6 +57,7 @@ void EvalTreeNodeBase::addChild(EvalTreeNodeBase* newChild) {
     }
 
     children_[numChildren_] = newChild;
+
     numChildren_++;
 
   } else {
@@ -68,7 +75,11 @@ size_t EvalTreeNodeBase::numChildren() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get child node at index
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
 EvalTreeNodeBase* EvalTreeNodeBase::childAt(unsigned int index) const {
+#else
+EvalTreeNodeBase::Ptr EvalTreeNodeBase::childAt(unsigned int index) const{
+#endif
 
   if (index >= numChildren_) {
     throw std::runtime_error("Tried to access null entry");

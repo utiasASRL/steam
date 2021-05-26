@@ -8,8 +8,9 @@
 #define STEAM_EVAL_TREE_NODE_HPP
 
 #include <steam/evaluator/blockauto/EvalTreeNodeBase.hpp>
-
+#ifdef STEAM_USE_OBJECT_POOL
 #include <steam/evaluator/blockauto/OpenMpPool.hpp>
+#endif
 
 namespace steam {
 
@@ -23,6 +24,7 @@ template <typename TYPE>
 class EvalTreeNode : public EvalTreeNodeBase
 {
  public:
+  using Ptr = std::shared_ptr<EvalTreeNode<TYPE>>;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
@@ -39,6 +41,7 @@ class EvalTreeNode : public EvalTreeNodeBase
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual ~EvalTreeNode() {}
 
+#ifdef STEAM_USE_OBJECT_POOL
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Use when node was allocated using a pool. This function causes the object to
   ///        release itself back to the pool it was allocated from. While the user is
@@ -46,6 +49,7 @@ class EvalTreeNode : public EvalTreeNodeBase
   ///        in order for this node to release its children.
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void release();
+#endif
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Release children and reset internals.
@@ -62,10 +66,12 @@ class EvalTreeNode : public EvalTreeNodeBase
   /////////////////////////////////////////////////////////////////////////////////////////////
   void setValue(const TYPE& value);
 
+#ifdef STEAM_USE_OBJECT_POOL
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Static instance of pool type
   /////////////////////////////////////////////////////////////////////////////////////////////
   static OmpPool<EvalTreeNode<TYPE> > pool;
+#endif
 
  private:
 
@@ -73,9 +79,6 @@ class EvalTreeNode : public EvalTreeNodeBase
   /// \brief Instance of TYPE
   /////////////////////////////////////////////////////////////////////////////////////////////
   TYPE value_;
-
-//  public:
-//   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 } // steam

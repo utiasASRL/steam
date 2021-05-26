@@ -103,6 +103,7 @@ lgmath::se3::Transformation SteamTrajPoseInterpEval::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
 EvalTreeNode<lgmath::se3::Transformation>* SteamTrajPoseInterpEval::evaluateTree() const {
 
   // Evaluate sub-trees
@@ -137,6 +138,42 @@ EvalTreeNode<lgmath::se3::Transformation>* SteamTrajPoseInterpEval::evaluateTree
   // Return new root node
   return root;
 }
+#else
+EvalTreeNode<lgmath::se3::Transformation>::Ptr SteamTrajPoseInterpEval::evaluateTree() const {
+
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr transform1 = knot1_->getPose()->evaluateTree();
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr transform2 = knot2_->getPose()->evaluateTree();
+
+  // Get relative matrix info
+  lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
+
+  // Get se3 algebra of relative matrix
+  Eigen::Matrix<double,6,1> xi_21 = T_21.vec();
+
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double,6,1> xi_i1 = lambda12_*knot1_->getVelocity()->getValue() +
+                                    psi11_*xi_21 +
+                                    psi12_*J_21_inv*knot2_->getVelocity()->getValue();
+
+  // Calculate interpolated relative transformation matrix
+  lgmath::se3::Transformation T_i1(xi_i1);
+
+  // Interpolated relative transform - new root node (using pool memory)
+  auto root = std::make_shared<EvalTreeNode<lgmath::se3::Transformation>>();
+  root->setValue(T_i1*transform1->getValue());
+
+  // Add children
+  root->addChild(transform1);
+  root->addChild(transform2);
+
+  // Return new root node
+  return root;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Implementation for Block Automatic Differentiation
@@ -144,14 +181,25 @@ EvalTreeNode<lgmath::se3::Transformation>* SteamTrajPoseInterpEval::evaluateTree
 template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
 void SteamTrajPoseInterpEval::appendJacobiansImpl(
     const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
 
   // Cast back to transformations
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<lgmath::se3::Transformation>* transform1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
   EvalTreeNode<lgmath::se3::Transformation>* transform2 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
+#else
+  auto transform1 =
+      std::static_pointer_cast<EvalTreeNode<lgmath::se3::Transformation>>(evaluationTree->childAt(0));
+  auto transform2 =
+      std::static_pointer_cast<EvalTreeNode<lgmath::se3::Transformation>>(evaluationTree->childAt(1));
+#endif
 
   // Get relative matrix info
   lgmath::se3::Transformation T_21 = transform2->getValue()/transform1->getValue();
@@ -223,7 +271,11 @@ void SteamTrajPoseInterpEval::appendJacobiansImpl(
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
     const Eigen::MatrixXd& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
@@ -233,7 +285,11 @@ void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
     const Eigen::Matrix<double,1,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
@@ -243,7 +299,11 @@ void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
     const Eigen::Matrix<double,2,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
@@ -253,7 +313,11 @@ void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
     const Eigen::Matrix<double,3,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
@@ -263,7 +327,11 @@ void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
     const Eigen::Matrix<double,4,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
@@ -273,7 +341,11 @@ void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajPoseInterpEval::appendBlockAutomaticJacobians(
     const Eigen::Matrix<double,6,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
