@@ -39,6 +39,13 @@ target_include_directories(SimpleBAandTrajPrior
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+add_executable(SimpleBAandCATrajPrior sample/SimpleBAandCATrajPrior.cpp)
+target_link_libraries(SimpleBAandCATrajPrior ${PROJECT_NAME})
+target_include_directories(SimpleBAandCATrajPrior
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)    
+
 add_executable(SimpleBundleAdjustment sample/SimpleBundleAdjustment.cpp)
 target_link_libraries(SimpleBundleAdjustment ${PROJECT_NAME})
 target_include_directories(SimpleBundleAdjustment
@@ -95,6 +102,20 @@ target_include_directories(TrustRegionExample
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+add_executable(MotionDistortedP2PandCATrajPrior sample/MotionDistortedP2PandCATrajPrior.cpp)
+target_link_libraries(MotionDistortedP2PandCATrajPrior ${PROJECT_NAME})
+target_include_directories(MotionDistortedP2PandCATrajPrior
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+add_executable(SimpleP2PandCATrajPrior sample/SimpleP2PandCATrajPrior.cpp)
+target_link_libraries(SimpleP2PandCATrajPrior ${PROJECT_NAME})
+target_include_directories(SimpleP2PandCATrajPrior
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)    
+
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 # May need the following
 ament_export_dependencies(
@@ -124,6 +145,7 @@ install(
   TARGETS
     # Executables
     SimpleBAandTrajPrior
+    SimpleBAandCATrajPrior
     SimpleBundleAdjustment
     SimpleBundleAdjustmentFullRel
     SimpleBundleAdjustmentRelLand
@@ -132,6 +154,8 @@ install(
     SimpleTrajectoryPrior
     SpherePoseGraphRelax
     TrustRegionExample
+    MotionDistortedP2PandCATrajPrior
+    SimpleP2PandCATrajPrior
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

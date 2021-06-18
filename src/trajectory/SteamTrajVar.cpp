@@ -25,6 +25,12 @@ SteamTrajVar::SteamTrajVar(const steam::Time& time,
   }
 }
 
+SteamTrajVar::SteamTrajVar(const steam::Time& time,
+             const se3::TransformEvaluator::Ptr& T_k0,
+             const VectorSpaceStateVar::Ptr& velocity,
+             const Eigen::Matrix<double,12,12> cov)
+  : SteamTrajVar(time, T_k0, velocity) { cov_set_=true; cov_=cov; }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get pose evaluator
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,6 +43,21 @@ const se3::TransformEvaluator::Ptr& SteamTrajVar::getPose() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 const VectorSpaceStateVar::Ptr& SteamTrajVar::getVelocity() const {
   return velocity_;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get acceleration state variable, to be overriden
+//////////////////////////////////////////////////////////////////////////////////////////////
+const VectorSpaceStateVar::Ptr& SteamTrajVar::getAcceleration() const {
+  throw std::runtime_error("Steam trajectory variable does not have an acceleration state!");
+}
+
+const Eigen::MatrixXd SteamTrajVar::getCovariance() const {
+  return cov_;
+}
+
+bool SteamTrajVar::covarianceSet() const {
+  return cov_set_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
