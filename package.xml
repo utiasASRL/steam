@@ -12,27 +12,13 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>eigen3_cmake_module</buildtool_depend>
 
-  <build_depend>Boost</build_depend>
-  <build_depend>eigen</build_depend>
-  <build_depend>OpenMP</build_depend>
-  <build_depend>lgmath</build_depend>
+  <depend>Boost</depend>
+  <depend>eigen</depend>
+  <depend>OpenMP</depend>
+  <depend>lgmath</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>
-  <!-- <test_depend>ament_lint_common</test_depend> -->
-  <!-- <test_depend>ament_cmake_clang_format</test_depend> -->
-  <test_depend>ament_cmake_flake8</test_depend>
-  <!-- <test_depend>ament_cmake_lint_cmake</test_depend> -->
-  <test_depend>ament_cmake_pep257</test_depend>
-  <test_depend>ament_cmake_xmllint</test_depend>
-
-  <!-- May need the following to export dependencies. -->
-  <!-- <buildtool_export_depend>eigen3_cmake_module</buildtool_export_depend> -->
-
-  <!-- <build_export_depend>Boost</build_export_depend> -->
-  <!-- <build_export_depend>eigen</build_export_depend> -->
-  <!-- <build_export_depend>OpenMP</build_export_depend> -->
-  <!-- <build_export_depend>lgmath</build_export_depend> -->
 
   <export>
     <build_type>ament_cmake</build_type>
