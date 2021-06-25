@@ -1,0 +1,9 @@
+FROM ros:foxy
+
+CMD ["/bin/bash"]
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt update
+RUN apt install -q -y curl gnupg2 lsb-release build-essential
+RUN apt install -q -y python3-colcon-core python3-colcon-common-extensions
