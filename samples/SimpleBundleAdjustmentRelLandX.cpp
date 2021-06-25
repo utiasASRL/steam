@@ -197,9 +197,9 @@ int main(int argc, char** argv) {
   // Get filename
   std::string filename;
   if (argc < 2) {
-    filename = "../../include/steam/data/stereo_simulated.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window1.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window2.txt";
+    filename = "../include/steam/data/stereo_simulated.txt";
+    //filename = "../include/steam/data/stereo_simulated_window1.txt";
+    //filename = "../include/steam/data/stereo_simulated_window2.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
   } else {
     filename = argv[1];

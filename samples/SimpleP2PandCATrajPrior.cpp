@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   /// Parse Dataset
   ///
 
-  string filePath = "../../include/steam/data/PointToPoint/points_simulated.txt";
+  string filePath = "../include/steam/data/PointToPoint/points_simulated.txt";
   ifstream in(filePath);
 
   vector<vector<double>> fields;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  filePath = "../../include/steam/data/PointToPoint/poses_ic.txt";
+  filePath = "../include/steam/data/PointToPoint/poses_ic.txt";
   ifstream inIc(filePath);
 
   vector<vector<double>> fieldsIC;
