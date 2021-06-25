@@ -79,6 +79,9 @@ class EvalTreeNode : public EvalTreeNodeBase
   /// \brief Instance of TYPE
   /////////////////////////////////////////////////////////////////////////////////////////////
   TYPE value_;
+
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 } // steam
