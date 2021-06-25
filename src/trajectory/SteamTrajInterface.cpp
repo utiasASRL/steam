@@ -424,84 +424,6 @@ void SteamTrajInterface::setSolver(std::shared_ptr<GaussNewtonSolverBase> solver
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get interpolated/extrapolated covariance at given time, for now only support at knot times
-//////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd SteamTrajInterface::getCovariance(const steam::Time& time) const {
-
-  // Check that map is not empty
-  if (knotMap_.empty()) {
-    throw std::runtime_error("[GpTrajectory][getEvaluator] map was empty");
-  }
-
-  // Get iterator to first element with time equal to or great than 'time'
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
-      = knotMap_.lower_bound(time.nanosecs());
-
-  // Check if time is passed the last entry
-  if (it1 == knotMap_.end()) {
-    --it1;
-    // If we allow extrapolation
-    // if (allowExtrapolation_) {
-    //   return extrapCovariance(solver, time);
-    // } else {
-    //   throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
-    // }
-  }
-
-  // Check if we requested time exactly
-  // if (it1->second->getTime() == time) {
-    // check if the state variable at time has associated covariacne
-    if (it1->second->covarianceSet()) {
-      return it1->second->getCovariance();
-    }  
-    // return covariance exactly (no interp)
-    std::map<unsigned int, steam::StateVariableBase::Ptr> outState;
-    it1->second->getPose()->getActiveStateVariables(&outState);
-    
-    std::vector<steam::StateKey> keys;
-    keys.push_back(outState.begin()->second->getKey());
-    keys.push_back(it1->second->getVelocity()->getKey());
-
-    steam::BlockMatrix covariance = solver_->queryCovarianceBlock(keys);
-
-    Eigen::Matrix<double,12,12> output;
-    output.block<6,6>(0,0) = covariance.copyAt(0,0);
-    output.block<6,6>(0,6) = covariance.copyAt(0,1);
-    output.block<6,6>(6,0) = covariance.copyAt(1,0);
-    output.block<6,6>(6,6) = covariance.copyAt(1,1);
-    return output;
-  // }
-
-  // // TODO(DAVID): Be able to handle locked states
-  // // Check if state is locked
-  // std::map<unsigned int, steam::StateVariableBase::Ptr> states;
-  // it1->second->getPose()->getActiveStateVariables(&states);
-  // if (states.size() == 0) {
-  //   throw std::runtime_error("Attempted covariance interpolation with locked states");
-  // }
-
-  // // TODO(DAVID): Extrapolation behind first entry
-  
-  // // Check if we requested before first time
-  // if (it1 == knotMap_.begin()) {
-
-  //   // If we allow extrapolation, return constant-velocity interpolated entry
-  //   if (allowExtrapolation_) {
-  //     const SteamTrajVar::Ptr& startKnot = it1->second;
-  //     TransformEvaluator::Ptr T_t_k =
-  //         ConstVelTransformEvaluator::MakeShared(startKnot->getVelocity(),
-  //                                                time - startKnot->getTime());
-  //     return compose(T_t_k, startKnot->getPose());
-  //   } else {
-  //     throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
-  //   }
-  // }
-  
-
-  // return interpCovariance(solver, time);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get active state variables in the trajectory
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamTrajInterface::getActiveStateVariables(
@@ -524,8 +446,9 @@ void SteamTrajInterface::getActiveStateVariables(
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get interpolated/extrapolated covariance at given time
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
-    const steam::Time& time) const {
+Eigen::MatrixXd SteamTrajInterface::getCovariance(const steam::Time& time) const {
+
+  // todo - add check that solver set?
 
   // Check that map is not empty
   if (knotMap_.empty()) {
@@ -541,7 +464,7 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
 
     // If we allow extrapolation
     if (allowExtrapolation_) {
-      return extrapCovariance(solver, time);
+      return extrapCovariance(time);
     } else {
       throw std::runtime_error("Requested trajectory evaluator at an invalid time.");
     }
@@ -557,7 +480,7 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
     keys.push_back(outState.begin()->second->getKey());
     keys.push_back(it1->second->getVelocity()->getKey());
 
-    steam::BlockMatrix covariance = solver.queryCovarianceBlock(keys);
+    steam::BlockMatrix covariance = solver_->queryCovarianceBlock(keys);
 
     Eigen::Matrix<double,12,12> output;
     output.block<6,6>(0,0) = covariance.copyAt(0,0);
@@ -593,7 +516,7 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(GaussNewtonSolverBase& solver,
   }
   */
 
-  return interpCovariance(solver, time);
+  return interpCovariance(time);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -627,7 +550,7 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
   Eigen::Matrix<double,12,12> Xi1 = Eigen::MatrixXd::Zero(12,12);
   Eigen::Matrix<double,12,12> Xi2 = Eigen::MatrixXd::Zero(12,12);
 
-  Eigen::Matrix<double,6,6> J_11_inv = lgmath::se3::vec2jacinv(Eigen::MatrixXd::Identity(6,6));
+  Eigen::Matrix<double,6,6> J_11_inv = Eigen::MatrixXd::Identity(6,6);    // todo (Ben): double check
   Gam1.block<6,6>(0,0) = J_11_inv;
   Gam1.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue())*J_11_inv;
   Gam1.block<6,6>(6,6) = J_11_inv;
@@ -663,7 +586,7 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const Eigen::MatrixXd& g
 
   // Create constants
   Eigen::Matrix<double,12,12> Gam = Eigen::MatrixXd::Zero(12,12);
-  Eigen::Matrix<double,6,6> J_11_inv = lgmath::se3::vec2jacinv(Eigen::MatrixXd::Identity(6,6));
+  Eigen::Matrix<double,6,6> J_11_inv = Eigen::MatrixXd::Identity(6,6);
   Gam.block<6,6>(0,0) = J_11_inv;
   Gam.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue())*J_11_inv;
   Gam.block<6,6>(6,6) = J_11_inv;
@@ -757,8 +680,7 @@ void SteamTrajInterface::interpState(lgmath::se3::Transformation* pose, Eigen::M
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute covariance interpolation at given time
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solver, 
-    const steam::Time& time) const {
+Eigen::MatrixXd SteamTrajInterface::interpCovariance(const steam::Time& time) const {
 
   // Get iterator to first element with time equal to or great than 'time'
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
@@ -788,7 +710,7 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
   }
 
   // Get required covariances using the keys
-  steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
+  steam::BlockMatrix global_cov = solver_->queryCovarianceBlock(keys);
 
   // Approximately translate global covariances (P_11 ... P_22) to local frame 1
   Eigen::Matrix<double,24,24> local_cov = translateCovToLocal(global_cov,
@@ -880,8 +802,7 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(GaussNewtonSolverBase& solv
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Compute covariance interpolation at given time
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXd SteamTrajInterface::extrapCovariance(GaussNewtonSolverBase& solver, 
-    const steam::Time& time) const {
+Eigen::MatrixXd SteamTrajInterface::extrapCovariance(const steam::Time& time) const {
 
   // Get iterator to first element with time equal to or great than 'time'
   std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
@@ -902,7 +823,7 @@ Eigen::MatrixXd SteamTrajInterface::extrapCovariance(GaussNewtonSolverBase& solv
   }
 
   // Get required covariances using the keys
-  steam::BlockMatrix global_cov = solver.queryCovarianceBlock(keys);
+  steam::BlockMatrix global_cov = solver_->queryCovarianceBlock(keys);
   Eigen::Matrix<double,12,12> P_11;
 
   P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
