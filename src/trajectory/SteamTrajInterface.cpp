@@ -532,8 +532,8 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
     throw std::runtime_error("[GpTrajectory][getRelativeCovariance] map was empty");
   }
 
-  if (time_b <= time_a) {   // todo
-    std::cout << "Warning: time_b precedes time_a. This scenario hasn't been tested." << std::endl;
+  if (time_b <= time_a) {
+    throw std::runtime_error("[GpTrajectory][getRelativeCovariance] time_b precedes time_a");
   }
 
   // Get iterator to first element with time equal to or great than times
@@ -577,57 +577,49 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   // Interpolating covariance...
 
   // Get iterators bounding the time interval
-  auto it2a = it1a; --it1a;
-  auto it2b = it1b; --it1b;
-  if (time_a <= it1a->second->getTime() || time_a >= it2a->second->getTime() || time_b <= it1b->second->getTime() || time_b >= it2b->second->getTime()) {
+  auto it1 = it1a; --it1;    // todo: var names confusing
+  auto it2 = it1b;
+  if (time_a <= it1->second->getTime() || time_b >= it2->second->getTime()) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time."
                              " This exception should not trigger.");
   }
 
-  // todo: we're grabbing the whole covariance matrix which is inefficient and may not work for large trajectories
+  // Get required pose/velocity keys
   std::vector<steam::StateKey> keys;
-  uint K = 0;
-  int i_a = -1;
-  int i_b = -1;
-  steam::Time last_locked_time;  // todo: better way to keep track of start of trajectory - this assumes first pose locked
-  std::vector<steam::Time> unlocked_knot_times;
-  for (const auto & full_it : knotMap_) {
+  {
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState1;
+    it1->second->getPose()->getActiveStateVariables(&outState1);
 
-    std::cout << K << ": " << std::setprecision(12) << full_it.second->getTime().nanosecs() << std::setprecision(6) << " locked? " << full_it.second->getPose()->isActive() << std::endl;
-    if (!full_it.second->getPose()->isActive())
-      last_locked_time = full_it.second->getTime();
+    std::map<unsigned int, steam::StateVariableBase::Ptr> outState2;
+    it2->second->getPose()->getActiveStateVariables(&outState2);
 
-    if (full_it.second->getPose()->isActive()) {
-      std::map<unsigned int, steam::StateVariableBase::Ptr> out_state;
-      full_it.second->getPose()->getActiveStateVariables(&out_state);
-
-      keys.push_back(out_state.begin()->second->getKey());
-      keys.push_back(full_it.second->getVelocity()->getKey());
-
-      // while iterating through here, also keep track of column to insert Lambda Psi into(?)
-      if (full_it.second->getTime() == it1a->second->getTime())  // todo: may not need the "->second->getTime()" parts
-        i_a = (int)K;
-      if (full_it.second->getTime() == it1b->second->getTime())
-        i_b = (int)K;
-
-      unlocked_knot_times.push_back(full_it.second->getTime() - last_locked_time);  // todo: should probably be some error checking somewhere
-      ++K;      // hacky way to get this size
-    }
+    keys.push_back(outState1.begin()->second->getKey());
+    keys.push_back(it1->second->getVelocity()->getKey());
+    keys.push_back(outState2.begin()->second->getKey());
+    keys.push_back(it2->second->getVelocity()->getKey());
   }
-  const uint n = 12*K;
-  std::cout << "n " << n << std::endl;    // DEBUG
-  std::cout << "i_a " << i_a << std::endl;    // DEBUG
-  std::cout << "i_b " << i_b << std::endl;    // DEBUG
-  std::cout << "last_locked_time " << std::setprecision(12)  << last_locked_time.nanosecs()  << std::setprecision(6) << std::endl;    // DEBUG
 
-  steam::BlockMatrix full_posterior_cov_steam = solver_->queryCovarianceBlock(keys);
+  // Get required covariances using the keys
+  steam::BlockMatrix global_cov = solver_->queryCovarianceBlock(keys);
+
+  // Approximately translate global covariances (P_11 ... P_22) to local frame 1
+  Eigen::Matrix<double,24,24> local_cov = translateCovToLocal(global_cov,it1->second, it2->second);
 
   // Compute constants (Refer to eq 6.116 in Sean Anderson's thesis, note psi here is omega in
   // his thesis)
-  Eigen::Matrix<double,12,24> Lambda_Psi_a; // [Lambda  Psi] block matrix
+  const double T = (it2->second->getTime() - it1->second->getTime()).seconds();  // the full period spanning times a and b
+  Eigen::Matrix<double,24,24> Lambda_Psi; // [Lambda  Psi] block matrix
+  Eigen::Matrix<double,24,24> Q_check = Eigen::MatrixXd::Zero(24, 24);   // todo: assuming block diagonal -> check
+  Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
+  Eigen::Matrix<double,12,12> Qk_2_inv;   // same for both a and b so can reuse
+  double T_inv = 1.0/T;
+  Qk_2_inv.block<6,6>(0,0) = 12.0*T_inv*T_inv*T_inv*Qc_inv_;
+  Qk_2_inv.block<6,6>(0,6) = -6.0*T_inv*T_inv*Qc_inv_;
+  Qk_2_inv.block<6,6>(6,0) = Qk_2_inv.block<6,6>(0,6);
+  Qk_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
   {
-    double tau = (time_a - it1a->second->getTime()).seconds();
-    double T = (it2a->second->getTime() - it1a->second->getTime()).seconds();
+    Eigen::Matrix<double,12,24> Lambda_Psi_a;
+    double tau = (time_a - it1->second->getTime()).seconds();
     double ratio = tau/T;
     double ratio2 = ratio*ratio;
     double ratio3 = ratio2*ratio;
@@ -660,11 +652,29 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
 
     Lambda_Psi_a.block<12,12>(0,0) = Lambda;
     Lambda_Psi_a.block<12,12>(0,12) = Psi;
+
+    Lambda_Psi.block<12,24>(0, 0) = Lambda_Psi_a;
+
+    // Formulate Q_check
+    Eigen::Matrix<double,12,12> Q_check_a;
+
+    Eigen::Matrix<double,12,12> Qk_tau;
+    Qk_tau.block<6,6>(0,0) = 1.0/3.0*tau*tau*tau*Qc;
+    Qk_tau.block<6,6>(0,6) = 0.5*tau*tau*Qc;
+    Qk_tau.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
+    Qk_tau.block<6,6>(6,6) = tau*Qc;
+
+    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12); // Phi in lit.
+    tran_2_tau.block<6,6>(0,6) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
+
+    Q_check_a = Qk_tau - Qk_tau*tran_2_tau.transpose()*Qk_2_inv.transpose()*
+        tran_2_tau*Qk_tau.transpose();
+
+    Q_check.block<12,12>(0, 0) = Q_check_a;
   }
-  Eigen::Matrix<double,12,24> Lambda_Psi_b; // [Lambda  Psi] block matrix
   {
-    double tau = (time_b - it1b->second->getTime()).seconds();  // todo - change
-    double T = (it2b->second->getTime() - it1b->second->getTime()).seconds();
+    Eigen::Matrix<double,12,24> Lambda_Psi_b;
+    double tau = (time_b - it1->second->getTime()).seconds();
     double ratio = tau/T;
     double ratio2 = ratio*ratio;
     double ratio3 = ratio2*ratio;
@@ -697,63 +707,35 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
 
     Lambda_Psi_b.block<12,12>(0,0) = Lambda;
     Lambda_Psi_b.block<12,12>(0,12) = Psi;
+
+    Lambda_Psi.block<12,24>(12, 0) = Lambda_Psi_b;
+
+    // Formulate Q_check
+    Eigen::Matrix<double,12,12> Q_check_b;
+
+    Eigen::Matrix<double,12,12> Qk_tau;
+    Qk_tau.block<6,6>(0,0) = 1.0/3.0*tau*tau*tau*Qc;
+    Qk_tau.block<6,6>(0,6) = 0.5*tau*tau*Qc;
+    Qk_tau.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
+    Qk_tau.block<6,6>(6,6) = tau*Qc;
+
+    Eigen::Matrix<double,12,12> tran_2_tau = Eigen::MatrixXd::Identity(12,12); // Phi in lit.
+    tran_2_tau.block<6,6>(0,6) = (T - tau)*Eigen::MatrixXd::Identity(6,6);
+
+    Q_check_b = Qk_tau - Qk_tau*tran_2_tau.transpose()*Qk_2_inv.transpose()*
+        tran_2_tau*Qk_tau.transpose();
+
+    Q_check.block<12,12>(12, 12) = Q_check_b;
   }
 
-  Eigen::MatrixXd P_tau_P_inv = Eigen::MatrixXd::Zero(24, n);
-  P_tau_P_inv.block<12, 24>(0, 12*i_a) = Lambda_Psi_a;
-  P_tau_P_inv.block<12, 24>(12, 12*i_b) = Lambda_Psi_b;
+  // Interpolate covariance in local frame
+  Eigen::MatrixXd local_interp = Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
 
-  // todo build P_tau2_prior (Eigen::Matrix<double,24,24>) using time_a - last_locked_time, time_b - last_locked_time
-  Eigen::Matrix<double,24,24> P_tau2_prior = Eigen::MatrixXd::Identity(24, 24);   // todo: DUMMY VALUE
+  // todo: not sure if this is valid or if I need to convert back to global before applying correlation formula
+  Eigen::Matrix<double, 6, 6> Cov_pose_ak = local_interp.block<6, 6>(0, 0);
+  Eigen::Matrix<double, 6, 6> Cov_pose_bk = local_interp.block<6, 6>(12, 12);
 
-  // todo: below is hacky way to convert from Steam block matrix to Eigen
-  Eigen::MatrixXd full_posterior_cov = Eigen::MatrixXd::Zero(n, n);
-  for (uint i = 0; i < 2*K; ++i) {
-    for (uint j = 0; j < 2*K; ++j) {
-      full_posterior_cov.block<6,6>(6*i,6*j) = full_posterior_cov_steam.copyAt(i,j);
-    }
-  }
-
-  std::cout << "full_posterior_cov (a, a) pose from SteamMatrix \n" << full_posterior_cov_steam.copyAt(2*i_a, 2*i_a) << std::endl;  // debug
-  std::cout << "full_posterior_cov (a, a) \n" << full_posterior_cov.block<12,12>(12*i_a, 12*i_a) << std::endl;
-  std::cout << "full_posterior_cov (0, 0) pose from SteamMatrix \n" << full_posterior_cov_steam.copyAt(0, 0) << std::endl;
-  std::cout << "full_posterior_cov (0, 0) \n" << full_posterior_cov.block<12,12>(0, 0) << std::endl;
-
-  // construct full_prior_cov here
-  Eigen::MatrixXd full_prior_cov = Eigen::MatrixXd::Zero(n, n);
-  Eigen::Matrix<double, 6, 6> Qc = Qc_inv_.inverse();
-  for (uint i = 0; i < unlocked_knot_times.size(); ++i) {
-    double t_i = unlocked_knot_times[i].seconds();
-    std::cout << "t_i " << t_i << std::endl;
-    for (uint j = 0; j < unlocked_knot_times.size(); ++j) {
-      double t_j = unlocked_knot_times[j].seconds();
-
-      double time_coeff = std::pow(std::min(t_i, t_j), 2) * std::max(t_i, t_j) / 2 - std::pow(std::min(t_i, t_j), 3) / 6; // Eq. 6.6
-      full_prior_cov.block<6, 6>(12*i, 12*j) = time_coeff * Qc;
-
-      // ***todo - not sure what to put in velocity parts ???
-    }
-  }
-
-  std::cout << "full_prior_cov (a, a) \n" << full_prior_cov.block<12,12>(12*i_a, 12*i_a) << std::endl;
-
-  Eigen::Matrix<double,24,24> P_tau2_post = P_tau2_prior + P_tau_P_inv * (full_posterior_cov - full_prior_cov) * P_tau_P_inv.transpose();
-
-//  std::cout << "P_tau2_post \n" << P_tau2_post << std::endl;  // debug
-
-  std::cout << "ERROR: Interpolate relative covariance not tested yet." << std::endl;   // temporary
-  Eigen::Matrix<double, 6, 6> Cov_pose_a0a0 = P_tau2_post.block<6, 6>(0, 0);
-  Eigen::Matrix<double, 6, 6> Cov_pose_b0b0 = P_tau2_post.block<6, 6>(12, 12);
-  Eigen::Matrix<double, 6, 6> Cov_pose_a0b0 = P_tau2_post.block<6, 6>(0, 12);
-
-  lgmath::se3::Transformation T_a0 = getInterpPoseEval(time_a)->evaluate();
-  lgmath::se3::Transformation T_b0 = getInterpPoseEval(time_b)->evaluate();
-  lgmath::se3::Transformation T_ba =  T_b0 / T_a0;
-
-  Eigen::Matrix<double, 6, 6> Tadj_ba = T_ba.adjoint();
-  Eigen::Matrix<double, 6, 6> correlation = Tadj_ba * Cov_pose_a0b0;
-  Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_b0b0 - correlation - correlation.transpose() +
-      Tadj_ba * Cov_pose_a0a0 * Tadj_ba.transpose();
+  Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk; // todo - this is wrong! still need to apply formula
 
   // for debugging
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,6,6>> eigsolver(Cov_pose_ba, Eigen::EigenvaluesOnly);
@@ -762,7 +744,8 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
               << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff() << std::endl;
   }
 
-  return Cov_pose_ba;
+  std::cout << "ERROR: Interpolate relative covariance not fully implemented yet." << std::endl;   // temporary
+  return Cov_pose_ba;   // todo: should we consider returning full 12x12 (with velocity parts)?
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
