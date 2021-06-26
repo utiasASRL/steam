@@ -1,7 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBundleAdjustmentRelLand.cpp
+/// \file SimpleBundleAdjustment.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///        with relative landmarks.
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -18,16 +17,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   ///
-  /// Setup States
+  /// Setup and Initialize States
   ///
-
-  // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
-  steam::se3::FixedTransformEvaluator::Ptr tf_identity =
-      steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
-
-  // Fixed vehicle to camera transform
-  steam::se3::TransformEvaluator::Ptr tf_c_v =
-      steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
 
   // Ground truth
   std::vector<steam::se3::TransformStateVar::Ptr> poses_gt_k_0;
@@ -36,13 +27,6 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   // State variable containers (and related data)
   std::vector<steam::se3::TransformStateVar::Ptr> poses_ic_k_0;
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
-
-  // Record the frame in which the landmark is first seen in order to set up transforms correctly
-  std::map<unsigned, unsigned> landmark_map;
-
-  ///
-  /// Initialize States
-  ///
 
   // Setup ground-truth poses
   for (unsigned int i = 0; i < dataset.frames_gt.size(); i++) {
@@ -63,39 +47,13 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   }
 
   // Lock first pose (otherwise entire solution is 'floating')
-  //  **Note: alternatively we could add a prior to the first pose.
+  //  **Note: alternatively we could add a prior (UnaryTransformError) to the first pose.
   poses_ic_k_0[0]->setLock(true);
 
-  // Setup relative landmarks
-  landmarks_ic.resize(dataset.land_ic.size());
-  for (unsigned int i = 0; i < dataset.meas.size(); i++) {
-
-    // Get pose reference
-    unsigned int frameIdx = dataset.meas[i].frameID;
-
-    // Get landmark reference
-    unsigned int landmarkIdx = dataset.meas[i].landID;
-
-    // Setup landmark if first time
-    if (!landmarks_ic[landmarkIdx]) {
-
-      // Get homogeneous point in inertial frame
-      Eigen::Vector4d p_0;
-      p_0.head<3>() = dataset.land_ic[landmarkIdx].point;
-      p_0[3] = 1.0;
-
-      // Get transform between first observation time and inertial frame
-      lgmath::se3::Transformation pose_vk_0 = dataset.frames_ic[frameIdx].T_k0/dataset.frames_ic[0].T_k0;
-
-      // Get point in 'local' frame
-      Eigen::Vector4d p_vehicle = pose_vk_0 * p_0;
-
-      // Insert the landmark
-      landmarks_ic[landmarkIdx] = steam::se3::LandmarkStateVar::Ptr(new steam::se3::LandmarkStateVar(p_vehicle.head<3>()));
-
-      // Keep a record of its 'parent' frame
-      landmark_map[landmarkIdx] = frameIdx;
-    }
+  // Setup landmarks with initial condition
+  for (unsigned int i = 0; i < dataset.land_ic.size(); i++) {
+    steam::se3::LandmarkStateVar::Ptr temp(new steam::se3::LandmarkStateVar(dataset.land_ic[i].point));
+    landmarks_ic.push_back(temp);
   }
 
   ///
@@ -122,33 +80,19 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   for (unsigned int i = 0; i < dataset.meas.size(); i++) {
 
     // Get pose reference
-    unsigned int frameIdx = dataset.meas[i].frameID;
+    steam::se3::TransformStateVar::Ptr& poseVar = poses_ic_k_0[dataset.meas[i].frameID];
 
     // Get landmark reference
-    unsigned int landmarkIdx = dataset.meas[i].landID;
-    steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[landmarkIdx];
+    steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[dataset.meas[i].landID];
 
-    // Construct transform evaluator between two vehicle frames (a and b) that have observations
-    steam::se3::TransformEvaluator::Ptr tf_vb_va;
-    if(landmark_map[landmarkIdx] == frameIdx) {
-
-        // In this case, the transform remains fixed as an identity transform
-        tf_vb_va = tf_identity;
-
-    } else {
-
-      unsigned int firstObsIndex = landmark_map[landmarkIdx];
-      steam::se3::TransformEvaluator::Ptr pose_va_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[firstObsIndex]);
-      steam::se3::TransformEvaluator::Ptr pose_vb_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[frameIdx]);
-      tf_vb_va = steam::se3::composeInverse(pose_vb_0, pose_va_0);
-    }
-
-    // Compose with camera to vehicle transform
-    steam::se3::TransformEvaluator::Ptr tf_cb_va = steam::se3::compose(tf_c_v, tf_vb_va);
+    // Construct transform evaluator between landmark frame (inertial) and camera frame
+    steam::se3::TransformEvaluator::Ptr pose_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
+    steam::se3::TransformEvaluator::Ptr pose_v_0 = steam::se3::TransformStateEvaluator::MakeShared(poseVar);
+    steam::se3::TransformEvaluator::Ptr pose_c_0 = steam::se3::compose(pose_c_v, pose_v_0);
 
     // Construct error function
     steam::StereoCameraErrorEval::Ptr errorfunc(new steam::StereoCameraErrorEval(
-            dataset.meas[i].data, sharedIntrinsics, tf_cb_va, landVar));
+            dataset.meas[i].data, sharedIntrinsics, pose_c_0, landVar));
 
     // Construct cost term
     steam::WeightedLeastSqCostTerm<4,6>::Ptr cost(new steam::WeightedLeastSqCostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
@@ -163,7 +107,7 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   steam::OptimizationProblem problem;
 
   // Add pose variables
-  for (unsigned int i = 0; i < poses_ic_k_0.size(); i++) {
+  for (unsigned int i = 1; i < poses_ic_k_0.size(); i++) {
     problem.addStateVariable(poses_ic_k_0[i]);
   }
 
@@ -199,9 +143,9 @@ int main(int argc, char** argv) {
   // Get filename
   std::string filename;
   if (argc < 2) {
-    filename = "../../include/steam/data/stereo_simulated.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window1.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window2.txt";
+    filename = "../include/steam/data/stereo_simulated.txt";
+    //filename = "../include/steam/data/stereo_simulated_window1.txt";
+    //filename = "../include/steam/data/stereo_simulated_window2.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
   } else {
     filename = argv[1];

@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBundleAdjustmentFullRel.cpp
+/// \file SimpleBundleAdjustmentRelLand.cpp
 /// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///        with relative landmarks and poses.
+///        with relative landmarks.
 ///
-/// \author Michael Warren, ASRL
+/// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -22,17 +22,19 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   ///
 
   // Set a fixed identity transform that will be used to initialize landmarks in their parent frame
-  steam::se3::FixedTransformEvaluator::Ptr tf_identity = steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
+  steam::se3::FixedTransformEvaluator::Ptr tf_identity =
+      steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation());
 
   // Fixed vehicle to camera transform
-  steam::se3::TransformEvaluator::Ptr tf_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
+  steam::se3::TransformEvaluator::Ptr tf_c_v =
+      steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
 
   // Ground truth
   std::vector<steam::se3::TransformStateVar::Ptr> poses_gt_k_0;
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_gt;
 
   // State variable containers (and related data)
-  std::vector<steam::se3::TransformStateVar::Ptr> relposes_ic_k_kp;
+  std::vector<steam::se3::TransformStateVar::Ptr> poses_ic_k_0;
   std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
 
   // Record the frame in which the landmark is first seen in order to set up transforms correctly
@@ -54,11 +56,15 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
     landmarks_gt.push_back(temp);
   }
 
-  // Create all the relative transforms from the initial poses
-  for (unsigned int i = 1; i < dataset.frames_ic.size(); i++) {
-    steam::se3::TransformStateVar::Ptr transform_vk_vkp(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0/dataset.frames_ic[i-1].T_k0));
-    relposes_ic_k_kp.push_back(transform_vk_vkp);
+  // Setup poses with initial condition
+  for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
+    steam::se3::TransformStateVar::Ptr temp(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
+    poses_ic_k_0.push_back(temp);
   }
+
+  // Lock first pose (otherwise entire solution is 'floating')
+  //  **Note: alternatively we could add a prior to the first pose.
+  poses_ic_k_0[0]->setLock(true);
 
   // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size());
@@ -96,7 +102,7 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   /// Setup Cost Terms
   ///
 
-  // Steam cost terms
+  // steam cost terms
   steam::ParallelizedCostTermCollection::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection());
 
   // Setup shared noise and loss function
@@ -131,14 +137,10 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
 
     } else {
 
-      // Initialize from first relative transform
       unsigned int firstObsIndex = landmark_map[landmarkIdx];
-      tf_vb_va = steam::se3::TransformStateEvaluator::MakeShared(relposes_ic_k_kp[firstObsIndex]);
-
-      // Compose through the chain of transforms
-      for(unsigned int j = firstObsIndex + 1; j < frameIdx; j++) {
-        tf_vb_va = steam::se3::compose(steam::se3::TransformStateEvaluator::MakeShared(relposes_ic_k_kp[j]), tf_vb_va);
-      }
+      steam::se3::TransformEvaluator::Ptr pose_va_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[firstObsIndex]);
+      steam::se3::TransformEvaluator::Ptr pose_vb_0 = steam::se3::TransformStateEvaluator::MakeShared(poses_ic_k_0[frameIdx]);
+      tf_vb_va = steam::se3::composeInverse(pose_vb_0, pose_va_0);
     }
 
     // Compose with camera to vehicle transform
@@ -161,8 +163,8 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   steam::OptimizationProblem problem;
 
   // Add pose variables
-  for (unsigned int i = 0; i < relposes_ic_k_kp.size(); i++) {
-    problem.addStateVariable(relposes_ic_k_kp[i]);
+  for (unsigned int i = 0; i < poses_ic_k_0.size(); i++) {
+    problem.addStateVariable(poses_ic_k_0[i]);
   }
 
   // Add landmark variables
@@ -176,13 +178,14 @@ void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   ///
   /// Setup Solver and Optimize
   ///
+  typedef steam::DoglegGaussNewtonSolver SolverType;
 
   // Initialize parameters (enable verbose mode)
-  steam::DoglegGaussNewtonSolver::Params params;
+  SolverType::Params params;
   params.verbose = true;
 
   // Make solver
-  steam::DoglegGaussNewtonSolver solver(&problem, params);
+  SolverType solver(&problem, params);
 
   // Optimize
   solver.optimize();
@@ -196,9 +199,9 @@ int main(int argc, char** argv) {
   // Get filename
   std::string filename;
   if (argc < 2) {
-    filename = "../../include/steam/data/stereo_simulated.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window1.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window2.txt";
+    filename = "../include/steam/data/stereo_simulated.txt";
+    //filename = "../include/steam/data/stereo_simulated_window1.txt";
+    //filename = "../include/steam/data/stereo_simulated_window2.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
   } else {
     filename = argv[1];

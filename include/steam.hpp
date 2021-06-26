@@ -38,7 +38,6 @@
 #include <steam/evaluator/samples/LinearFuncErrorEval.hpp>
 #include <steam/evaluator/samples/ImuErrorEval.hpp>
 #include <steam/evaluator/samples/PointToPointErrorEval.hpp>
-#include <steam/evaluator/samples/PointToPointErrorEval2.hpp>
 
 // evaluator - block auto diff
 #include <steam/evaluator/blockauto/EvalTreeNode.hpp>
