@@ -202,11 +202,14 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+
   # Unit-tests
-  ament_add_gtest(pattern_tests tests/pattern_tests.cpp)
-  target_link_libraries(pattern_tests ${PROJECT_NAME})
-  ament_add_gtest(time_tests tests/time_tests.cpp)
-  target_link_libraries(time_tests ${PROJECT_NAME})
+  ament_add_gtest(time_test tests/time_test.cpp)
+  target_link_libraries(time_test ${PROJECT_NAME})
+  ament_add_gtest(pattern_test tests/pattern_test.cpp)
+  target_link_libraries(pattern_test ${PROJECT_NAME})
+  ament_add_gtest(evaluator_test tests/evaluator_test.cpp)
+  target_link_libraries(evaluator_test ${PROJECT_NAME})
 
   # Linting
   find_package(ament_lint_auto REQUIRED)

@@ -3,7 +3,7 @@
 /// \file PointToPointErrorEval.cpp
 ///
 /// \author Francois Pomerleau, ASRL
-/// \brief This evaluator was develop in the context of ICP (Iterative Closest Point) 
+/// \brief This evaluator was develop in the context of ICP (Iterative Closest Point)
 ///        implementation.
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -20,8 +20,8 @@ PointToPointErrorEval::PointToPointErrorEval(
 		const se3::TransformEvaluator::ConstPtr& T_a_world,
 		const Eigen::Vector4d& read_b,
 		const se3::TransformEvaluator::ConstPtr& T_b_world
-		): ref_a_(ref_a), 
-		   T_b_a_(se3::ComposeInverseTransformEvaluator::MakeShared(T_a_world, T_b_world)),
+		): ref_a_(ref_a),
+		   T_b_a_(se3::ComposeInverseTransformEvaluator::MakeShared(T_b_world, T_a_world)),
 		   read_b_(read_b)	{
 }
 
@@ -67,7 +67,7 @@ Eigen::Vector4d PointToPointErrorEval::evaluate(const Eigen::Matrix4d& lhs, std:
 	jacs->clear();
 
 	// Get evaluation tree
-	
+
 	EvalTreeHandle<lgmath::se3::Transformation> blkAutoTransform =
 		T_b_a_->getBlockAutomaticEvaluation();
 
