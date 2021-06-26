@@ -26,6 +26,26 @@ pipeline {
                         '''
                     }
                 }
+                stage('samples') {
+                    steps {
+                        dir('build') {
+                            sh '''
+                                ./MotionDistortedP2PandCATrajPrior
+                                ./SimpleBAandCATrajPrior
+                                ./SimpleBAandTrajPrior
+                                ./SimpleBundleAdjustment
+                                ./SimpleBundleAdjustmentFullRel
+                                ./SimpleBundleAdjustmentRelLand
+                                ./SimpleBundleAdjustmentRelLandX
+                                ./SimpleP2PandCATrajPrior
+                                ./SimplePoseGraphRelax
+                                ./SimpleTrajectoryPrior
+                                ./SpherePoseGraphRelax
+                                ./TrustRegionExample
+                            '''
+                        }
+                    }
+                }
             }
             post {
                 always {
