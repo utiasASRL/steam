@@ -734,8 +734,15 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   // todo: not sure if this is valid or if I need to convert back to global before applying correlation formula
   Eigen::Matrix<double, 6, 6> Cov_pose_ak = local_interp.block<6, 6>(0, 0);
   Eigen::Matrix<double, 6, 6> Cov_pose_bk = local_interp.block<6, 6>(12, 12);
+  Eigen::Matrix<double, 6, 6> Cov_pose_akbk = local_interp.block<6, 6>(0, 12);
 
-  Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk; // todo - this is wrong! still need to apply formula
+  lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();
+  lgmath::se3::Transformation T_b = getInterpPoseEval(time_b)->evaluate();
+  lgmath::se3::Transformation T_b_a = T_b / T_a;
+  auto Tadj_b_a = T_b_a.adjoint();
+  auto correlation = Tadj_b_a * Cov_pose_akbk;
+
+  Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk - correlation - correlation.transpose() + Tadj_b_a * Cov_pose_ak * Tadj_b_a.transpose();
 
   // for debugging
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,6,6>> eigsolver(Cov_pose_ba, Eigen::EigenvaluesOnly);
@@ -745,7 +752,7 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   }
 
   std::cout << "ERROR: Interpolate relative covariance not fully implemented yet." << std::endl;   // temporary
-  return Cov_pose_ba;   // todo: should we consider returning full 12x12 (with velocity parts)?
+  return Cov_pose_ba;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
