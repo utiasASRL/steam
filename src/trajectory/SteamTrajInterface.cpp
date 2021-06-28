@@ -634,7 +634,7 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
     double lambda11 = 1.0 - psi11;
     double lambda12 = tau - T*psi11 - psi12;
     double lambda21 = -psi21;
-    double lambda22 = 1.0 - psi21 - psi22;
+    double lambda22 = 1.0 - T*psi21 - psi22;
 
     // Formulate Lambda and Psi matrices
     Eigen::Matrix<double,6,6> identity = Eigen::MatrixXd::Identity(6,6);
@@ -689,7 +689,7 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
     double lambda11 = 1.0 - psi11;
     double lambda12 = tau - T*psi11 - psi12;
     double lambda21 = -psi21;
-    double lambda22 = 1.0 - psi21 - psi22;
+    double lambda22 = 1.0 - T*psi21 - psi22;
 
     // Formulate Lambda and Psi matrices
     Eigen::Matrix<double,6,6> identity = Eigen::MatrixXd::Identity(6,6);
@@ -966,7 +966,7 @@ Eigen::MatrixXd SteamTrajInterface::interpCovariance(const steam::Time& time) co
     double lambda11 = 1.0 - psi11;
     double lambda12 = tau - T*psi11 - psi12;
     double lambda21 = -psi21;
-    double lambda22 = 1.0 - psi21 - psi22;
+    double lambda22 = 1.0 - T*psi21 - psi22;
 
     // Formulate Lambda and Psi matrices
     Eigen::Matrix<double,6,6> identity = Eigen::MatrixXd::Identity(6,6);
