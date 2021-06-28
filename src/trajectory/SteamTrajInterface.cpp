@@ -540,8 +540,76 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   auto it1a = knotMap_.lower_bound(time_a.nanosecs());
   auto it1b = knotMap_.lower_bound(time_b.nanosecs());
 
-  if (it1a == knotMap_.end() || it1b == knotMap_.end()) {
-    throw std::runtime_error("One or more query times past last knot. Extrapolation not yet implemented in getRelativeCovariance.");
+  if (it1b == knotMap_.end()) {
+    // extrapolate
+    auto it1 = --it1a;
+    auto it2 = it1b;
+    std::vector<steam::StateKey> keys;
+    {
+      std::map<unsigned int, steam::StateVariableBase::Ptr> outState1;
+      it1->second->getPose()->getActiveStateVariables(&outState1);
+
+      keys.push_back(outState1.begin()->second->getKey());
+      keys.push_back(it1->second->getVelocity()->getKey());
+    }
+
+    // Get required covariances using the keys
+    steam::BlockMatrix global_cov = solver_->queryCovarianceBlock(keys);
+    Eigen::Matrix<double,12,12> P_11;
+
+    P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
+    P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
+    P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
+    P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+
+    // Approximately translate covariance of last state to local frame
+    Eigen::MatrixXd local_frame_cov = translateCovToLocal(P_11, it1->second);
+
+    // Extrapolate in local frame
+    Eigen::Matrix<double,24,24> Qk_tau = Eigen::MatrixXd::Zero(24, 24);
+    double tau_a = (time_a - it1->second->getTime()).seconds();
+    double tau_b = (time_b - it1->second->getTime()).seconds();
+    {
+      Eigen::Matrix<double,6,6> Qc = Qc_inv_.inverse();
+      Eigen::Matrix<double,12,12> Qk_tau_a;
+      Qk_tau_a.block<6,6>(0,0) = 1.0/3.0*tau_a*tau_a*tau_a*Qc;
+      Qk_tau_a.block<6,6>(0,6) = 0.5*tau_a*tau_a*Qc;
+      Qk_tau_a.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
+      Qk_tau_a.block<6,6>(6,6) = tau_a*Qc;
+      Eigen::Matrix<double,12,12> Qk_tau_b;
+      Qk_tau_b.block<6,6>(0,0) = 1.0/3.0*tau_b*tau_b*tau_b*Qc;
+      Qk_tau_b.block<6,6>(0,6) = 0.5*tau_b*tau_b*Qc;
+      Qk_tau_b.block<6,6>(6,0) = Qk_tau.block<6,6>(0,6);
+      Qk_tau_b.block<6,6>(6,6) = tau_b*Qc;
+      Qk_tau.block<12,12>(0, 0) = Qk_tau_a;
+      Qk_tau.block<12,12>(12, 12) = Qk_tau_b;
+    }
+
+    // Note: This is the transformation matrix, Phi in literature.
+    Eigen::Matrix<double,24,12> tran_tau_1;
+    Eigen::Matrix<double,12,12> tran_tau_1_a = Eigen::MatrixXd::Identity(12,12);
+    tran_tau_1_a.block<6,6>(0,6) = tau_a*Eigen::MatrixXd::Identity(6,6);
+    Eigen::Matrix<double,12,12> tran_tau_1_b = Eigen::MatrixXd::Identity(12,12);
+    tran_tau_1_b.block<6,6>(0,6) = tau_b*Eigen::MatrixXd::Identity(6,6);
+    tran_tau_1.block<12,12>(0,0) = tran_tau_1_a;
+    tran_tau_1.block<12,12>(12,0) = tran_tau_1_b;
+
+    Eigen::MatrixXd local_extrap = tran_tau_1*local_frame_cov*tran_tau_1.transpose() + Qk_tau;
+
+    // todo: not sure if this is valid or if I need to convert back to global before applying correlation formula
+    Eigen::Matrix<double, 6, 6> Cov_pose_ak = local_extrap.block<6, 6>(0, 0);
+    Eigen::Matrix<double, 6, 6> Cov_pose_bk = local_extrap.block<6, 6>(12, 12);
+    Eigen::Matrix<double, 6, 6> Cov_pose_akbk = local_extrap.block<6, 6>(0, 12);
+
+    lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();
+    lgmath::se3::Transformation T_b = getInterpPoseEval(time_b)->evaluate();
+    lgmath::se3::Transformation T_b_a = T_b / T_a;
+    auto Tadj_b_a = T_b_a.adjoint();
+    auto correlation = Tadj_b_a * Cov_pose_akbk;
+
+    Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk - correlation - correlation.transpose() + Tadj_b_a * Cov_pose_ak * Tadj_b_a.transpose();
+    std::cout << "ERROR: Extrapolate relative covariance not tested." << std::endl;   // temporary
+    return Cov_pose_ba;
   }
 
   // Check if both query times also state times and we don't have to interpolate
@@ -743,15 +811,7 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   auto correlation = Tadj_b_a * Cov_pose_akbk;
 
   Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk - correlation - correlation.transpose() + Tadj_b_a * Cov_pose_ak * Tadj_b_a.transpose();
-
-  // for debugging
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,6,6>> eigsolver(Cov_pose_ba, Eigen::EigenvaluesOnly);
-  if (eigsolver.eigenvalues().minCoeff() <= 0) {
-    std::cout << "Warning: Covariance \n" << Cov_pose_ba << "\n must be positive definite. "
-              << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff() << std::endl;
-  }
-
-  std::cout << "ERROR: Interpolate relative covariance not fully implemented yet." << std::endl;   // temporary
+  std::cout << "ERROR: Interpolate relative covariance not tested yet." << std::endl;   // temporary
   return Cov_pose_ba;
 }
 
