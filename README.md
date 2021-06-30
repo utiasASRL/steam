@@ -6,39 +6,69 @@ STEAM (Simultaneous Trajectory Estimation and Mapping) Engine is an optimization
 
 ## Installation
 
-### Hardware and Software Requirements
+### Dependencies
 
-- Compiler with C++17 support
+- Compiler with C++17 support and OpenMP
+- CMake (>=3.16)
+- Boost (>=1.71.0)
 - Eigen (>=3.3.7)
-- CMake or ROS2(colcon+ament_cmake)
-- Boost library
-- OpenMP
-- [lgmath](https://github.com/utiasASRL/lgmath.git)
+- [lgmath (>=1.1.0)](https://github.com/utiasASRL/lgmath.git)
+- (Optional) ROS2 Foxy or later (colcon+ament_cmake)
 
-### Install c++ compiler, cmake, Boost and OpenMP
+### Install c++ compiler, cmake and OpenMP
 
 ```bash
-sudo apt -q -y install build-essential cmake libboost-all-dev libomp-dev
+sudo apt -q -y install build-essential cmake libomp-dev
+```
+
+### Install Boost
+
+```bash
+# using APT
+sudo apt -q -y install libboost-all-dev
+
+# OR from source
+WORKSPACE=~/workspace  # choose your own workspace directory
+mkdir -p ${WORKSPACE}/boost && cd $_
+wget --no-verbose https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.gz
+tar xzf boost_1_71_0.tar.gz && cd boost_1_71_0
+./bootstrap.sh --with-python=$(which python3)
+./b2 cxxflags="-std=gnu++17" install
+ldconfig
 ```
 
 ### Install Eigen (>=3.3.7)
 
-Eigen can be installed using APT
-
 ```bash
+# using APT
 sudo apt -q -y install libeigen3-dev
+
+# OR from source
+WORKSPACE=~/workspace  # choose your own workspace directory
+mkdir -p ${WORKSPACE}/eigen && cd $_
+git clone https://gitlab.com/libeigen/eigen.git . && git checkout 3.3.7
+mkdir build && cd $_
+cmake .. && make install # default install location is /usr/local/
 ```
 
-If installed from source to a custom location then make sure `cmake` can find it.
+- Note: if installed from source to a custom location then make sure `cmake` can find it.
 
-### Build and install using `cmake`
+### Install lgmath
 
-Install [lgmath](https://github.com/utiasASRL/lgmath.git) using `cmake` before installing this library. If installed to a custom location then make sure `cmake` can find it.
+Follow the instructions [here](https://github.com/utiasASRL/lgmath.git).
 
-Clone this repo
+### Build and install steam using `cmake`
 
 ```bash
+WORKSPACE=~/workspace  # choose your own workspace directory
+# clone
+mkdir -p ${WORKSPACE}/steam && cd $_
 git clone https://github.com/utiasASRL/steam.git .
+# build and install
+mkdir -p build && cd $_
+cmake ..
+cmake --build .
+cmake --install . # (optional) install, default location is /usr/local/
 ```
 
 Preprocessor macros
@@ -46,29 +76,30 @@ Preprocessor macros
 - `STEAM_DEFAULT_NUM_OPENMP_THREADS=<num. threads>`: Default to 4. Define number of threads to be used by OpenMP in STEAM.
 - `STEAM_USE_OBJECT_POOL`: Default to undefined. If defined then STEAM will use an object pool to improve performance but is no longer thread safe.
 
-Build and install
-
-```bash
-mkdir -p build && cd $_
-cmake ..
-cmake --build .
-cmake --install . # (optional) install, default location is /usr/local/
-```
-
 Note: `steamConfig.cmake` will be generated in both `build/` and `<install prefix>/lib/cmake/steam/` to be included in other projects.
 
-### Build and install using `ROS2(colcon+ament_cmake)`
+### Build examples
 
-Clone both lgmath and this repository in the same directory
+[samples/CmakeLists.txt](./samples/CmakeLists.txt) shows an example of how to add steam to your projects.
+
+To build and run these samples:
 
 ```bash
-git clone https://github.com/utiasASRL/lgmath.git
-git clone https://github.com/utiasASRL/steam.git
+cd ${WORKSPACE}/steam  ## $WORKSPACE defined above
+mkdir -p build_samples
+cmake ../samples
+cmake --build .  # Executables will be generated in build_samples
 ```
 
-Source your ROS2 workspace and then
+### Build and install steam using `ROS2(colcon+ament_cmake)`
 
 ```bash
+WORKSPACE=~/workspace  # choose your own workspace directory
+
+mkdir -p ${WORKSPACE}/steam && cd $_
+git clone https://github.com/utiasASRL/steam.git .
+
+source <your ROS2 worspace that includes steam>
 colcon build --symlink-install --cmake-args "-DUSE_AMENT=ON"
 ```
 

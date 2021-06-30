@@ -1,3 +1,14 @@
 @PACKAGE_INIT@
 
-include ( "${CMAKE_CURRENT_LIST_DIR}/export_steam.cmake" )
+include(CMakeFindDependencyMacro)
+find_package(Boost 1.71.0 REQUIRED system)
+find_dependency(OpenMP)
+find_dependency(Eigen3 3.3.7)
+find_dependency(lgmath 1.1.0)
+
+set (@PROJECT_NAME@_INCLUDE_DIR  "@PACKAGE_PROJECT_INCLUDE_DIR@")
+set (@PROJECT_NAME@_INCLUDE_DIRS "@PACKAGE_PROJECT_INCLUDE_DIR@")
+set (@PROJECT_NAME@_LIBRARY      "@PROJECT_LIBRARY@")
+set (@PROJECT_NAME@_LIBRARIES    "@PROJECT_LIBRARY@")
+
+include ( "${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake" )
