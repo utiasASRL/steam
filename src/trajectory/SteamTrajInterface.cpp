@@ -596,16 +596,31 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
 
     Eigen::MatrixXd local_extrap = tran_tau_1*local_frame_cov*tran_tau_1.transpose() + Qk_tau;
 
-    // todo: not sure if this is valid or if I need to convert back to global before applying correlation formula
-    Eigen::Matrix<double, 6, 6> Cov_pose_ak = local_extrap.block<6, 6>(0, 0);
-    Eigen::Matrix<double, 6, 6> Cov_pose_bk = local_extrap.block<6, 6>(12, 12);
-    Eigen::Matrix<double, 6, 6> Cov_pose_akbk = local_extrap.block<6, 6>(0, 12);
+    // Extrapolate state. Velocity stays constant
+    const SteamTrajVar::Ptr& endKnot = it1->second;
+    TransformEvaluator::Ptr T_t_k_a =
+        ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time_a - endKnot->getTime());
+    TransformEvaluator::Ptr T_t_k_b =
+        ConstVelTransformEvaluator::MakeShared(endKnot->getVelocity(), time_b - endKnot->getTime());
 
-    lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();
+    // Approximately translate result to global frame
+    Eigen::Matrix<double,12,12> local_extrap_a = local_extrap.block<12,12>(0,0);
+    Eigen::Matrix<double,12,12> local_extrap_b = local_extrap.block<12,12>(12,12);
+    Eigen::Matrix<double,12,12> local_extrap_ab = local_extrap.block<12,12>(0,12);
+
+    Eigen::Matrix<double,12,12> global_extrap_a = translateCovToGlobal(local_extrap_a, P_11, T_t_k_a->evaluate(), it1->second->getVelocity()->getValue());
+    Eigen::Matrix<double,12,12> global_extrap_b = translateCovToGlobal(local_extrap_b, P_11, T_t_k_b->evaluate(), it1->second->getVelocity()->getValue());
+    Eigen::Matrix<double,12,12> global_extrap_ab = translateCrossCovToGlobal(local_extrap_ab, P_11, T_t_k_a->evaluate(), it1->second->getVelocity()->getValue(), T_t_k_b->evaluate(), it1->second->getVelocity()->getValue());
+
+    Eigen::Matrix<double, 6, 6> Cov_pose_ak = global_extrap_a.block<6, 6>(0, 0);
+    Eigen::Matrix<double, 6, 6> Cov_pose_bk = global_extrap_b.block<6, 6>(0, 0);
+    Eigen::Matrix<double, 6, 6> Cov_pose_akbk = global_extrap_ab.block<6, 6>(0, 0);
+
+    lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();  // todo - already have this variable
     lgmath::se3::Transformation T_b = getInterpPoseEval(time_b)->evaluate();
     lgmath::se3::Transformation T_b_a = T_b / T_a;
-    auto Tadj_b_a = T_b_a.adjoint();
-    auto correlation = Tadj_b_a * Cov_pose_akbk;
+    Eigen::Matrix<double, 6, 6> Tadj_b_a = T_b_a.adjoint();
+    Eigen::Matrix<double, 6, 6> correlation = Tadj_b_a * Cov_pose_akbk;
 
     Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk - correlation - correlation.transpose() + Tadj_b_a * Cov_pose_ak * Tadj_b_a.transpose();
     std::cout << "ERROR: Extrapolate relative covariance not tested." << std::endl;   // temporary
@@ -626,9 +641,9 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
     steam::BlockMatrix Cov_a0a0_b0b0 = solver_->queryCovarianceBlock(keys);
 
     lgmath::se3::Transformation T_b_a = it1b->second->getPose()->evaluate() / it1a->second->getPose()->evaluate();
-    auto Tadj_b_a = T_b_a.adjoint();
-    auto correlation = Tadj_b_a * Cov_a0a0_b0b0.at(0, 1);
-    auto Cov_ba_ba = Cov_a0a0_b0b0.at(1, 1) - correlation - correlation.transpose() +
+    Eigen::Matrix<double, 6, 6> Tadj_b_a = T_b_a.adjoint();
+    Eigen::Matrix<double, 6, 6> correlation = Tadj_b_a * Cov_a0a0_b0b0.at(0, 1);
+    Eigen::Matrix<double, 6, 6> Cov_ba_ba = Cov_a0a0_b0b0.at(1, 1) - correlation - correlation.transpose() +
             Tadj_b_a * Cov_a0a0_b0b0.at(0, 0) * Tadj_b_a.transpose();
     return Cov_ba_ba;
   }
@@ -685,6 +700,8 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   Qk_2_inv.block<6,6>(0,6) = -6.0*T_inv*T_inv*Qc_inv_;
   Qk_2_inv.block<6,6>(6,0) = Qk_2_inv.block<6,6>(0,6);
   Qk_2_inv.block<6,6>(6,6) = 4.0*T_inv*Qc_inv_;
+  lgmath::se3::Transformation pose_a;
+  Eigen::MatrixXd velocity_a;
   {
     Eigen::Matrix<double,12,24> Lambda_Psi_a;
     double tau = (time_a - it1->second->getTime()).seconds();
@@ -723,6 +740,8 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
 
     Lambda_Psi.block<12,24>(0, 0) = Lambda_Psi_a;
 
+    interpState(&pose_a, &velocity_a, Lambda_Psi_a, time_a, it1->second, it2->second);
+
     // Formulate Q_check
     Eigen::Matrix<double,12,12> Q_check_a;
 
@@ -740,6 +759,8 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
 
     Q_check.block<12,12>(0, 0) = Q_check_a;
   }
+  lgmath::se3::Transformation pose_b;
+  Eigen::MatrixXd velocity_b;
   {
     Eigen::Matrix<double,12,24> Lambda_Psi_b;
     double tau = (time_b - it1->second->getTime()).seconds();
@@ -778,6 +799,8 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
 
     Lambda_Psi.block<12,24>(12, 0) = Lambda_Psi_b;
 
+    interpState(&pose_b, &velocity_b, Lambda_Psi_b, time_b, it1->second, it2->second);
+
     // Formulate Q_check
     Eigen::Matrix<double,12,12> Q_check_b;
 
@@ -799,16 +822,31 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   // Interpolate covariance in local frame
   Eigen::MatrixXd local_interp = Lambda_Psi*local_cov*Lambda_Psi.transpose() + Q_check;
 
-  // todo: not sure if this is valid or if I need to convert back to global before applying correlation formula
-  Eigen::Matrix<double, 6, 6> Cov_pose_ak = local_interp.block<6, 6>(0, 0);
-  Eigen::Matrix<double, 6, 6> Cov_pose_bk = local_interp.block<6, 6>(12, 12);
-  Eigen::Matrix<double, 6, 6> Cov_pose_akbk = local_interp.block<6, 6>(0, 12);
+  // Approximately translate result to global frame and return
+  Eigen::Matrix<double,12,12> P_11;
+
+  P_11.block<6,6>(0,0) = global_cov.copyAt(0,0);
+  P_11.block<6,6>(0,6) = global_cov.copyAt(0,1);
+  P_11.block<6,6>(6,0) = global_cov.copyAt(1,0);
+  P_11.block<6,6>(6,6) = global_cov.copyAt(1,1);
+
+  Eigen::Matrix<double,12,12> local_interp_a = local_interp.block<12,12>(0,0);
+  Eigen::Matrix<double,12,12> local_interp_b = local_interp.block<12,12>(12,12);
+  Eigen::Matrix<double,12,12> local_interp_ab = local_interp.block<12,12>(0,12);
+
+  Eigen::Matrix<double,12,12> global_interp_a = translateCovToGlobal(local_interp_a, P_11, pose_a/it1->second->getPose()->evaluate(), velocity_a);
+  Eigen::Matrix<double,12,12> global_interp_b = translateCovToGlobal(local_interp_b, P_11, pose_b/it1->second->getPose()->evaluate(), velocity_b);
+  Eigen::Matrix<double,12,12> global_interp_ab = translateCrossCovToGlobal(local_interp_ab, P_11, pose_a/it1->second->getPose()->evaluate(), velocity_a, pose_b/it1->second->getPose()->evaluate(), velocity_b);
+
+  Eigen::Matrix<double, 6, 6> Cov_pose_ak = global_interp_a.block<6, 6>(0, 0);
+  Eigen::Matrix<double, 6, 6> Cov_pose_bk = global_interp_b.block<6, 6>(0, 0);
+  Eigen::Matrix<double, 6, 6> Cov_pose_akbk = global_interp_ab.block<6, 6>(0, 0);
 
   lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();
   lgmath::se3::Transformation T_b = getInterpPoseEval(time_b)->evaluate();
   lgmath::se3::Transformation T_b_a = T_b / T_a;
-  auto Tadj_b_a = T_b_a.adjoint();
-  auto correlation = Tadj_b_a * Cov_pose_akbk;
+  Eigen::Matrix<double, 6, 6> Tadj_b_a = T_b_a.adjoint();
+  Eigen::Matrix<double, 6, 6> correlation = Tadj_b_a * Cov_pose_akbk;
 
   Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk - correlation - correlation.transpose() + Tadj_b_a * Cov_pose_ak * Tadj_b_a.transpose();
   std::cout << "ERROR: Interpolate relative covariance not tested yet." << std::endl;   // temporary
@@ -846,6 +884,7 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
   Eigen::Matrix<double,12,12> Xi1 = Eigen::MatrixXd::Zero(12,12);
   Eigen::Matrix<double,12,12> Xi2 = Eigen::MatrixXd::Zero(12,12);
 
+  // Eq. 6.118
   Eigen::Matrix<double,6,6> J_11_inv = Eigen::MatrixXd::Identity(6,6);    // todo (Ben): double check
   Gam1.block<6,6>(0,0) = J_11_inv;
   Gam1.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue())*J_11_inv;
@@ -857,10 +896,11 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
   Gam2.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot2->getVelocity()->getValue())*J_21_inv;
   Gam2.block<6,6>(6,6) = J_21_inv;
 
+  // Eq. 6.121
   Xi1.block<6,6>(0,0) = Eigen::MatrixXd::Identity(6,6);
   Xi2.block<6,6>(0,0) = lgmath::se3::tranAd(T_21.matrix());
 
-  // Translate
+  // Translate  - Eq. 6.126
   Eigen::Matrix<double,12,12> P_11_local = Gam1*(P_11 - Xi1*P_11*Xi1.transpose())*Gam1.transpose();
   Eigen::Matrix<double,12,12> P_12_local = Gam1*(P_12 - Xi1*P_11*Xi2.transpose())*Gam2.transpose();
   Eigen::Matrix<double,12,12> P_22_local = Gam2*(P_22 - Xi2*P_11*Xi2.transpose())*Gam2.transpose();
@@ -913,6 +953,35 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToGlobal(const Eigen::MatrixXd& 
   Xi.block<6,6>(0,0) = lgmath::se3::tranAd(local_pose.matrix());
 
   return Gam_inv*local_cov*Gam_inv.transpose() + Xi*global_frame_cov*Xi.transpose();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Covariance translation of off-diagonal interpolated covariance from local to global
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::translateCrossCovToGlobal(const Eigen::MatrixXd& local_cov_ab,
+    const Eigen::MatrixXd& global_frame_cov, const lgmath::se3::Transformation& local_pose_a,
+    const Eigen::MatrixXd& velocity_a, const lgmath::se3::Transformation& local_pose_b,
+    const Eigen::MatrixXd& velocity_b) const {
+
+  // Create constants. 'tau' is time index interpolated between '1' and '2'. If extrapolation is
+  // the case, 'tau' is time index extrapolated past index '1'.
+  Eigen::Matrix<double,6,6> J_tau1_a = lgmath::se3::vec2jac(local_pose_a.vec());
+  Eigen::Matrix<double,12,12> Gam_inv_a = Eigen::MatrixXd::Zero(12,12);
+  Gam_inv_a.block<6,6>(0,0) = J_tau1_a;
+  Gam_inv_a.block<6,6>(6,0) = -0.5*J_tau1_a*lgmath::se3::curlyhat(velocity_a);
+  Gam_inv_a.block<6,6>(6,6) = J_tau1_a;
+  Eigen::Matrix<double,6,6> J_tau1_b = lgmath::se3::vec2jac(local_pose_b.vec());
+  Eigen::Matrix<double,12,12> Gam_inv_b = Eigen::MatrixXd::Zero(12,12);
+  Gam_inv_b.block<6,6>(0,0) = J_tau1_b;
+  Gam_inv_b.block<6,6>(6,0) = -0.5*J_tau1_b*lgmath::se3::curlyhat(velocity_b);
+  Gam_inv_b.block<6,6>(6,6) = J_tau1_b;
+
+  Eigen::Matrix<double,12,12> Xi_a = Eigen::MatrixXd::Zero(12,12);
+  Xi_a.block<6,6>(0,0) = lgmath::se3::tranAd(local_pose_a.matrix());
+  Eigen::Matrix<double,12,12> Xi_b = Eigen::MatrixXd::Zero(12,12);
+  Xi_b.block<6,6>(0,0) = lgmath::se3::tranAd(local_pose_b.matrix());
+
+  return Gam_inv_a*local_cov_ab*Gam_inv_b.transpose() + Xi_a*global_frame_cov*Xi_b.transpose();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

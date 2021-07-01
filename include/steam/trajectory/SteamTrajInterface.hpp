@@ -150,6 +150,14 @@ class SteamTrajInterface
     const Eigen::MatrixXd& velocity) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
+  /// \brief Covariance translation of off-diagonal interpolated covariance from local to global
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  Eigen::MatrixXd translateCrossCovToGlobal(const Eigen::MatrixXd& local_cov_ab,
+    const Eigen::MatrixXd& global_frame_cov, const lgmath::se3::Transformation& local_pose_a,
+    const Eigen::MatrixXd& velocity_a, const lgmath::se3::Transformation& local_pose_b,
+    const Eigen::MatrixXd& velocity_b) const;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get interpolated state at given time
   //////////////////////////////////////////////////////////////////////////////////////////////
   void interpState(lgmath::se3::Transformation* pose, Eigen::MatrixXd* velocity,
