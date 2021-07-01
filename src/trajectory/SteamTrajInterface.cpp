@@ -494,7 +494,14 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(const steam::Time& time) const
   // Check if state is locked
   std::map<unsigned int, steam::StateVariableBase::Ptr> states;
   it1->second->getPose()->getActiveStateVariables(&states);
-  if (states.size() == 0) {
+  if (states.empty()) {
+    throw std::runtime_error("Attempted covariance interpolation with locked states");
+  }
+  // todo (Ben): above check didn't handle interpolating between a locked and an unlocked so this is quick fix
+  auto it0 = it1; --it0;
+  states.clear();
+  it0->second->getPose()->getActiveStateVariables(&states);
+  if (states.empty()) {
     throw std::runtime_error("Attempted covariance interpolation with locked states");
   }
 
@@ -648,20 +655,21 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
     return Cov_ba_ba;
   }
 
-  // TODO: Be able to handle locked states
-  // Check if state is locked
-  std::map<unsigned int, steam::StateVariableBase::Ptr> states_a, states_b;
-  it1a->second->getPose()->getActiveStateVariables(&states_a);
-  it1b->second->getPose()->getActiveStateVariables(&states_b);
-  if (states_a.empty() || states_b.empty()) {
-    throw std::runtime_error("Attempted covariance interpolation with locked states");
-  }
-
   // Interpolating covariance...
 
   // Get iterators bounding the time interval
   auto it1 = it1a; --it1;    // todo: var names confusing
   auto it2 = it1b;
+
+  // TODO: Be able to handle locked states
+  // Check if state is locked
+  std::map<unsigned int, steam::StateVariableBase::Ptr> states_a, states_b;
+  it1->second->getPose()->getActiveStateVariables(&states_a);
+  it2->second->getPose()->getActiveStateVariables(&states_b);
+  if (states_a.empty() || states_b.empty()) {
+    throw std::runtime_error("Attempted covariance interpolation with locked states");
+  }
+
   if (time_a <= it1->second->getTime() || time_b >= it2->second->getTime()) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time."
                              " This exception should not trigger.");
@@ -885,7 +893,7 @@ Eigen::MatrixXd SteamTrajInterface::translateCovToLocal(const steam::BlockMatrix
   Eigen::Matrix<double,12,12> Xi2 = Eigen::MatrixXd::Zero(12,12);
 
   // Eq. 6.118
-  Eigen::Matrix<double,6,6> J_11_inv = Eigen::MatrixXd::Identity(6,6);    // todo (Ben): double check
+  Eigen::Matrix<double,6,6> J_11_inv = Eigen::MatrixXd::Identity(6,6);
   Gam1.block<6,6>(0,0) = J_11_inv;
   Gam1.block<6,6>(6,0) = 0.5*lgmath::se3::curlyhat(knot1->getVelocity()->getValue())*J_11_inv;
   Gam1.block<6,6>(6,6) = J_11_inv;
