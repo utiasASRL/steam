@@ -136,47 +136,20 @@ install(
 endif()
 
 # Executables
+link_libraries(${PROJECT_NAME})
 add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
-target_link_libraries(SimpleBAandTrajPrior ${PROJECT_NAME})
-
 add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
-target_link_libraries(SimpleBAandCATrajPrior ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
-target_link_libraries(SimpleBundleAdjustment ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
-target_link_libraries(SimpleBundleAdjustmentFullRel ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
-target_link_libraries(SimpleBundleAdjustmentRelLand ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
-target_link_libraries(SimpleBundleAdjustmentRelLandX ${PROJECT_NAME})
-
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
-target_link_libraries(SimplePoseGraphRelax ${PROJECT_NAME})
-
 add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
-target_link_libraries(SimpleTrajectoryPrior ${PROJECT_NAME})
-
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
-target_link_libraries(SpherePoseGraphRelax ${PROJECT_NAME})
-
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
-target_link_libraries(TrustRegionExample ${PROJECT_NAME})
-
 add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
-target_link_libraries(MotionDistortedP2PandCATrajPrior ${PROJECT_NAME})
-
 add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
-target_link_libraries(SimpleP2PandCATrajPrior ${PROJECT_NAME})
-
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
+add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 if (USE_AMENT)
 
 install(
@@ -194,6 +167,7 @@ install(
     TrustRegionExample
     MotionDistortedP2PandCATrajPrior
     SimpleP2PandCATrajPrior
+    SimplePointCloudAlignment
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

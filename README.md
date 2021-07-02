@@ -4,6 +4,8 @@ STEAM (Simultaneous Trajectory Estimation and Mapping) Engine is an optimization
 
 [1] Barfoot, T. D. and Furgale, P. T., “_Associating Uncertainty with Three-Dimensional Poses for use in Estimation Problems_,” IEEE Transactions on Robotics, 2014.
 
+**Note**: This branch is for VTR3, and the `USE_AMENT` flag is `ON` by default.
+
 ## Installation
 
 ### Hardware and Software Requirements
