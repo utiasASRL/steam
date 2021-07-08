@@ -86,7 +86,7 @@ To build and run these samples:
 
 ```bash
 cd ${WORKSPACE}/steam  ## $WORKSPACE defined above
-mkdir -p build_samples
+mkdir -p build_samples && cd $_
 cmake ../samples
 cmake --build .  # Executables will be generated in build_samples
 ```
