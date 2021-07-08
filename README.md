@@ -80,7 +80,7 @@ Note: `steamConfig.cmake` will be generated in both `build/` and `<install prefi
 
 ### Build examples
 
-[samples/CmakeLists.txt](./samples/CmakeLists.txt) shows an example of how to add steam to your projects.
+[samples/CMakeLists.txt](./samples/CMakeLists.txt) shows an example of how to add steam to your projects.
 
 To build and run these samples:
 
