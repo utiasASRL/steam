@@ -48,6 +48,7 @@ Eigen::Matrix<double, 3, 1> PositionEvaluator::evaluate() const {
 /// \brief Evaluate the resultant 6x1 vector belonging to the se(3) algebra and
 ///        sub-tree of evaluations
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
 EvalTreeNode<Eigen::Matrix<double, 3, 1> > *PositionEvaluator::evaluateTree() const {
 
   // Evaluate sub-trees
@@ -55,6 +56,15 @@ EvalTreeNode<Eigen::Matrix<double, 3, 1> > *PositionEvaluator::evaluateTree() co
 
   // Make new root node -- note we get memory from the pool
   EvalTreeNode<Eigen::Matrix<double, 3, 1> > *root = EvalTreeNode<Eigen::Matrix<double, 3, 1> >::pool.getObj();
+#else
+EvalTreeNode<Eigen::Matrix<double, 3, 1>>::Ptr PositionEvaluator::evaluateTree() const {
+
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr transform = transform_->evaluateTree();
+
+  // Make new root node
+  auto root = std::make_shared<EvalTreeNode<Eigen::Matrix<double, 3, 1>>>();
+#endif
   root->setValue(transform->getValue().r_ba_ina());
 
   // Add children
@@ -70,11 +80,19 @@ EvalTreeNode<Eigen::Matrix<double, 3, 1> > *PositionEvaluator::evaluateTree() co
 template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
 void PositionEvaluator::appendJacobiansImpl(
     const Eigen::Matrix<double, LHS_DIM, INNER_DIM> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+    EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<LHS_DIM, MAX_STATE_SIZE> > *outJacobians) const {
 
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<lgmath::se3::Transformation> *t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation> *>(evaluationTree->childAt(0));
+#else
+  auto t1 = std::static_pointer_cast<EvalTreeNode<lgmath::se3::Transformation>>(evaluationTree->childAt(0));
+#endif
 
   // Check if transform is active
   if (transform_->isActive()) {
@@ -89,37 +107,61 @@ void PositionEvaluator::appendJacobiansImpl(
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void PositionEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                                       EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                                      EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                                       std::vector<Jacobian<> > *outJacobians) const {
   this->appendJacobiansImpl(lhs, evaluationTree, outJacobians);
 }
 
 void PositionEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double, 1, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                                       EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                                      EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                                       std::vector<Jacobian<1, 6> > *outJacobians) const {
   this->appendJacobiansImpl(lhs, evaluationTree, outJacobians);
 }
 
 void PositionEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double, 2, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                                       EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                                      EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                                       std::vector<Jacobian<2, 6> > *outJacobians) const {
   this->appendJacobiansImpl(lhs, evaluationTree, outJacobians);
 }
 
 void PositionEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double, 3, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                                       EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                                      EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                                       std::vector<Jacobian<3, 6> > *outJacobians) const {
   this->appendJacobiansImpl(lhs, evaluationTree, outJacobians);
 }
 
 void PositionEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double, 4, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                                       EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                                      EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                                       std::vector<Jacobian<4, 6> > *outJacobians) const {
   this->appendJacobiansImpl(lhs, evaluationTree, outJacobians);
 }
 
 void PositionEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double, 6, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                                       EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                                      EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                                       std::vector<Jacobian<6, 6> > *outJacobians) const {
   this->appendJacobiansImpl(lhs, evaluationTree, outJacobians);
 }

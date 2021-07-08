@@ -61,8 +61,13 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
   jacs->clear();
 
   // Get evaluation trees
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree1 = knot1_->getPose()->evaluateTree();
   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree2 = knot2_->getPose()->evaluateTree();
+#else
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree1 = knot1_->getPose()->evaluateTree();
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree2 = knot2_->getPose()->evaluateTree();
+#endif
 
   // Compute intermediate values
   lgmath::se3::Transformation T_21 = evaluationTree2->getValue()/evaluationTree1->getValue();
@@ -171,20 +176,22 @@ Eigen::VectorXd SteamCATrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
     Eigen::Matrix<double,18,6> jacobian;
     jacobian.topRows<6>() = Eigen::Matrix<double,6,6>::Zero();
     jacobian.block<6,6>(6,0) = Eigen::Matrix<double,6,6>::Zero();
-    jacobian.bottomRows<6>() = J_21_inv; 
+    jacobian.bottomRows<6>() = J_21_inv;
     jacref.jac = lhs * jacobian;
   }
 
   // Return tree memory to pool
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<lgmath::se3::Transformation>::pool.returnObj(evaluationTree1);
   EvalTreeNode<lgmath::se3::Transformation>::pool.returnObj(evaluationTree2);
+#endif
 
   // Return error
   Eigen::Matrix<double,18,1> error;
   error.head<6>() = xi_21 - deltaTime*knot1_->getVelocity()->getValue() - 0.5*dt2*knot1_->getAcceleration()->getValue();
   error.segment<6>(6) = J_21_inv*knot2_->getVelocity()->getValue() - knot1_->getVelocity()->getValue() - deltaTime*knot1_->getAcceleration()->getValue();
   error.tail<6>() = -0.5*w*knot2_->getVelocity()->getValue() + J_21_inv*knot2_->getAcceleration()->getValue() - knot1_->getAcceleration()->getValue();
-  
+
   return error;
 }
 

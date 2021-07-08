@@ -57,8 +57,13 @@ Eigen::VectorXd SteamTrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
   jacs->clear();
 
   // Get evaluation trees
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree1 = knot1_->getPose()->evaluateTree();
   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree2 = knot2_->getPose()->evaluateTree();
+#else
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree1 = knot1_->getPose()->evaluateTree();
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree2 = knot2_->getPose()->evaluateTree();
+#endif  
 
   // Compute intermediate values
   lgmath::se3::Transformation T_21 = evaluationTree2->getValue()/evaluationTree1->getValue();
@@ -128,9 +133,11 @@ Eigen::VectorXd SteamTrajPriorFactor::evaluate(const Eigen::MatrixXd& lhs,
     jacref.jac = lhs * jacobian;
   }
 
+#ifdef STEAM_USE_OBJECT_POOL
   // Return tree memory to pool
   EvalTreeNode<lgmath::se3::Transformation>::pool.returnObj(evaluationTree1);
   EvalTreeNode<lgmath::se3::Transformation>::pool.returnObj(evaluationTree2);
+#endif  
 
   // Return error
   Eigen::Matrix<double,12,1> error;

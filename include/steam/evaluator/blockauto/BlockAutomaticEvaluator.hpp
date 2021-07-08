@@ -66,7 +66,11 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   ///    and should be given back to the pool, rather than being deleted (consider using safe
   ///    method: getBlockAutomaticEvaluation)
   //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
   virtual EvalTreeNode<TYPE>* evaluateTree() const = 0;
+#else
+  virtual typename EvalTreeNode<TYPE>::Ptr evaluateTree() const = 0;
+#endif
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Interface for the evaluation of the block automatic Jacobian tree
@@ -75,27 +79,51 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendBlockAutomaticJacobians(
       const Eigen::MatrixXd& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
       EvalTreeNode<TYPE>* evaluationTree,
+#else
+      typename EvalTreeNode<TYPE>::Ptr evaluationTree,
+#endif
       std::vector<Jacobian<> >* outJacobians) const = 0;
   virtual void appendBlockAutomaticJacobians(
       const Eigen::Matrix<double,1,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
       EvalTreeNode<TYPE>* evaluationTree,
+#else
+      typename EvalTreeNode<TYPE>::Ptr evaluationTree,
+#endif
       std::vector<Jacobian<1,MAX_STATE_SIZE> >* outJacobians) const = 0;
   virtual void appendBlockAutomaticJacobians(
       const Eigen::Matrix<double,2,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
       EvalTreeNode<TYPE>* evaluationTree,
+#else
+      typename EvalTreeNode<TYPE>::Ptr evaluationTree,
+#endif
       std::vector<Jacobian<2,MAX_STATE_SIZE> >* outJacobians) const = 0;
   virtual void appendBlockAutomaticJacobians(
       const Eigen::Matrix<double,3,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
       EvalTreeNode<TYPE>* evaluationTree,
+#else
+      typename EvalTreeNode<TYPE>::Ptr evaluationTree,
+#endif
       std::vector<Jacobian<3,MAX_STATE_SIZE> >* outJacobians) const = 0;
   virtual void appendBlockAutomaticJacobians(
       const Eigen::Matrix<double,4,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
       EvalTreeNode<TYPE>* evaluationTree,
+#else
+      typename EvalTreeNode<TYPE>::Ptr evaluationTree,
+#endif
       std::vector<Jacobian<4,MAX_STATE_SIZE> >* outJacobians) const = 0;
   virtual void appendBlockAutomaticJacobians(
       const Eigen::Matrix<double,6,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
       EvalTreeNode<TYPE>* evaluationTree,
+#else
+      typename EvalTreeNode<TYPE>::Ptr evaluationTree,
+#endif
       std::vector<Jacobian<6,MAX_STATE_SIZE> >* outJacobians) const = 0;
 };
 

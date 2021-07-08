@@ -14,7 +14,7 @@
 #include <fstream>
 
 using namespace std;
-typedef steam::PointToPointErrorEval Error; 
+typedef steam::PointToPointErrorEval Error;
 typedef steam::WeightedLeastSqCostTerm<4,6> Cost;
 unsigned int M = 20;
 unsigned int N = 20;
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   /// Parse Dataset
   ///
 
-  string filePath = "../../include/steam/data/PointToPoint_distorted/points_simulated.txt";
+  string filePath = "../include/steam/data/PointToPoint_distorted/points_simulated.txt";
   ifstream in(filePath);
 
   vector<vector<double>> fields;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  filePath = "../../include/steam/data/PointToPoint_distorted/poses_ic.txt";
+  filePath = "../include/steam/data/PointToPoint_distorted/poses_ic.txt";
   ifstream inIc(filePath);
 
   vector<vector<double>> fieldsIC;
@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
   // Zero velocity
   Eigen::Matrix<double,6,1> initVelocity; initVelocity.setZero();
   // initVelocity << -10.0, 0, 0, 0, 0, 0;
-  
+
   // Zero acceleration
   Eigen::Matrix<double,6,1> initAcceleration; initAcceleration.setZero();
   // initAcceleration << -3.0, 0, 0, 0, 0, 0;
@@ -116,9 +116,9 @@ int main(int argc, char** argv) {
     double dt = double(i-0)*0.1;
     temp.time = steam::Time(dt);
     Eigen::Matrix<double,4,4> T_k0;
-    T_k0 << fieldsIC[i][0], fieldsIC[i][1], fieldsIC[i][2], fieldsIC[i][3], 
-    fieldsIC[i][4], fieldsIC[i][5], fieldsIC[i][6], fieldsIC[i][7], 
-    fieldsIC[i][8], fieldsIC[i][9], fieldsIC[i][10], fieldsIC[i][11], 
+    T_k0 << fieldsIC[i][0], fieldsIC[i][1], fieldsIC[i][2], fieldsIC[i][3],
+    fieldsIC[i][4], fieldsIC[i][5], fieldsIC[i][6], fieldsIC[i][7],
+    fieldsIC[i][8], fieldsIC[i][9], fieldsIC[i][10], fieldsIC[i][11],
     0.0, 0.0, 0.0, 1;
 
     lgmath::se3::Transformation T_k0_tf(T_k0);
@@ -144,11 +144,11 @@ int main(int argc, char** argv) {
   // Lock first pose (otherwise entire solution is 'floating')
   //  **Note: alternatively we could add a prior to the first pose.
   traj_states_ic[0].pose->setLock(true);
-  
+
 
   // steam cost terms
   steam::ParallelizedCostTermCollection::Ptr measCostTerms(new steam::ParallelizedCostTermCollection());
-  
+
   // Setup shared noise and loss function
   Eigen::Matrix4d measurementNoise;
   measurementNoise.setIdentity();
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
 
   for (unsigned int i = 1; i < N; i++) {
     // steam::se3::TransformEvaluator::Ptr T_k0 = steam::se3::TransformStateEvaluator::MakeShared(traj_states_ic[i].pose);
-    
+
     for (unsigned int j = 0; j < M; j++) {
       double t = (i-1)*0.1 + double(j+1)/double(M)*0.1;
       auto T_k0 = traj.getInterpPoseEval(t);
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
 
       Eigen::Vector4d read_b;
       read_b << fields[i*N+j][0] , fields[i*N+j][1] , fields[i*N+j][2] , fields[i*N+j][3];
-      
+
       error.reset(new Error(ref_a, read_b, T_k0));
 			cost.reset(new Cost(error, sharedNoiseModel, sharedLossFunc));
       measCostTerms->add(cost);

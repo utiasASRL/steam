@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   // Get filename
   std::string filename;
   if (argc < 2) {
-    filename = "../../include/steam/data/sphere2500.txt";
+    filename = "../include/steam/data/sphere2500.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
   } else {
     filename = argv[1];

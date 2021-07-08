@@ -45,9 +45,9 @@ int main(int argc, char** argv) {
   // Get filename
   std::string filename;
   if (argc < 2) {
-    filename = "../../include/steam/data/stereo_simulated.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window1.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window2.txt";
+    filename = "../include/steam/data/stereo_simulated.txt";
+    //filename = "../include/steam/data/stereo_simulated_window1.txt";
+    //filename = "../include/steam/data/stereo_simulated_window2.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
   } else {
     filename = argv[1];
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
   for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
     steam::Time temp_time = steam::Time(dataset.frames_ic[i].time);
     steam::se3::TransformStateVar::Ptr temp_statevar(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
-    steam::se3::TransformStateEvaluator::Ptr temp_pose = steam::se3::TransformStateEvaluator::MakeShared(temp_statevar);    
+    steam::se3::TransformStateEvaluator::Ptr temp_pose = steam::se3::TransformStateEvaluator::MakeShared(temp_statevar);
     steam::VectorSpaceStateVar::Ptr temp_velocity  = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
     // std::cout << i << " : " << dataset.frames_ic[i].time << " " << dataset.frames_ic[i].T_k0;
     steam::se3::SteamTrajVar temp(temp_time, temp_pose, temp_velocity);

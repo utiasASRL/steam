@@ -62,36 +62,64 @@ public:
   /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
   ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  virtual EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluateTree() const;
+#ifdef STEAM_USE_OBJECT_POOL
+  virtual EvalTreeNode<Eigen::Matrix<double, 3, 1>> *evaluateTree() const;
+#else
+  virtual EvalTreeNode<Eigen::Matrix<double, 3, 1>>::Ptr evaluateTree() const;
+#endif
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendBlockAutomaticJacobians(const Eigen::MatrixXd &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                              EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                             EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                              std::vector<Jacobian<> > *outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Fixed-size evaluations of the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double, 1, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                              EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                             EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                              std::vector<Jacobian<1, 6> > *outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double, 2, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                              EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                             EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                              std::vector<Jacobian<2, 6> > *outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double, 3, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                              EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                             EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                              std::vector<Jacobian<3, 6> > *outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double, 4, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                              EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                             EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                              std::vector<Jacobian<4, 6> > *outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double, 6, 3> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                              EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                                             EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                                              std::vector<Jacobian<6, 6> > *outJacobians) const;
 
 private:
@@ -101,7 +129,11 @@ private:
   //////////////////////////////////////////////////////////////////////////////////////////////
   template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
   void appendJacobiansImpl(const Eigen::Matrix<double, LHS_DIM, INNER_DIM> &lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                            EvalTreeNode<Eigen::Matrix<double, 3, 1> > *evaluationTree,
+#else
+                           EvalTreeNode<Eigen::Matrix<double, 3, 1> >::Ptr evaluationTree,
+#endif
                            std::vector<Jacobian<LHS_DIM, MAX_STATE_SIZE> > *outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////

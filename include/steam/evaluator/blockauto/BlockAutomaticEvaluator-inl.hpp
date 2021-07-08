@@ -29,7 +29,11 @@ TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
   jacs->clear();
 
   // Get evaluation tree - note that this pointer belongs to a pool
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<TYPE>* tree = this->evaluateTree();
+#else
+  typename EvalTreeNode<TYPE>::Ptr tree = this->evaluateTree();
+#endif
 
   // Get Jacobians
   this->appendBlockAutomaticJacobians(lhs, tree, jacs);
@@ -37,8 +41,10 @@ TYPE BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE>::evaluate(
   // Get evaluation from tree
   TYPE eval = tree->getValue();
 
+#ifdef STEAM_USE_OBJECT_POOL
   // Return tree memory to pool
   EvalTreeNode<TYPE>::pool.returnObj(tree);
+#endif
 
   // Return evaluation
   return eval;

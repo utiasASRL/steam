@@ -9,11 +9,13 @@
 
 namespace steam {
 
+#ifdef STEAM_USE_OBJECT_POOL
 /////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Static declaration of pool type
 /////////////////////////////////////////////////////////////////////////////////////////////
 template<typename TYPE>
 OmpPool<EvalTreeNode<TYPE> > EvalTreeNode<TYPE>::pool;
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Default constructor
@@ -30,6 +32,7 @@ EvalTreeNode<TYPE>::EvalTreeNode(const TYPE& value)
   : EvalTreeNodeBase(), value_(value) {
 }
 
+#ifdef STEAM_USE_OBJECT_POOL
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Use when node was allocated using a pool. This function causes the object to
 ///        release itself back to the pool it was allocated from. While the user is
@@ -40,6 +43,7 @@ template<typename TYPE>
 void EvalTreeNode<TYPE>::release() {
   return pool.returnObj(this);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Release children and reset internals.

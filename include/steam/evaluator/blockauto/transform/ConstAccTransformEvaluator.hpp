@@ -26,15 +26,15 @@ class ConstAccTransformEvaluator : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
-  ConstAccTransformEvaluator(const VectorSpaceStateVar::Ptr& velocity, 
-                             const VectorSpaceStateVar::Ptr& acceleration, 
+  ConstAccTransformEvaluator(const VectorSpaceStateVar::Ptr& velocity,
+                             const VectorSpaceStateVar::Ptr& acceleration,
                              const Time& time);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Pseudo constructor - return a shared pointer to a new instance
   //////////////////////////////////////////////////////////////////////////////////////////////
-  static Ptr MakeShared(const VectorSpaceStateVar::Ptr& velocity, 
-                        const VectorSpaceStateVar::Ptr& acceleration, 
+  static Ptr MakeShared(const VectorSpaceStateVar::Ptr& velocity,
+                        const VectorSpaceStateVar::Ptr& acceleration,
                         const Time& time);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,33 +59,61 @@ class ConstAccTransformEvaluator : public TransformEvaluator
   /// ** Note that the returned pointer belongs to the memory pool EvalTreeNode<TYPE>::pool,
   ///    and should be given back to the pool, rather than being deleted.
   //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
   virtual EvalTreeNode<lgmath::se3::Transformation>* evaluateTree() const;
+#else
+  virtual EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluateTree() const;
+#endif
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Evaluate the Jacobian tree
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                               EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                std::vector<Jacobian<> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                               EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                std::vector<Jacobian<1,6> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                               EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                std::vector<Jacobian<2,6> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                               EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                std::vector<Jacobian<3,6> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                               EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                std::vector<Jacobian<4,6> >* outJacobians) const;
 
   virtual void appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                               EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                std::vector<Jacobian<6,6> >* outJacobians) const;
 
  private:
@@ -95,7 +123,11 @@ class ConstAccTransformEvaluator : public TransformEvaluator
   //////////////////////////////////////////////////////////////////////////////////////////////
   template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
   void appendJacobiansImpl(const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                            EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                           EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                            std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const;
 
   //////////////////////////////////////////////////////////////////////////////////////////////

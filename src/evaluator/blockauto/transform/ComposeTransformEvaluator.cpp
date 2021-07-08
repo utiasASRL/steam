@@ -55,6 +55,7 @@ lgmath::se3::Transformation ComposeTransformEvaluator::evaluate() const {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Evaluate the transformation matrix tree
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef STEAM_USE_OBJECT_POOL
 EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTree() const {
 
   // Evaluate sub-trees
@@ -63,6 +64,16 @@ EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTr
 
   // Make new root node -- note we get memory from the pool
   EvalTreeNode<lgmath::se3::Transformation>* root = EvalTreeNode<lgmath::se3::Transformation>::pool.getObj();
+#else
+EvalTreeNode<lgmath::se3::Transformation>::Ptr ComposeTransformEvaluator::evaluateTree() const {
+
+  // Evaluate sub-trees
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr transform1 = transform1_->evaluateTree();
+  EvalTreeNode<lgmath::se3::Transformation>::Ptr transform2 = transform2_->evaluateTree();
+
+  // Make new root node
+  auto root = std::make_shared<EvalTreeNode<lgmath::se3::Transformation>>();
+#endif
   root->setValue(transform1->getValue()*transform2->getValue());
 
   // Add children
@@ -79,12 +90,20 @@ EvalTreeNode<lgmath::se3::Transformation>* ComposeTransformEvaluator::evaluateTr
 template<int LHS_DIM, int INNER_DIM, int MAX_STATE_SIZE>
 void ComposeTransformEvaluator::appendJacobiansImpl(
     const Eigen::Matrix<double,LHS_DIM,INNER_DIM>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+    EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
     std::vector<Jacobian<LHS_DIM,MAX_STATE_SIZE> >* outJacobians) const {
 
   // Cast back to transformation
+#ifdef STEAM_USE_OBJECT_POOL
   EvalTreeNode<lgmath::se3::Transformation>* t1 =
       static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(0));
+#else
+  auto t1 = std::static_pointer_cast<EvalTreeNode<lgmath::se3::Transformation>>(evaluationTree->childAt(0));
+#endif
 
   // Check if transform1 is active
   if (transform1_->isActive()) {
@@ -99,8 +118,12 @@ void ComposeTransformEvaluator::appendJacobiansImpl(
   // Check if transform2 is active
   if (transform2_->isActive()) {
 
+#ifdef STEAM_USE_OBJECT_POOL
     EvalTreeNode<lgmath::se3::Transformation>* t2 =
         static_cast<EvalTreeNode<lgmath::se3::Transformation>*>(evaluationTree->childAt(1));
+#else
+  auto t2 = std::static_pointer_cast<EvalTreeNode<lgmath::se3::Transformation>>(evaluationTree->childAt(1));
+#endif
 
     Eigen::Matrix<double,LHS_DIM,INNER_DIM> newLhs = lhs*t1->getValue().adjoint();
     transform2_->appendBlockAutomaticJacobians(newLhs, t2, outJacobians);
@@ -114,37 +137,61 @@ void ComposeTransformEvaluator::appendJacobiansImpl(
 /// \brief Evaluate the Jacobian tree
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::MatrixXd& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                                   EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                                  EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                                   std::vector<Jacobian<> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,1,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                              EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                               std::vector<Jacobian<1,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,2,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                              EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                               std::vector<Jacobian<2,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,3,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                              EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                               std::vector<Jacobian<3,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,4,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                              EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                               std::vector<Jacobian<4,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }
 
 void ComposeTransformEvaluator::appendBlockAutomaticJacobians(const Eigen::Matrix<double,6,6>& lhs,
+#ifdef STEAM_USE_OBJECT_POOL
                               EvalTreeNode<lgmath::se3::Transformation>* evaluationTree,
+#else
+                              EvalTreeNode<lgmath::se3::Transformation>::Ptr evaluationTree,
+#endif
                               std::vector<Jacobian<6,6> >* outJacobians) const {
   this->appendJacobiansImpl(lhs,evaluationTree, outJacobians);
 }

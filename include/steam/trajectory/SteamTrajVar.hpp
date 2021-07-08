@@ -77,7 +77,7 @@ class SteamTrajVar
   /// \brief Generalized 6D velocity state variable
   //////////////////////////////////////////////////////////////////////////////////////////////
   VectorSpaceStateVar::Ptr velocity_;
- 
+
  protected:
   Eigen::MatrixXd cov_;
   bool cov_set_=false;

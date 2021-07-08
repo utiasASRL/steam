@@ -7,6 +7,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <thread>
 
 #include <lgmath.hpp>
 #include <steam.hpp>
@@ -15,30 +16,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves simple bundle adjustment problems
 //////////////////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char** argv) {
-
-  ///
-  /// Parse Dataset
-  ///
-
-  // Get filename
-  std::string filename;
-  if (argc < 2) {
-    filename = "../../include/steam/data/stereo_simulated.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window1.txt";
-    //filename = "../../include/steam/data/stereo_simulated_window2.txt";
-    std::cout << "Parsing default file: " << filename << std::endl << std::endl;
-  } else {
-    filename = argv[1];
-    std::cout << "Parsing file: " << filename << std::endl << std::endl;
-  }
-
-  // Load dataset
-  steam::data::SimpleBaDataset dataset = steam::data::parseSimpleBaDataset(filename);
-  std::cout << "Problem has: " << dataset.frames_gt.size() << " poses" << std::endl;
-  std::cout << "             " << dataset.land_gt.size() << " landmarks" << std::endl;
-  std::cout << "            ~" << double(dataset.meas.size())/dataset.frames_gt.size() << " meas per pose" << std::endl << std::endl;
-
+void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
   ///
   /// Setup States
   ///
@@ -209,6 +187,42 @@ int main(int argc, char** argv) {
 
   // Optimize
   solver.optimize();
+}
 
-  return 0;
+int main(int argc, char** argv) {
+  ///
+  /// Parse Dataset
+  ///
+
+  // Get filename
+  std::string filename;
+  if (argc < 2) {
+    filename = "../include/steam/data/stereo_simulated.txt";
+    //filename = "../include/steam/data/stereo_simulated_window1.txt";
+    //filename = "../include/steam/data/stereo_simulated_window2.txt";
+    std::cout << "Parsing default file: " << filename << std::endl << std::endl;
+  } else {
+    filename = argv[1];
+    std::cout << "Parsing file: " << filename << std::endl << std::endl;
+  }
+
+  // Load dataset
+  steam::data::SimpleBaDataset dataset = steam::data::parseSimpleBaDataset(filename);
+  std::cout << "Problem has: " << dataset.frames_gt.size() << " poses" << std::endl;
+  std::cout << "             " << dataset.land_gt.size() << " landmarks" << std::endl;
+  std::cout << "            ~" << double(dataset.meas.size())/dataset.frames_gt.size() << " meas per pose" << std::endl << std::endl;
+
+  /// Test single thread execution
+  std::cout << "Test single thread execution." << std::endl;
+  runBundleAdjustment(dataset);
+
+#ifndef STEAM_USE_OBJECT_POOL
+  /// Test multi thread execution
+  std::cout << "Test multi thread execution (C++11)." << std::endl;
+  std::vector<std::thread> threads;
+  for (int i = 1; i <= 10; ++i)
+    threads.push_back(std::thread(runBundleAdjustment, dataset));
+  for (auto &th : threads)
+    th.join();
+#endif
 }

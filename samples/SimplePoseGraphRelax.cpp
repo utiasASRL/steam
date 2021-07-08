@@ -6,6 +6,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <thread>
 
 #include <lgmath.hpp>
 #include <steam.hpp>
@@ -22,7 +23,7 @@ struct RelMeas {
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves a relative pose graph problem
 //////////////////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char **argv) {
+void runPoseGraphRelax() {
 
   ///
   /// Setup 'Dataset'
@@ -129,7 +130,19 @@ int main(int argc, char **argv) {
 
   // Optimize
   solver.optimize();
+}
 
-  return 0;
+int main(int argc, char **argv) {
+  std::cout << "Test single thread execution." << std::endl;
+  runPoseGraphRelax();
+
+#ifndef STEAM_USE_OBJECT_POOL
+  std::cout << "Test multi thread execution (C++11)." << std::endl;
+  std::vector<std::thread> threads;
+  for (int i = 1; i <= 10; ++i)
+    threads.push_back(std::thread(runPoseGraphRelax));
+  for (auto &th : threads)
+    th.join();
+#endif
 }
 

@@ -1,111 +1,220 @@
-################################################################################
-### Header
-################################################################################
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.16)
 project(steam)
 
-# build tool
-find_package(catkin_optional REQUIRED)
-co_build_type() # cache the build type
+option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." OFF)
 
-################################################################################
-### Compiler Setup
-################################################################################
+# Compiler setup (assumed to be GNU)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-march=native -O3 -Wall -pedantic -Wno-unused-function)
 
-if (CMAKE_COMPILER_IS_GNUCC)
-  execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-  if (GCC_VERSION VERSION_GREATER 4.8 OR GCC_VERSION VERSION_EQUAL 4.8)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    message(STATUS "C++11 capable compiler detected")
-  else()
-    # gcc46 does not support C++11, and the linker is too old to know about AVX instructions
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -mno-avx")
-    message(STATUS "C++11 support not available; defaulting to C++0x")
-  endif()
-else()
-  message(WARNING "Cannot detect correct settings for your compiler")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-endif()
+# define number of threads to be used by OpenMP in steam
+add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
+# Use a object pool to improve performance but no longer thread safe as the object pool
+# is a singleton and is based on openmp. There is about ~10 gain in speed.
+# add_definitions(-DSTEAM_USE_OBJECT_POOL)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wno-unused-function")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+## cmake flow (default)
+if (NOT USE_AMENT)
 
-################################################################################
-### Configure Dependency Headers and Libraries
-################################################################################
+set(PROJECT_VERSION 1.1.0)
 
-# Add the search path for FindPackage.cmake files
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-# initialize
-set(EXTERNAL_LIBS "")
-
-# find Eigen
-find_package(Eigen3 3.2.2 REQUIRED)
-message(STATUS "FOUND: Eigen3 version ${EIGEN3_VERSION} found in ${EIGEN3_INCLUDE_DIR}")
-include_directories(${EIGEN3_INCLUDE_DIR})
-
-# find OpenMP - multithreading package
+# Find dependencies
+find_package(Boost 1.71.0 REQUIRED system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+find_package(Eigen3 3.3.7 REQUIRED)
+find_package(lgmath 1.1.0 REQUIRED)
 
-# find Lie Group Math
-find_package(lgmath REQUIRED)
-include_directories(${lgmath_INCLUDE_DIRS})
-list(APPEND EXTERNAL_LIBS ${lgmath_LIBRARIES})
-
-# find Boost (used for executables only)
-find_package(Boost REQUIRED system)
-include_directories(${Boost_INCLUDE_DIRS})
-set(DEPEND_LIBS ${Boost_LIBRARIES})
-
-################################################################################
-### Enable find_package()
-################################################################################
-
-# export the package (for package config)
-co_export(
-  VERSION 0.2.0
-  INCLUDE_DIRS include
-  LIBRARIES steam
-  DEPENDS lgmath Eigen3 OpenMP Boost)
-
-################################################################################
-### Specify Build Targets
-################################################################################
-
-##### Main Library 
-
-# Find the header and source files
-file(GLOB_RECURSE HEADER_FILES "include/*.hpp")
+# Build library
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
+add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    ${Boost_LIBRARIES}
+    lgmath
+)
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    ${EIGEN3_INCLUDE_DIR}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
-# build and link the library
-add_library(steam SHARED ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(steam ${EXTERNAL_LIBS})
-set_target_properties(steam PROPERTIES VERSION "${PROJECT_VERSION}" SOVERSION 1)
+# Install
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
 
-################################################################################
-### Set install targets
-################################################################################
+install(
+  TARGETS ${PROJECT_NAME}
+  DESTINATION lib
+  EXPORT ${PROJECT_NAME}Targets
+)
 
-# install the exported items
-co_install()
+# Export
+set(PROJECT_LIBRARY ${PROJECT_NAME})
 
-################################################################################
-### Samples and Tests
-################################################################################
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
+  NO_SET_AND_CHECK_MACRO
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+# export to build directory so no need to install in order to use find_package
+export(
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
+)
 
-# add 'Catch' test directory
-set(TESTS_ON TRUE CACHE BOOL "Configure unit testing (uses Catch unit tests)")
-if(${TESTS_ON})
-    enable_testing(true)
-    add_subdirectory(tests)
+# install export cmake files
+install(
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${PROJECT_NAME}Targets.cmake
+  DESTINATION lib/cmake/${PROJECT_NAME}
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  DESTINATION lib/cmake/${PROJECT_NAME}
+)
+
+## ROS2 ament_cmake flow
+else()
+
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(Boost REQUIRED system)
+find_package(OpenMP REQUIRED)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+find_package(eigen3_cmake_module REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(lgmath REQUIRED)
+
+# Libraries
+file(GLOB_RECURSE SOURCE src/*.cpp)
+add_library(${PROJECT_NAME} ${SOURCE})
+ament_target_dependencies(${PROJECT_NAME} Boost Eigen3 OpenMP lgmath)
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+# May need the following
+ament_export_dependencies(
+  Boost
+  Eigen3
+  OpenMP
+  lgmath
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+install(
+  TARGETS
+    # Libraries
+    ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  INCLUDES DESTINATION include
+)
+
 endif()
 
-# add samples directory
-set(SAMPLES_ON TRUE CACHE BOOL "Build sample executables (e.g. speed test)")
-if(${SAMPLES_ON})
-  add_subdirectory(samples)
+# Executables
+add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
+target_link_libraries(SimpleBAandTrajPrior ${PROJECT_NAME})
+
+add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
+target_link_libraries(SimpleBAandCATrajPrior ${PROJECT_NAME})
+
+add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
+target_link_libraries(SimpleBundleAdjustment ${PROJECT_NAME})
+
+add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
+target_link_libraries(SimpleBundleAdjustmentFullRel ${PROJECT_NAME})
+
+add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
+target_link_libraries(SimpleBundleAdjustmentRelLand ${PROJECT_NAME})
+
+add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
+target_link_libraries(SimpleBundleAdjustmentRelLandX ${PROJECT_NAME})
+
+add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
+target_link_libraries(SimplePoseGraphRelax ${PROJECT_NAME})
+
+add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
+target_link_libraries(SimpleTrajectoryPrior ${PROJECT_NAME})
+
+add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
+target_link_libraries(SpherePoseGraphRelax ${PROJECT_NAME})
+
+add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
+target_link_libraries(TrustRegionExample ${PROJECT_NAME})
+
+add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
+target_link_libraries(MotionDistortedP2PandCATrajPrior ${PROJECT_NAME})
+
+add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
+target_link_libraries(SimpleP2PandCATrajPrior ${PROJECT_NAME})
+
+if (USE_AMENT)
+
+install(
+  TARGETS
+    # Executables
+    SimpleBAandTrajPrior
+    SimpleBAandCATrajPrior
+    SimpleBundleAdjustment
+    SimpleBundleAdjustmentFullRel
+    SimpleBundleAdjustmentRelLand
+    SimpleBundleAdjustmentRelLandX
+    SimplePoseGraphRelax
+    SimpleTrajectoryPrior
+    SpherePoseGraphRelax
+    TrustRegionExample
+    MotionDistortedP2PandCATrajPrior
+    SimpleP2PandCATrajPrior
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  INCLUDES DESTINATION include
+)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  # Unit-tests
+  ament_add_gtest(time_test tests/time_test.cpp)
+  target_link_libraries(time_test ${PROJECT_NAME})
+  ament_add_gtest(pattern_test tests/pattern_test.cpp)
+  target_link_libraries(pattern_test ${PROJECT_NAME})
+  ament_add_gtest(evaluator_test tests/evaluator_test.cpp)
+  target_link_libraries(evaluator_test ${PROJECT_NAME})
+
+  # Linting
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies() # Lint based on linter test_depend in package.xml
+endif()
+
+ament_package()
 endif()

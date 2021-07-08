@@ -1,265 +1,258 @@
-// vim: ts=4:sw=4:noexpandtab
-
 /////////////////////////////////////////////////////////////////////////////////////////////
 /// ErrorEvaluator Test
 /// \author Francois Pomerleau
-/// \brief To execute only this test run: 
-///    $ ./tests/steam_unit_tests PointToPointErrorEval -s
 /////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <gtest/gtest.h>
 
-#include "catch.hpp"
-#include "steam.hpp"
+#include <iostream>
+
 #include <lgmath/CommonMath.hpp>
+#include <steam.hpp>
 
-// Helper function to initialize a 3D point in homogeneous coordinates 
-Eigen::Vector4d initVector4d(const double x, const double y, const double z)
-{
-	Eigen::Vector4d v;
-	v << x, y, z, 1.0;
+// Helper function to initialize a 3D point in homogeneous coordinates
+Eigen::Vector4d initVector4d(const double x, const double y, const double z) {
+  Eigen::Vector4d v;
+  v << x, y, z, 1.0;
 
-	return v;
+  return v;
 }
 
 // Helper function to solve and check that the solution is close
 // to the ground truth transformation used to generate the data
-void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components, const int constructor_type)
-{
-	//---------------------------------------
-	// General structure:
-	// 0- Generate simple point clouds
-	// 1- Steam state variables
-	// 2- Steam cost terms
-	// 3- Set up the optimization problem
-	// 4- Solve
-	// 5- Check that the transformation are the same
-	//---------------------------------------
+void solveSimpleProblem(const Eigen::Matrix<double, 6, 1> T_components,
+                        const int constructor_type) {
+  //---------------------------------------
+  // General structure:
+  // 0- Generate simple point clouds
+  // 1- Steam state variables
+  // 2- Steam cost terms
+  // 3- Set up the optimization problem
+  // 4- Solve
+  // 5- Check that the transformation are the same
+  //---------------------------------------
 
+  //---------------------------------------
+  // 0- Generate simple point clouds
+  //---------------------------------------
 
-	//---------------------------------------
-	// 0- Generate simple point clouds
-	//---------------------------------------
+  // Build a fixed point cloud (reference) with 3 points
+  // expressed in frame a
+  const Eigen::Vector4d ref_a_0 = initVector4d(0, 0, 0);
+  const Eigen::Vector4d ref_a_1 = initVector4d(1, 0, 0);
+  const Eigen::Vector4d ref_a_2 = initVector4d(0, 1, 0);
 
-	// Build a fixed point cloud (reference) with 3 points
-	// expressed in frame a
-	const Eigen::Vector4d ref_a_0 = initVector4d(0, 0, 0);
-	const Eigen::Vector4d ref_a_1 = initVector4d(1, 0, 0);
-	const Eigen::Vector4d ref_a_2 = initVector4d(0, 1, 0);
+  // Build a ground truth (gt) transformation matrix
+  // from frame b to frame a
+  const lgmath::se3::Transformation Tgt_a_b(T_components);
+  // and its inverse
+  const lgmath::se3::Transformation Tgt_b_a = Tgt_a_b.inverse();
 
-	// Build a ground truth (gt) transformation matrix 
-	// from frame b to frame a
-	const lgmath::se3::Transformation Tgt_a_b(T_components);
-	// and its inverse
-	const lgmath::se3::Transformation Tgt_b_a = Tgt_a_b.inverse();
-  
+  // Move the reference point cloud to generate a
+  // second point cloud called read (reading)
+  Eigen::Vector4d read_b_0 = Tgt_b_a.matrix() * ref_a_0;
+  Eigen::Vector4d read_b_1 = Tgt_b_a.matrix() * ref_a_1;
+  Eigen::Vector4d read_b_2 = Tgt_b_a.matrix() * ref_a_2;
 
-	// Move the reference point cloud to generate a
-	// second point cloud called read (reading)
-	Eigen::Vector4d read_b_0 = Tgt_b_a.matrix() * ref_a_0;
-	Eigen::Vector4d read_b_1 = Tgt_b_a.matrix() * ref_a_1;
-	Eigen::Vector4d read_b_2 = Tgt_b_a.matrix() * ref_a_2;
-	
-	//---------------------------------------
-	// 1- Steam state variables
-	//---------------------------------------
+  //---------------------------------------
+  // 1- Steam state variables
+  //---------------------------------------
 
-	// Setup state for the reference frame
-	// Note: the default constructor sets the state to identity
-	steam::se3::TransformStateVar::Ptr stateReference(new steam::se3::TransformStateVar());
-	// Lock the reference frame
-	stateReference->setLock(true);
+  // Setup state for the reference frame
+  // Note: the default constructor sets the state to identity
+  steam::se3::TransformStateVar::Ptr stateReference(
+      new steam::se3::TransformStateVar());
+  // Lock the reference frame
+  stateReference->setLock(true);
 
-	// Setup state for the reading frame
-	steam::se3::TransformStateVar::Ptr stateReading(new steam::se3::TransformStateVar());
+  // Setup state for the reading frame
+  steam::se3::TransformStateVar::Ptr stateReading(
+      new steam::se3::TransformStateVar());
 
-	//---------------------------------------
-	// 2- Steam cost terms
-	//---------------------------------------
+  //---------------------------------------
+  // 2- Steam cost terms
+  //---------------------------------------
 
-	// steam cost terms
-	steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
+  // steam cost terms
+  steam::ParallelizedCostTermCollection::Ptr costTerms(
+      new steam::ParallelizedCostTermCollection());
 
-	// Convert our states to Transform Evaluators
-	// T_a_a is silly (most be identity) but it's there for completness
-	auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
-	auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
-	auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
+  // Convert our states to Transform Evaluators
+  // T_a_a is silly (most be identity) but it's there for completness
+  auto T_a_a = steam::se3::TransformStateEvaluator::MakeShared(stateReference);
+  auto T_a_b = steam::se3::TransformStateEvaluator::MakeShared(stateReading);
+  auto T_b_a = steam::se3::InverseTransformEvaluator::MakeShared(T_a_b);
 
-	// Define our error funtion
-	typedef steam::PointToPointErrorEval Error;
-	
-	//-------------
-	// This is specific to the unit test
+  // Define our error funtion
+  typedef steam::PointToPointErrorEval Error;
 
-	// Build the alignment errors
-	Error::Ptr error_0;
-	Error::Ptr error_1;
-	Error::Ptr error_2;
+  //-------------
+  // This is specific to the unit test
 
-	if(constructor_type == 0)
-	{
-		error_0.reset(new Error(ref_a_0, T_a_a, read_b_0, T_b_a));
-		error_1.reset(new Error(ref_a_1, T_a_a, read_b_1, T_b_a));
-		error_2.reset(new Error(ref_a_2, T_a_a, read_b_2, T_b_a));
-	}
-	else if(constructor_type == 1)
-	{
-		error_0.reset(new Error(ref_a_0, read_b_0, T_a_b));
-		error_1.reset(new Error(ref_a_1, read_b_1, T_a_b));
-		error_2.reset(new Error(ref_a_2, read_b_2, T_a_b));
-	}
-	//-------------
-		
-	// Set the NoiseModel (R_i) to identity
-	steam::BaseNoiseModel<4>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<4>(Eigen::Matrix4d::Identity()));
+  // Build the alignment errors
+  Error::Ptr error_0;
+  Error::Ptr error_1;
+  Error::Ptr error_2;
 
-	// Set the LossFunction to L2 (least-squared)
-	steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  if (constructor_type == 0) {
+    error_0.reset(new Error(ref_a_0, T_a_a, read_b_0, T_b_a));
+    error_1.reset(new Error(ref_a_1, T_a_a, read_b_1, T_b_a));
+    error_2.reset(new Error(ref_a_2, T_a_a, read_b_2, T_b_a));
+  } else if (constructor_type == 1) {
+    error_0.reset(new Error(ref_a_0, read_b_0, T_b_a));
+    error_1.reset(new Error(ref_a_1, read_b_1, T_b_a));
+    error_2.reset(new Error(ref_a_2, read_b_2, T_b_a));
+  }
+  //-------------
 
-	// Define our cost term
-	typedef steam::WeightedLeastSqCostTerm<4,6> Cost;
+  // Set the NoiseModel (R_i) to identity
+  steam::BaseNoiseModel<4>::Ptr sharedNoiseModel(
+      new steam::StaticNoiseModel<4>(Eigen::Matrix4d::Identity()));
 
-	// Build the cost terms
-	Cost::Ptr cost_0(new Cost(error_0, sharedNoiseModel, sharedLossFunc));
-	Cost::Ptr cost_1(new Cost(error_1, sharedNoiseModel, sharedLossFunc));
-	Cost::Ptr cost_2(new Cost(error_2, sharedNoiseModel, sharedLossFunc));
-	
-	// Add our individual cost terms to the collection 
-	costTerms->add(cost_0);
-	costTerms->add(cost_1);
-	costTerms->add(cost_2);
+  // Set the LossFunction to L2 (least-squared)
+  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
 
+  // Define our cost term
+  typedef steam::WeightedLeastSqCostTerm<4, 6> Cost;
 
-	//---------------------------------------
-	// 3- Set up the optimization problem
-	//---------------------------------------
+  // Build the cost terms
+  Cost::Ptr cost_0(new Cost(error_0, sharedNoiseModel, sharedLossFunc));
+  Cost::Ptr cost_1(new Cost(error_1, sharedNoiseModel, sharedLossFunc));
+  Cost::Ptr cost_2(new Cost(error_2, sharedNoiseModel, sharedLossFunc));
 
-	steam::OptimizationProblem problem;
+  // Add our individual cost terms to the collection
+  costTerms->add(cost_0);
+  costTerms->add(cost_1);
+  costTerms->add(cost_2);
 
-	// Add states
-	problem.addStateVariable(stateReference);
-	problem.addStateVariable(stateReading);
+  //---------------------------------------
+  // 3- Set up the optimization problem
+  //---------------------------------------
 
-	// Add cost terms
-	problem.addCostTerm(costTerms);
+  steam::OptimizationProblem problem;
 
+  // Add states
+  problem.addStateVariable(stateReference);
+  problem.addStateVariable(stateReading);
 
-	//---------------------------------------
-	// 4- Solve
-	//---------------------------------------
+  // Add cost terms
+  problem.addCostTerm(costTerms);
 
-	//typedef steam::DoglegGaussNewtonSolver SolverType
-	typedef steam::VanillaGaussNewtonSolver SolverType;
+  //---------------------------------------
+  // 4- Solve
+  //---------------------------------------
 
-	SolverType::Params params;
-	params.verbose = false;
-	//params.maxIterations = 500;
-	//params.absoluteCostThreshold = 0.0;
-	//params.absoluteCostChangeThreshold = 1e-4;
-	//params.relativeCostChangeThreshold = 1e-4;
+  // typedef steam::DoglegGaussNewtonSolver SolverType
+  typedef steam::VanillaGaussNewtonSolver SolverType;
 
-	// Make solver
-	SolverType solver(&problem, params);
+  SolverType::Params params;
+  params.verbose = false;
+  // params.maxIterations = 500;
+  // params.absoluteCostThreshold = 0.0;
+  // params.absoluteCostChangeThreshold = 1e-4;
+  // params.relativeCostChangeThreshold = 1e-4;
 
-	// Optimize
-	solver.optimize();
+  // Make solver
+  SolverType solver(&problem, params);
 
-	//---------------------------------------
-	// 5- Check that the transformation are the same
-	//---------------------------------------
-	INFO("Minimized transformation:" << "\n" <<
-		 stateReading->getValue().matrix() << "\n" <<
-		 "is different than original transformation:" << "\n" <<
-		 Tgt_b_a.matrix() << "\n" << 
-		 "difference being:" << "\n" <<
-		 stateReading->getValue().matrix() - Tgt_a_b.matrix()
-		 );
+  // Optimize
+  solver.optimize();
 
-	// Confirm that our state is the same as our ground truth transformation
-	CHECK(lgmath::common::nearEqual(stateReading->getValue().matrix(), 
-								  	Tgt_a_b.matrix(),
-								  	1e-3
-								  	));
+  //---------------------------------------
+  // 5- Check that the transformation are the same
+  //---------------------------------------
+  std::cout << "Minimized transformation:"
+            << "\n"
+            << stateReading->getValue().matrix() << "\n"
+            << "is different than original transformation:"
+            << "\n"
+            << Tgt_a_b.matrix() << "\n"
+            << "difference being:"
+            << "\n"
+            << stateReading->getValue().matrix() - Tgt_a_b.matrix()
+            << std::endl;
 
+  // Confirm that our state is the same as our ground truth transformation
+  EXPECT_TRUE(lgmath::common::nearEqual(stateReading->getValue().matrix(),
+                                        Tgt_a_b.matrix(), 1e-3));
 }
 
+TEST(PointToPointErrorEval, ErrorEvaluator) {
 
-TEST_CASE("PointToPointErrorEval", "[ErrorEvaluator]" ) {
-	
-	Eigen::Matrix<double, 6, 1> T_components;
+  Eigen::Matrix<double, 6, 1> T_components;
 
-	SECTION("Simple translation - constructor 0")
-	{
-		T_components << 1.0, // translation x
-						0.0, // translation y
-						0.0, // translation z
-						0.0, // rotation around x-axis
-						0.0, // rotation around y-axis
-						0.0; // rotation around z-axis
+  // SECTION("Simple translation - constructor 0")
+  {
+    T_components << 1.0, // translation x
+        0.0,             // translation y
+        0.0,             // translation z
+        0.0,             // rotation around x-axis
+        0.0,             // rotation around y-axis
+        0.0;             // rotation around z-axis
 
-		solveSimpleProblem(T_components, 0);
-	}
-	
-	SECTION("Simple rotation - constructor 0")
-	{
-		T_components << 0.0, // translation x
-						0.0, // translation y
-						0.0, // translation z
-						1.0, // rotation around x-axis
-						0.0, // rotation around y-axis
-						0.0; // rotation around z-axis
+    solveSimpleProblem(T_components, 0);
+  }
 
-		solveSimpleProblem(T_components, 0);
-	}
-	
-	SECTION("Random transformation (1000) - constructor 0")
-	{
-		srand((unsigned int) time(0));
+  // SECTION("Simple rotation - constructor 0")
+  {
+    T_components << 0.0, // translation x
+        0.0,             // translation y
+        0.0,             // translation z
+        1.0,             // rotation around x-axis
+        0.0,             // rotation around y-axis
+        0.0;             // rotation around z-axis
 
-		for(int i=0; i<1000; i++)
-		{
-			// random numbers in interval [-1, 1]
-			T_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblem(T_components, 0);
-		}
+    solveSimpleProblem(T_components, 0);
+  }
 
-	}
-	
-	SECTION("Simple translation - constructor 1")
-	{
-		T_components << 1.0, // translation x
-						0.0, // translation y
-						0.0, // translation z
-						0.0, // rotation around x-axis
-						0.0, // rotation around y-axis
-						0.0; // rotation around z-axis
+  // SECTION("Random transformation (1000) - constructor 0")
+  {
+    srand((unsigned int)time(0));
 
-		solveSimpleProblem(T_components, 1);
-	}
-	
-	SECTION("Simple rotation - constructor 1")
-	{
-		T_components << 0.0, // translation x
-						0.0, // translation y
-						0.0, // translation z
-						1.0, // rotation around x-axis
-						0.0, // rotation around y-axis
-						0.0; // rotation around z-axis
+    for (int i = 0; i < 1000; i++) {
+      // random numbers in interval [-1, 1]
+      T_components = Eigen::Matrix<double, 6, 1>::Random();
+      solveSimpleProblem(T_components, 0);
+    }
+  }
 
-		solveSimpleProblem(T_components, 1);
-	}
-	
-	SECTION("Random transformation (1000) - constructor 1")
-	{
-		srand((unsigned int) time(0));
+  // SECTION("Simple translation - constructor 1")
+  {
+    T_components << 1.0, // translation x
+        0.0,             // translation y
+        0.0,             // translation z
+        0.0,             // rotation around x-axis
+        0.0,             // rotation around y-axis
+        0.0;             // rotation around z-axis
 
-		for(int i=0; i<1000; i++)
-		{
-			// random numbers in interval [-1, 1]
-			T_components = Eigen::Matrix<double, 6, 1>::Random();
-			solveSimpleProblem(T_components, 1);
-		}
+    solveSimpleProblem(T_components, 1);
+  }
 
-	}
+  // SECTION("Simple rotation - constructor 1")
+  {
+    T_components << 0.0, // translation x
+        0.0,             // translation y
+        0.0,             // translation z
+        1.0,             // rotation around x-axis
+        0.0,             // rotation around y-axis
+        0.0;             // rotation around z-axis
 
-} // TEST_CASE
+    solveSimpleProblem(T_components, 1);
+  }
+
+  // SECTION("Random transformation (1000) - constructor 1")
+  {
+    srand((unsigned int)time(0));
+
+    for (int i = 0; i < 1000; i++) {
+      // random numbers in interval [-1, 1]
+      T_components = Eigen::Matrix<double, 6, 1>::Random();
+      solveSimpleProblem(T_components, 1);
+    }
+  }
+}
+
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
