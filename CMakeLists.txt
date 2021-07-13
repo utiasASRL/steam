@@ -39,6 +39,13 @@ target_include_directories(SimpleBAandTrajPrior
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+add_executable(SimpleBAandTrajPriorCovInterp sample/SimpleBAandTrajPriorCovInterp.cpp)
+target_link_libraries(SimpleBAandTrajPriorCovInterp ${PROJECT_NAME})
+target_include_directories(SimpleBAandTrajPriorCovInterp
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
 add_executable(SimpleBAandCATrajPrior sample/SimpleBAandCATrajPrior.cpp)
 target_link_libraries(SimpleBAandCATrajPrior ${PROJECT_NAME})
 target_include_directories(SimpleBAandCATrajPrior
@@ -145,6 +152,7 @@ install(
   TARGETS
     # Executables
     SimpleBAandTrajPrior
+    SimpleBAandTrajPriorCovInterp
     SimpleBAandCATrajPrior
     SimpleBundleAdjustment
     SimpleBundleAdjustmentFullRel
