@@ -285,19 +285,6 @@ int main(int argc, char** argv) {
   std::shared_ptr<steam::GaussNewtonSolverBase> gn_solver = std::dynamic_pointer_cast<steam::GaussNewtonSolverBase>(solver);
   traj.setSolver(gn_solver);
 
-//  Eigen::Matrix<double, 12, 12> cov_ns = traj.getCovariance(near_start);
-//  std::cout << " " << 286 << std::endl;
-//  Eigen::Matrix<double, 12, 12> cov_m = traj.getCovariance(just_before);
-//  std::cout << " " << 288 << std::endl;
-//  Eigen::Matrix<double, 12, 12> cov = traj.getCovariance(sample_time);
-//  std::cout << " " << 290 << std::endl;
-//  Eigen::Matrix<double, 12, 12> cov_p = traj.getCovariance(just_after);
-//
-//  std::cout << "cov_ns \n" << cov_ns << std::endl;
-//  std::cout << "cov_m \n" << cov_m << std::endl;
-//  std::cout << "cov \n" << cov << std::endl;
-//  std::cout << "cov_p \n" << cov_p << std::endl;
-
 for (int i = 0; i < 20; ++i) {
   steam::Time time_a(10002.543 + 0.1 * i);
   steam::Time time_b(10004.012 + 0.5 * i);

@@ -14,6 +14,7 @@
 
 #include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
 #include <steam/evaluator/blockauto/transform/ConstVelTransformEvaluator.hpp>
+#include <steam/evaluator/samples/TrajErrorEval.hpp>
 
 namespace steam {
 namespace se3 {
@@ -944,16 +945,6 @@ Eigen::MatrixXd SteamTrajInterface::getRelativeCovariance(const steam::Time& tim
 
   steam::BlockMatrix Cov_quad = solver_->queryCovarianceBlock(keys);  // should be 48 x 48
 
-  for (int i = 0; i < 8; ++i) {
-    for (int j = 0; j < 8; ++j) {
-      std::cout << "Cov_quad(" << i << ", " << j << ") \n" << Cov_quad.at(i, j) << std::endl;
-    }
-  }
-
-  steam::se3::SteamTrajInterface traj2(Qc_inv_);
-
-  std::cout << "Qc_inv_: \n" << Qc_inv_ << std::endl;
-
   // add our 6 state variables
   std::vector<SteamTrajVar> traj_states;
   std::vector<TransformStateVar::Ptr> statevars;
@@ -961,8 +952,6 @@ Eigen::MatrixXd SteamTrajInterface::getRelativeCovariance(const steam::Time& tim
   TransformStateVar::Ptr tmp_state_1a(new TransformStateVar(it1a->second->getPose()->evaluate()));
   TransformStateEvaluator::Ptr tmp_pose_1a = TransformStateEvaluator::MakeShared(tmp_state_1a);
   VectorSpaceStateVar::Ptr tmp_vel_1a = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it1a->second->getVelocity()->getValue()));
-  tmp_state_1a->setLock(true);
-  tmp_vel_1a->setLock(true);  // TODO **** THIS IS TEMPORARY
   SteamTrajVar tmp_1a(it1a->second->getTime(), tmp_pose_1a, tmp_vel_1a);
   statevars.push_back(tmp_state_1a);
   traj_states.push_back(tmp_1a);
@@ -1010,10 +999,9 @@ Eigen::MatrixXd SteamTrajInterface::getRelativeCovariance(const steam::Time& tim
   }
   for (auto & state : traj_states) {
     problem->addStateVariable(state.getVelocity());
-    traj2.add(state.getTime(), state.getPose(), state.getVelocity());
-    std::cout << "time " << state.getTime().seconds();
-    std::cout << "  r_ba_ina: " << state.getPose()->evaluate().r_ba_ina().transpose();
-    std::cout << "  vel: " << state.getVelocity()->getValue().transpose() << std::endl;
+//    std::cout << "time " << state.getTime().seconds();
+//    std::cout << "  r_ba_ina: " << state.getPose()->evaluate().r_ba_ina().transpose();
+//    std::cout << "  vel: " << state.getVelocity()->getValue().transpose() << std::endl;
   }
 
   // todo: 1. set up ParallelizedCostTerms costs
@@ -1026,14 +1014,54 @@ Eigen::MatrixXd SteamTrajInterface::getRelativeCovariance(const steam::Time& tim
   steam::ParallelizedCostTermCollection::Ptr cost_terms;
   cost_terms.reset(new steam::ParallelizedCostTermCollection());
 
-  traj2.appendPriorCostTerms(cost_terms);   // TODO - this is technically wrong - need to not apply middle term - two separate trajectories (a and b)???
+  // we create two separate trajectories so we don't have smoothing terms between 2a and 1b
+  steam::se3::SteamTrajInterface traj_a(Qc_inv_);
+  steam::se3::SteamTrajInterface traj_b(Qc_inv_);
+  for (int i = 0; i < 3; ++i) {
+    traj_a.add(traj_states[i].getTime(), traj_states[i].getPose(), traj_states[i].getVelocity());
+  }
+  for (int i = 3; i < 6; ++i) {
+    traj_b.add(traj_states[i].getTime(), traj_states[i].getPose(), traj_states[i].getVelocity());
+  }
 
-  // TODO - #3   ******
+  traj_a.appendPriorCostTerms(cost_terms);
+  traj_b.appendPriorCostTerms(cost_terms);
 
+  // copy over posterior to
+  Eigen::MatrixXd post_cov = Eigen::MatrixXd::Identity(48, 48);
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      post_cov.block<6,6>(6*i, 6*j) = Cov_quad.at(i, j);
+    }
+  }
 
+  steam::BaseNoiseModel<Eigen::Dynamic>::Ptr noise_model(new steam::StaticNoiseModel<Eigen::Dynamic>(post_cov));
+  steam::L2LossFunc::Ptr loss_function(new steam::L2LossFunc());
+
+  // Set up trajectory error factor for posterior
+  std::vector<se3::TransformEvaluator::Ptr> poses;
+  std::vector<VectorSpaceStateVar::Ptr> vels;
+
+  poses.push_back(traj_states[0].getPose());
+  vels.push_back(traj_states[0].getVelocity());
+  poses.push_back(traj_states[2].getPose());
+  vels.push_back(traj_states[2].getVelocity());
+  poses.push_back(traj_states[3].getPose());
+  vels.push_back(traj_states[3].getVelocity());
+  poses.push_back(traj_states[5].getPose());
+  vels.push_back(traj_states[5].getVelocity());
+
+  steam::TrajErrorEval::Ptr traj_error(new steam::TrajErrorEval(poses, vels));
+
+  auto traj_factor = steam::WeightedLeastSqCostTerm<Eigen::Dynamic, 6>::Ptr(
+      new steam::WeightedLeastSqCostTerm<Eigen::Dynamic, 6>(
+          traj_error,
+          noise_model,
+          loss_function));
+  cost_terms->add(traj_factor);
 
   problem->addCostTerm(cost_terms);
-  for (double cost : cost_terms->costs()) {
+  for (double cost : cost_terms->costs()) {  // debug
     std::cout << std::setprecision(12) << "cost " << cost << std::setprecision(6) << std::endl;
   }
 
@@ -1069,11 +1097,16 @@ Eigen::MatrixXd SteamTrajInterface::getRelativeCovariance(const steam::Time& tim
     return Eigen::Matrix<double, 6, 6>::Identity();
   }
 
+  std::cout << "T_b_a solved \n" << (statevars[4]->getValue() / statevars[1]->getValue()).matrix() << std::endl;
+
   std::vector<steam::StateKey> pose_keys{statevars[1]->getKey(), statevars[4]->getKey()};
   auto Cov_a0a0_b0b0 = gn_solver->queryCovarianceBlock(pose_keys);
   lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();
   lgmath::se3::Transformation T_b = getInterpPoseEval(time_b)->evaluate();
   lgmath::se3::Transformation T_b_a = T_b / T_a;
+
+  std::cout << "T_b_a interpolated \n" << T_b_a.matrix() << std::endl;
+
   auto Tadj_b_a = T_b_a.adjoint();
   auto correlation = Tadj_b_a * Cov_a0a0_b0b0.at(0, 1);
   auto Cov_ba_ba =
