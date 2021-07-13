@@ -527,7 +527,7 @@ Eigen::MatrixXd SteamTrajInterface::getCovariance(const steam::Time& time) const
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Get interpolated/extrapolated covariance on a relative pose between t_a and t_b
+/// \brief Get interpolated/extrapolated covariance on a relative pose between t_a and t_b   -- todo: wrong, deprecate once getRelativeCovariance developed
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time& time_a, const steam::Time& time_b) const {
 
@@ -859,6 +859,228 @@ Eigen::MatrixXd SteamTrajInterface::getRelativePoseCovariance(const steam::Time&
   Eigen::Matrix<double, 6, 6> Cov_pose_ba = Cov_pose_bk - correlation - correlation.transpose() + Tadj_b_a * Cov_pose_ak * Tadj_b_a.transpose();
   std::cout << "ERROR: Interpolate relative covariance not tested yet." << std::endl;   // temporary
   return Cov_pose_ba;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief Get interpolated/extrapolated covariance on a relative pose between t_a and t_b
+//////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXd SteamTrajInterface::getRelativeCovariance(const steam::Time& time_a, const steam::Time& time_b) const {
+
+  if (solver_ == nullptr) {
+    throw std::runtime_error("[GpTrajectory][getRelativeCovariance] solver not set");
+  }
+  // Check that map is not empty
+  if (knotMap_.empty()) {
+    throw std::runtime_error("[GpTrajectory][getRelativeCovariance] map was empty");
+  }
+  if (time_b <= time_a) {
+    throw std::runtime_error("[GpTrajectory][getRelativeCovariance] time_b precedes time_a");
+  }
+
+  // Get iterators bounding the times
+  auto it2a = knotMap_.lower_bound(time_a.nanosecs());
+  auto it1a = it2a; it1a--;
+  auto it2b = knotMap_.lower_bound(time_b.nanosecs());
+  auto it1b = it2b; it1b--;
+
+  if (it2b == knotMap_.end()) {
+    // extrapolate
+    std::cout << "ERROR: Can't handle extrapolation yet! Returning identity." << std::endl;
+    Eigen::MatrixXd dummy = Eigen::Matrix<double, 6, 6>::Identity();
+    return dummy;
+  }
+
+  // Check if both query times also state times and we don't have to interpolate
+  if (it1a->second->getTime() == time_a && it1b->second->getTime() == time_b) {
+    // return covariance exactly (no interp)
+    std::map<unsigned int, steam::StateVariableBase::Ptr> out_state_a;
+    std::map<unsigned int, steam::StateVariableBase::Ptr> out_state_b;
+    it1a->second->getPose()->getActiveStateVariables(&out_state_a);
+    it1b->second->getPose()->getActiveStateVariables(&out_state_b);
+
+    std::vector<steam::StateKey> keys{out_state_a.begin()->second->getKey(),
+                                      out_state_b.begin()->second->getKey()};
+
+    steam::BlockMatrix Cov_a0a0_b0b0 = solver_->queryCovarianceBlock(keys);
+
+    lgmath::se3::Transformation T_b_a = it1b->second->getPose()->evaluate() / it1a->second->getPose()->evaluate();
+    Eigen::Matrix<double, 6, 6> Tadj_b_a = T_b_a.adjoint();
+    Eigen::Matrix<double, 6, 6> correlation = Tadj_b_a * Cov_a0a0_b0b0.at(0, 1);
+    Eigen::Matrix<double, 6, 6> Cov_ba_ba = Cov_a0a0_b0b0.at(1, 1) - correlation - correlation.transpose() +
+            Tadj_b_a * Cov_a0a0_b0b0.at(0, 0) * Tadj_b_a.transpose();
+    return Cov_ba_ba;
+  }
+
+  // Interpolating covariance...
+
+  if (it1b->second->getTime() <= it2a->second->getTime()){
+    // for now assuming case with 4 relevant states
+    std::cout << "ERROR: Can't handle OVERLAPPING TIMES yet! Returning identity." << std::endl;
+    Eigen::MatrixXd dummy = Eigen::Matrix<double, 6, 6>::Identity();
+    return dummy;
+  }
+
+  std::map<unsigned int, steam::StateVariableBase::Ptr> out_state_1a;
+  std::map<unsigned int, steam::StateVariableBase::Ptr> out_state_2a;
+  std::map<unsigned int, steam::StateVariableBase::Ptr> out_state_1b;
+  std::map<unsigned int, steam::StateVariableBase::Ptr> out_state_2b;
+  it1a->second->getPose()->getActiveStateVariables(&out_state_1a);
+  it2a->second->getPose()->getActiveStateVariables(&out_state_2a);
+  it1b->second->getPose()->getActiveStateVariables(&out_state_1b);
+  it2b->second->getPose()->getActiveStateVariables(&out_state_2b);
+  if (out_state_1a.empty() || out_state_2a.empty() || out_state_1b.empty() || out_state_2b.empty()) {
+    // TODO: Be able to handle locked states
+    throw std::runtime_error("Attempted covariance interpolation with locked states");
+  }
+
+  std::vector<steam::StateKey> keys{out_state_1a.begin()->second->getKey(),
+                                    it1a->second->getVelocity()->getKey(),
+                                    out_state_2a.begin()->second->getKey(),
+                                    it2a->second->getVelocity()->getKey(),
+                                    out_state_1b.begin()->second->getKey(),
+                                    it1b->second->getVelocity()->getKey(),
+                                    out_state_2b.begin()->second->getKey(),
+                                    it2b->second->getVelocity()->getKey()};
+
+  steam::BlockMatrix Cov_quad = solver_->queryCovarianceBlock(keys);  // should be 48 x 48
+
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      std::cout << "Cov_quad(" << i << ", " << j << ") \n" << Cov_quad.at(i, j) << std::endl;
+    }
+  }
+
+  steam::se3::SteamTrajInterface traj2(Qc_inv_);
+
+  std::cout << "Qc_inv_: \n" << Qc_inv_ << std::endl;
+
+  // add our 6 state variables
+  std::vector<SteamTrajVar> traj_states;
+  std::vector<TransformStateVar::Ptr> statevars;
+
+  TransformStateVar::Ptr tmp_state_1a(new TransformStateVar(it1a->second->getPose()->evaluate()));
+  TransformStateEvaluator::Ptr tmp_pose_1a = TransformStateEvaluator::MakeShared(tmp_state_1a);
+  VectorSpaceStateVar::Ptr tmp_vel_1a = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it1a->second->getVelocity()->getValue()));
+  tmp_state_1a->setLock(true);
+  tmp_vel_1a->setLock(true);  // TODO **** THIS IS TEMPORARY
+  SteamTrajVar tmp_1a(it1a->second->getTime(), tmp_pose_1a, tmp_vel_1a);
+  statevars.push_back(tmp_state_1a);
+  traj_states.push_back(tmp_1a);
+
+  TransformStateVar::Ptr tmp_state_a(new TransformStateVar(it1a->second->getPose()->evaluate()));
+  TransformStateEvaluator::Ptr tmp_pose_a = TransformStateEvaluator::MakeShared(tmp_state_a);
+  VectorSpaceStateVar::Ptr tmp_vel_a = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it1a->second->getVelocity()->getValue()));
+  SteamTrajVar tmp_a(time_a, tmp_pose_a, tmp_vel_a);
+  statevars.push_back(tmp_state_a);
+  traj_states.push_back(tmp_a);
+
+  TransformStateVar::Ptr tmp_state_2a(new TransformStateVar(it2a->second->getPose()->evaluate()));
+  TransformStateEvaluator::Ptr tmp_pose_2a = TransformStateEvaluator::MakeShared(tmp_state_2a);
+  VectorSpaceStateVar::Ptr tmp_vel_2a = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it2a->second->getVelocity()->getValue()));
+  SteamTrajVar tmp_2a(it2a->second->getTime(), tmp_pose_2a, tmp_vel_2a);
+  statevars.push_back(tmp_state_2a);
+  traj_states.push_back(tmp_2a);
+
+  TransformStateVar::Ptr tmp_state_1b(new TransformStateVar(it1b->second->getPose()->evaluate()));
+  TransformStateEvaluator::Ptr tmp_pose_1b = TransformStateEvaluator::MakeShared(tmp_state_1b);
+  VectorSpaceStateVar::Ptr tmp_vel_1b = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it1b->second->getVelocity()->getValue()));
+  SteamTrajVar tmp_1b(it1b->second->getTime(), tmp_pose_1b, tmp_vel_1b);
+  statevars.push_back(tmp_state_1b);
+  traj_states.push_back(tmp_1b);
+
+  TransformStateVar::Ptr tmp_state_b(new TransformStateVar(it1b->second->getPose()->evaluate()));
+  TransformStateEvaluator::Ptr tmp_pose_b = TransformStateEvaluator::MakeShared(tmp_state_b);
+  VectorSpaceStateVar::Ptr tmp_vel_b = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it1b->second->getVelocity()->getValue()));
+  SteamTrajVar tmp_b(time_b, tmp_pose_b, tmp_vel_b);
+  statevars.push_back(tmp_state_b);
+  traj_states.push_back(tmp_b);
+
+  TransformStateVar::Ptr tmp_state_2b(new TransformStateVar(it2b->second->getPose()->evaluate()));
+  TransformStateEvaluator::Ptr tmp_pose_2b = TransformStateEvaluator::MakeShared(tmp_state_2b);
+  VectorSpaceStateVar::Ptr tmp_vel_2b = VectorSpaceStateVar::Ptr(new VectorSpaceStateVar(it2b->second->getVelocity()->getValue()));
+  SteamTrajVar tmp_2b(it2b->second->getTime(), tmp_pose_2b, tmp_vel_2b);
+  statevars.push_back(tmp_state_2b);
+  traj_states.push_back(tmp_2b);
+
+  std::shared_ptr<steam::OptimizationProblem> problem;
+  problem.reset(new steam::OptimizationProblem());
+
+  for (auto & state : statevars) {
+    problem->addStateVariable(state);
+  }
+  for (auto & state : traj_states) {
+    problem->addStateVariable(state.getVelocity());
+    traj2.add(state.getTime(), state.getPose(), state.getVelocity());
+    std::cout << "time " << state.getTime().seconds();
+    std::cout << "  r_ba_ina: " << state.getPose()->evaluate().r_ba_ina().transpose();
+    std::cout << "  vel: " << state.getVelocity()->getValue().transpose() << std::endl;
+  }
+
+  // todo: 1. set up ParallelizedCostTerms costs
+  //  2. add smoothing: traj2.appendPriorCostTerms(costs);
+  //  3. add pseudo measurement from posterior
+  //  4. solve
+  //  5. queryCovariance with keys of states[1] and states[4]
+  //  6. apply cross-covariance/correlation formula
+
+  steam::ParallelizedCostTermCollection::Ptr cost_terms;
+  cost_terms.reset(new steam::ParallelizedCostTermCollection());
+
+  traj2.appendPriorCostTerms(cost_terms);   // TODO - this is technically wrong - need to not apply middle term - two separate trajectories (a and b)???
+
+  // TODO - #3   ******
+
+
+
+  problem->addCostTerm(cost_terms);
+  for (double cost : cost_terms->costs()) {
+    std::cout << std::setprecision(12) << "cost " << cost << std::setprecision(6) << std::endl;
+  }
+
+  // setup solver and optimize
+  std::shared_ptr<steam::GaussNewtonSolverBase> gn_solver;
+  steam::DoglegGaussNewtonSolver::Params params;
+  params.verbose = true;
+  params.maxIterations = 1;
+  params.absoluteCostChangeThreshold = 1e-2;
+  gn_solver.reset(new steam::DoglegGaussNewtonSolver(problem.get(), params));
+
+  try {
+    gn_solver->optimize();
+  } catch (steam::unsuccessful_step &e) {
+    // did any successful steps occur?
+    if (gn_solver->getCurrIteration() <= 1) {
+      // no: something is very wrong; we should start over. Should not occur frequently
+      std::cout
+          << "Steam has failed to optimize interpolated covariance problem! This is an ERROR."
+          << std::endl;
+      return Eigen::Matrix<double, 6, 6>::Identity();
+    } else {
+      // yes: just a marginal problem, let's use what we got
+      std::cout
+          << "Steam has failed due to an unsuccessful step. This should be OK if it happens infrequently."
+          << std::endl;
+    }
+  } catch (steam::decomp_failure &e) {
+    // Should not occur frequently
+    std::cout
+        << "Steam has encountered an LL^T decomposition error while optimizing for interpolated covariance! This is an ERROR."
+        << std::endl;
+    return Eigen::Matrix<double, 6, 6>::Identity();
+  }
+
+  std::vector<steam::StateKey> pose_keys{statevars[1]->getKey(), statevars[4]->getKey()};
+  auto Cov_a0a0_b0b0 = gn_solver->queryCovarianceBlock(pose_keys);
+  lgmath::se3::Transformation T_a = getInterpPoseEval(time_a)->evaluate();
+  lgmath::se3::Transformation T_b = getInterpPoseEval(time_b)->evaluate();
+  lgmath::se3::Transformation T_b_a = T_b / T_a;
+  auto Tadj_b_a = T_b_a.adjoint();
+  auto correlation = Tadj_b_a * Cov_a0a0_b0b0.at(0, 1);
+  auto Cov_ba_ba =
+      Cov_a0a0_b0b0.at(1, 1) - correlation - correlation.transpose() +
+          Tadj_b_a * Cov_a0a0_b0b0.at(0, 0) * Tadj_b_a.transpose();
+  std::cout << "ERROR: Interpolate relative covariance not tested yet." << std::endl;   // temporary
+  return Cov_ba_ba;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
