@@ -31,7 +31,7 @@ bool TrajErrorEval::isActive() const {
 
 Eigen::Matrix<double, Eigen::Dynamic, 1> TrajErrorEval::evaluate() const {
   Eigen::Matrix<double, Eigen::Dynamic, 1> e = Eigen::Matrix<double, Eigen::Dynamic, 1>::Zero(n_*12, 1);
-  for (int i = 0; i < n_; ++i) {
+  for (uint i = 0; i < n_; ++i) {
     e.block<6,1>(12*i, 0) = pose_evals_[i]->evaluate();
     e.block<6,1>(12*i + 6, 0) = vel_evals_[i]->evaluate();
   }
@@ -49,10 +49,10 @@ Eigen::Matrix<double, Eigen::Dynamic, 1> TrajErrorEval::evaluate(
   }
   jacs->clear();
 
-  for (int i = 0; i < n_; ++i) {
+  for (uint i = 0; i < n_; ++i) {
     // If current pose unlocked, add Jacobian from perturbing it
     if (pose_evals_[i]->isActive()) {
-      Eigen::Matrix<double, Eigen::Dynamic, 6> J = Eigen::Matrix<double, Eigen::Dynamic, 6>::Zero(48,6);
+      Eigen::Matrix<double, Eigen::Dynamic, 6> J = Eigen::Matrix<double, Eigen::Dynamic, 6>::Zero(12*n_,6);
       Eigen::Matrix<double, 6, 6> J_i = lgmath::se3::vec2jacinv(pose_evals_[i]->evaluateTree()->getValue());
       J.block<6,6>(12*i, 0) = J_i;
       jacs->resize(jacs->size() + 1);
@@ -64,7 +64,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 1> TrajErrorEval::evaluate(
       jacref.jac = -1 * lhs * J;
     }
     if (vel_evals_[i]->isActive()) {
-      Eigen::Matrix<double, Eigen::Dynamic, 6> J = Eigen::Matrix<double, Eigen::Dynamic, 6>::Zero(48,6);
+      Eigen::Matrix<double, Eigen::Dynamic, 6> J = Eigen::Matrix<double, Eigen::Dynamic, 6>::Zero(12*n_,6);
       J.block<6,6>(12*i + 6, 0) = Eigen::Matrix<double, 6, 6>::Identity();
       jacs->resize(jacs->size() + 1);
       Jacobian<Eigen::Dynamic,6>& jacref = jacs->back();

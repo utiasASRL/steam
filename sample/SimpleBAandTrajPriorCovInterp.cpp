@@ -286,8 +286,8 @@ int main(int argc, char** argv) {
   traj.setSolver(gn_solver);
 
 for (int i = 0; i < 20; ++i) {
-  steam::Time time_a(10002.543 + 0.1 * i);
-  steam::Time time_b(10004.012 + 0.5 * i);
+  steam::Time time_a(10002.843 + 0.3 * i);
+  steam::Time time_b(10003.012 + 0.4 * i);
 
   std::cout << "time_a " << std::setprecision(7) << time_a.seconds() << "   r_a0_in0:  " << traj.getInterpPoseEval(time_a)->evaluate().r_ba_ina().transpose() << std::endl;
   std::cout << "time_b " << time_b.seconds() << "   r_b0_in0:  " << traj.getInterpPoseEval(time_b)->evaluate().r_ba_ina().transpose() << std::endl;
