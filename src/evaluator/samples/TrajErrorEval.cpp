@@ -53,15 +53,14 @@ Eigen::Matrix<double, Eigen::Dynamic, 1> TrajErrorEval::evaluate(
     // If current pose unlocked, add Jacobian from perturbing it
     if (pose_evals_[i]->isActive()) {
       Eigen::Matrix<double, Eigen::Dynamic, 6> J = Eigen::Matrix<double, Eigen::Dynamic, 6>::Zero(48,6);
-      J.block<6,6>(12*i, 0) = Eigen::Matrix<double, 6, 6>::Identity();
+      Eigen::Matrix<double, 6, 6> J_i = lgmath::se3::vec2jacinv(pose_evals_[i]->evaluateTree()->getValue());
+      J.block<6,6>(12*i, 0) = J_i;
       jacs->resize(jacs->size() + 1);
       Jacobian<Eigen::Dynamic,6>& jacref = jacs->back();
       std::map<unsigned int, steam::StateVariableBase::Ptr> tmp_state;
 
       pose_evals_[i]->getActiveStateVariables(&tmp_state);
-      for (const auto & state : tmp_state) {
-        jacref.key = state.second->getKey();   // todo - tmp_state->begin() would probably work
-      }
+      jacref.key = tmp_state.begin()->second->getKey();
       jacref.jac = -1 * lhs * J;
     }
     if (vel_evals_[i]->isActive()) {
