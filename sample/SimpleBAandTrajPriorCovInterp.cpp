@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  steam::se3::SteamTrajInterface traj(Qc_inv);
+  steam::se3::SteamTrajInterface traj(Qc_inv, true);
   for (unsigned int i = 0; i < traj_states_ic.size(); i++) {
     steam::se3::SteamTrajVar& state = traj_states_ic.at(i);
     steam::Time temp_time = state.getTime();
@@ -286,8 +286,8 @@ int main(int argc, char** argv) {
   traj.setSolver(gn_solver);
 
 for (int i = 0; i < 20; ++i) {
-  steam::Time time_a(10002.843 + 0.3 * i);
-  steam::Time time_b(10003.012 + 0.4 * i);
+  steam::Time time_a(10056.843 + 0.3 * i);
+  steam::Time time_b(10057.012 + 0.4 * i);
 
   std::cout << "time_a " << std::setprecision(7) << time_a.seconds() << "   r_a0_in0:  " << traj.getInterpPoseEval(time_a)->evaluate().r_ba_ina().transpose() << std::endl;
   std::cout << "time_b " << time_b.seconds() << "   r_b0_in0:  " << traj.getInterpPoseEval(time_b)->evaluate().r_ba_ina().transpose() << std::endl;
