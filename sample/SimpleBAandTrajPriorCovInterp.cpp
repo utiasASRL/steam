@@ -1,10 +1,9 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 /// \file SimpleBAandTrajPrior.cpp
-/// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///        with relative landmarks and trajectory smoothing factors.
+/// \brief Sample program to test/demonstrate covariance interpolation based off
+/// of SimpleBAandTrajPrior.cpp
 ///
-/// \author Sean Anderson, ASRL
-//////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
 
@@ -12,17 +11,11 @@
 #include <steam.hpp>
 #include <steam/data/ParseBA.hpp>
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Example that loads and solves simple bundle adjustment problems
-//////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv) {
 
   ///
   /// Setup Traj Prior
   ///
-
-  // todo: create sample program to test/demonstrate covariance interpolation.
-  //  This one based off of SimpleBAandTrajPrior.cpp
 
   // Smoothing factor diagonal -- in this example, we penalize accelerations in each dimension
   //                              except for the forward and yaw (this should be fairly typical)
@@ -48,7 +41,6 @@ int main(int argc, char** argv) {
   std::string filename;
   if (argc < 2) {
     filename = "../../include/steam/data/stereo_simulated.txt";
-    filename = "/home/ben/ASRL/vtr3/main/src/deps/steam/include/steam/data/stereo_simulated.txt";  // temporary
     //filename = "../../include/steam/data/stereo_simulated_window1.txt";
     //filename = "../../include/steam/data/stereo_simulated_window2.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
@@ -111,10 +103,7 @@ int main(int argc, char** argv) {
   std::vector<steam::se3::TransformStateVar::Ptr> statevars_ic;
 
   for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
-    steam::Time temp_time = steam::Time(dataset.frames_ic[i].time);
-
-    std::cout << "temp_time " << temp_time.seconds() << std::endl;
-
+    auto temp_time = steam::Time(dataset.frames_ic[i].time);
     steam::se3::TransformStateVar::Ptr temp_statevar(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
     steam::se3::TransformStateEvaluator::Ptr temp_pose = steam::se3::TransformStateEvaluator::MakeShared(temp_statevar);    
     steam::VectorSpaceStateVar::Ptr temp_velocity  = steam::VectorSpaceStateVar::Ptr(new steam::VectorSpaceStateVar(initVelocity));
@@ -271,30 +260,26 @@ int main(int argc, char** argv) {
   // Optimize
   solver->optimize();
 
-  steam::Time near_start(10001.1);
-  steam::Time sample_time = traj_states_ic[17].getTime();
-  steam::Time just_before(sample_time.seconds() - 0.001);
-  steam::Time just_after(sample_time.seconds() + 0.001);
-
-  std::cout << std::setprecision(8);
-  std::cout << "near_start  " << near_start.seconds() << std::endl;
-  std::cout << "just_before " << just_before.seconds() << std::endl;
-  std::cout << "sample_time " << sample_time.seconds() << std::endl;
-  std::cout << "just_after  " << just_after.seconds() << std::endl;
-
+  // Query some relative covariances
   std::shared_ptr<steam::GaussNewtonSolverBase> gn_solver = std::dynamic_pointer_cast<steam::GaussNewtonSolverBase>(solver);
   traj.setSolver(gn_solver);
 
-for (int i = 0; i < 20; ++i) {
-  steam::Time time_a(10056.843 + 0.3 * i);
-  steam::Time time_b(10057.012 + 0.4 * i);
+  steam::Time time_a(10058.91);
+  std::cout << "time_a " << std::setprecision(7) << time_a.seconds()
+            << "   r_a0_in0:  "
+            << traj.getInterpPoseEval(time_a)->evaluate().r_ba_ina().transpose()
+            << std::endl;
 
-  std::cout << "time_a " << std::setprecision(7) << time_a.seconds() << "   r_a0_in0:  " << traj.getInterpPoseEval(time_a)->evaluate().r_ba_ina().transpose() << std::endl;
-  std::cout << "time_b " << time_b.seconds() << "   r_b0_in0:  " << traj.getInterpPoseEval(time_b)->evaluate().r_ba_ina().transpose() << std::endl;
-  Eigen::Matrix<double, 6, 6> cov_ba = traj.getRelativeCovariance(time_a, time_b);
-  std::cout << "cov_ba \n" << cov_ba << std::endl;
-}
+  for (int i = 0; i < 20; ++i) {
+    steam::Time time_b(10059.01 + 0.1 * i);
 
+    std::cout << "time_b " << time_b.seconds() << "   r_b0_in0:  "
+              << traj.getInterpPoseEval(time_b)->evaluate().r_ba_ina().transpose()
+              << std::endl;
+    Eigen::Matrix<double, 6, 6>
+        cov_ba = traj.getRelativeCovariance(time_a, time_b);
+    std::cout << "cov_ba \n" << cov_ba << std::endl;
+  }
 
   return 0;
 }
