@@ -107,15 +107,9 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-# May need the following
-ament_export_dependencies(
-  Boost
-  Eigen3
-  OpenMP
-  lgmath
-)
+ament_export_dependencies(eigen3_cmake_module)
+ament_export_dependencies(Boost OpenMP Eigen3 lgmath)
 
 install(
   DIRECTORY include/
@@ -123,9 +117,7 @@ install(
 )
 
 install(
-  TARGETS
-    # Libraries
-    ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
