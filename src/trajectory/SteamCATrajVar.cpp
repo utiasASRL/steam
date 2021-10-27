@@ -16,12 +16,12 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 SteamCATrajVar::SteamCATrajVar(const steam::Time& time,
              const se3::TransformEvaluator::Ptr& T_k0,
-             const VectorSpaceStateVar::Ptr& velocity,
+             const VectorSpaceStateVar::Ptr& w_0k_ink,
              const VectorSpaceStateVar::Ptr& acceleration)
-  : SteamTrajVar(time, T_k0, velocity), acceleration_(acceleration) {
+  : SteamTrajVar(time, T_k0, w_0k_ink), acceleration_(acceleration) {
 
   // Check velocity input
-  if (velocity->getPerturbDim() != 6) {
+  if (w_0k_ink->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 
@@ -33,10 +33,10 @@ SteamCATrajVar::SteamCATrajVar(const steam::Time& time,
 
 SteamCATrajVar::SteamCATrajVar(const steam::Time& time,
              const se3::TransformEvaluator::Ptr& T_k0,
-             const VectorSpaceStateVar::Ptr& velocity,
+             const VectorSpaceStateVar::Ptr& w_0k_ink,
              const VectorSpaceStateVar::Ptr& acceleration,
              const Eigen::Matrix<double,18,18> cov)
-  : SteamCATrajVar(time, T_k0, velocity, acceleration) { cov_set_=true; cov_=cov; }
+  : SteamCATrajVar(time, T_k0, w_0k_ink, acceleration) { cov_set_=true; cov_=cov; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get acceleration state variable

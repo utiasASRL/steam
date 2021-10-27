@@ -34,11 +34,11 @@ class SteamCATrajInterface : public SteamTrajInterface
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
   void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& w_0k_ink,
            const VectorSpaceStateVar::Ptr& acceleration);
 
   void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& w_0k_ink,
            const VectorSpaceStateVar::Ptr& acceleration,
            const Eigen::Matrix<double,18,18> cov);
 

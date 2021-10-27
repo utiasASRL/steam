@@ -50,21 +50,21 @@ class SteamTrajInterface
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
   void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity);
+           const VectorSpaceStateVar::Ptr& w_0k_ink);
 
   void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& w_0k_ink,
            const Eigen::Matrix<double,12,12> cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a new knot
   //////////////////////////////////////////////////////////////////////////////////////////////
   virtual void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& w_0k_ink,
            const VectorSpaceStateVar::Ptr& acceleration);
 
   virtual void add(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-           const VectorSpaceStateVar::Ptr& velocity,
+           const VectorSpaceStateVar::Ptr& w_0k_ink,
            const VectorSpaceStateVar::Ptr& acceleration,
            const Eigen::Matrix<double,18,18> cov);
 
@@ -82,14 +82,14 @@ class SteamTrajInterface
   /// \brief Add a unary pose prior factor at a knot time. Note that only a single pose prior
   ///        should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void addPosePrior(const steam::Time& time, const lgmath::se3::Transformation& pose,
+  void addPosePrior(const steam::Time& time, const lgmath::se3::Transformation& T_k0,
                     const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Add a unary velocity prior factor at a knot time. Note that only a single velocity
   ///        prior should exist on a trajectory, adding a second will overwrite the first.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& velocity,
+  void addVelocityPrior(const steam::Time& time, const Eigen::Matrix<double,6,1>& w_0k_ink,
                         const Eigen::Matrix<double,6,6>& cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////

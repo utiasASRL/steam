@@ -24,11 +24,11 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamCATrajInterface::add(const steam::Time& time,
                              const se3::TransformEvaluator::Ptr& T_k0,
-                             const VectorSpaceStateVar::Ptr& velocity,
+                             const VectorSpaceStateVar::Ptr& w_0k_ink,
                              const VectorSpaceStateVar::Ptr& acceleration) {
 
   // Check velocity input
-  if (velocity->getPerturbDim() != 6) {
+  if (w_0k_ink->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 
@@ -40,7 +40,7 @@ void SteamCATrajInterface::add(const steam::Time& time,
   // Todo, check that time does not already exist in map?
 
   // Make knot
-  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, velocity, acceleration));
+  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, w_0k_ink, acceleration));
 
   // Insert in map
   knotMap_.insert(knotMap_.end(),
@@ -49,12 +49,12 @@ void SteamCATrajInterface::add(const steam::Time& time,
 
 void SteamCATrajInterface::add(const steam::Time& time,
                              const se3::TransformEvaluator::Ptr& T_k0,
-                             const VectorSpaceStateVar::Ptr& velocity,
+                             const VectorSpaceStateVar::Ptr& w_0k_ink,
                              const VectorSpaceStateVar::Ptr& acceleration,
                              const Eigen::Matrix<double,18,18> cov) {
 
   // Check velocity input
-  if (velocity->getPerturbDim() != 6) {
+  if (w_0k_ink->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 
@@ -66,7 +66,7 @@ void SteamCATrajInterface::add(const steam::Time& time,
   // Todo, check that time does not already exist in map?
 
   // Make knot
-  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, velocity, acceleration, cov));
+  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, w_0k_ink, acceleration, cov));
 
   // Insert in map
   knotMap_.insert(knotMap_.end(),
