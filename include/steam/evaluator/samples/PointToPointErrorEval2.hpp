@@ -22,8 +22,8 @@ namespace steam {
 class PointToPointErrorEval2 : public ErrorEvaluator<3, 6>::type {
  public:
   /// Convenience typedefs
-  typedef boost::shared_ptr<PointToPointErrorEval2> Ptr;
-  typedef boost::shared_ptr<const PointToPointErrorEval2> ConstPtr;
+  typedef std::shared_ptr<PointToPointErrorEval2> Ptr;
+  typedef std::shared_ptr<const PointToPointErrorEval2> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

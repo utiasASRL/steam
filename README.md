@@ -21,22 +21,6 @@ STEAM (Simultaneous Trajectory Estimation and Mapping) Engine is an optimization
 sudo apt -q -y install build-essential cmake libomp-dev
 ```
 
-### Install Boost
-
-```bash
-# using APT
-sudo apt -q -y install libboost-all-dev
-
-# OR from source
-WORKSPACE=~/workspace  # choose your own workspace directory
-mkdir -p ${WORKSPACE}/boost && cd $_
-wget --no-verbose https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.gz
-tar xzf boost_1_71_0.tar.gz && cd boost_1_71_0
-./bootstrap.sh --with-python=$(which python3)
-./b2 cxxflags="-std=gnu++17" install
-ldconfig
-```
-
 ### Install Eigen (>=3.3.7)
 
 ```bash
