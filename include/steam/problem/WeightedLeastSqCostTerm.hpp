@@ -7,8 +7,6 @@
 #ifndef STEAM_WEIGHTED_LSQ_COST_TERM_HPP
 #define STEAM_WEIGHTED_LSQ_COST_TERM_HPP
 
-#include <boost/shared_ptr.hpp>
-
 #include <steam/problem/CostTermBase.hpp>
 
 #include <steam/evaluator/ErrorEvaluator.hpp>
@@ -27,8 +25,8 @@ class WeightedLeastSqCostTerm : public CostTermBase
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
-  typedef boost::shared_ptr<const WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
+  typedef std::shared_ptr<WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > Ptr;
+  typedef std::shared_ptr<const WeightedLeastSqCostTerm<MEAS_DIM,MAX_STATE_SIZE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

@@ -22,8 +22,8 @@ class BlockAutomaticEvaluator : public EvaluatorBase<TYPE>
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE> > Ptr;
-  typedef boost::shared_ptr<const BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE> > ConstPtr;
+  typedef std::shared_ptr<BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE> > Ptr;
+  typedef std::shared_ptr<const BlockAutomaticEvaluator<TYPE,INNER_DIM,MAX_STATE_SIZE> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor

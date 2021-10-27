@@ -27,8 +27,8 @@ class SteamCATrajVar : public SteamTrajVar
  public:
 
   /// Shared pointer typedefs for readability
-  typedef boost::shared_ptr<SteamCATrajVar> Ptr;
-  typedef boost::shared_ptr<const SteamCATrajVar> ConstPtr;
+  typedef std::shared_ptr<SteamCATrajVar> Ptr;
+  typedef std::shared_ptr<const SteamCATrajVar> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

@@ -22,8 +22,8 @@ class ComposeInverseTransformEvaluator : public TransformEvaluator
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ComposeInverseTransformEvaluator> Ptr;
-  typedef boost::shared_ptr<const ComposeInverseTransformEvaluator> ConstPtr;
+  typedef std::shared_ptr<ComposeInverseTransformEvaluator> Ptr;
+  typedef std::shared_ptr<const ComposeInverseTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor -- T_ba = T_bx * inv(T_ax)

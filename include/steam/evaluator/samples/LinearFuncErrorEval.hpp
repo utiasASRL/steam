@@ -20,8 +20,8 @@ class LinearFuncErrorEval : public ErrorEvaluator<MEAS_DIM,MAX_STATE_DIM>::type
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<LinearFuncErrorEval<MEAS_DIM,MAX_STATE_DIM> > Ptr;
-  typedef boost::shared_ptr<const LinearFuncErrorEval<MEAS_DIM,MAX_STATE_DIM> > ConstPtr;
+  typedef std::shared_ptr<LinearFuncErrorEval<MEAS_DIM,MAX_STATE_DIM> > Ptr;
+  typedef std::shared_ptr<const LinearFuncErrorEval<MEAS_DIM,MAX_STATE_DIM> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

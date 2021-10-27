@@ -7,8 +7,6 @@
 #ifndef STEAM_PARALLELIZED_COST_TERM_COLLECTION_HPP
 #define STEAM_PARALLELIZED_COST_TERM_COLLECTION_HPP
 
-#include <boost/shared_ptr.hpp>
-
 #include <steam/problem/CostTermBase.hpp>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -35,8 +33,8 @@ class ParallelizedCostTermCollection : public CostTermBase
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ParallelizedCostTermCollection> Ptr;
-  typedef boost::shared_ptr<const ParallelizedCostTermCollection> ConstPtr;
+  typedef std::shared_ptr<ParallelizedCostTermCollection> Ptr;
+  typedef std::shared_ptr<const ParallelizedCostTermCollection> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

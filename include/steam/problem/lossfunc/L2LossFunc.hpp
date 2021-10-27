@@ -8,7 +8,6 @@
 #define STEAM_L2_LOSS_FUNCTION_HPP
 
 #include <Eigen/Core>
-#include <boost/shared_ptr.hpp>
 
 #include <steam/problem/lossfunc/LossFunctionBase.hpp>
 
@@ -22,8 +21,8 @@ class L2LossFunc : public LossFunctionBase
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<L2LossFunc> Ptr;
-  typedef boost::shared_ptr<const L2LossFunc> ConstPtr;
+  typedef std::shared_ptr<L2LossFunc> Ptr;
+  typedef std::shared_ptr<const L2LossFunc> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

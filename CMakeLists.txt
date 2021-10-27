@@ -20,7 +20,6 @@ if (NOT USE_AMENT)
 set(PROJECT_VERSION 1.1.0)
 
 # Find dependencies
-find_package(Boost 1.71.0 REQUIRED system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -31,9 +30,7 @@ find_package(lgmath 1.1.0 REQUIRED)
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    ${Boost_LIBRARIES}
-    lgmath
+  PUBLIC lgmath
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
@@ -95,7 +92,6 @@ else()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(Boost REQUIRED system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -106,7 +102,7 @@ find_package(lgmath REQUIRED)
 # Libraries
 file(GLOB_RECURSE SOURCE src/*.cpp)
 add_library(${PROJECT_NAME} ${SOURCE})
-ament_target_dependencies(${PROJECT_NAME} Boost Eigen3 OpenMP lgmath)
+ament_target_dependencies(${PROJECT_NAME} Eigen3 OpenMP lgmath)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -116,9 +112,7 @@ target_include_directories(${PROJECT_NAME}
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 # May need the following
 ament_export_dependencies(
-  Boost
-  Eigen3
-  OpenMP
+  Eigen3 OpenMP
   lgmath
 )
 

@@ -28,8 +28,8 @@ class EvaluatorBase
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > Ptr;
-  typedef boost::shared_ptr<const EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > ConstPtr;
+  typedef std::shared_ptr<EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > Ptr;
+  typedef std::shared_ptr<const EvaluatorBase<TYPE,LHS_DIM,INNER_DIM,MAX_STATE_DIM> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor

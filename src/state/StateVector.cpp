@@ -24,7 +24,7 @@ StateVector::StateVector(const StateVector& other) : states_(other.states_),
 
   // Map is copied in initialization list to avoid re-hashing all the entries,
   // now we go through the entries and perform a deep copy
-  boost::unordered_map<StateID, StateContainer>::iterator it = states_.begin();
+  std::unordered_map<StateID, StateContainer>::iterator it = states_.begin();
   for(; it != states_.end(); ++it) {
     it->second.state = it->second.state->clone();
   }
@@ -59,11 +59,11 @@ void StateVector::copyValues(const StateVector& other) {
   // Keeping the original pointers is important as they are shared in other places, and we
   // want to update the shared memory.
   // todo: can we avoid a 'find' here?
-  boost::unordered_map<StateID, StateContainer>::iterator it = states_.begin();
+  std::unordered_map<StateID, StateContainer>::iterator it = states_.begin();
   for(; it != states_.end(); ++it) {
 
     // Find matching state by ID
-    boost::unordered_map<StateID, StateContainer>::const_iterator itOther = other.states_.find(it->second.state->getKey().getID());
+    std::unordered_map<StateID, StateContainer>::const_iterator itOther = other.states_.find(it->second.state->getKey().getID());
 
     // Check that matching state was found and has the same structure
     if (itOther == other.states_.end() ||
@@ -112,7 +112,7 @@ void StateVector::addStateVariable(const StateVariableBase::Ptr& state) {
 bool StateVector::hasStateVariable(const StateKey& key) const {
 
   // Find the StateContainer for key
-  boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
+  std::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
 
   // Return if found
   return it != states_.end();
@@ -124,7 +124,7 @@ bool StateVector::hasStateVariable(const StateKey& key) const {
 StateVariableBase::ConstPtr StateVector::getStateVariable(const StateKey& key) const {
 
   // Find the StateContainer for key
-  boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
+  std::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
 
   // Check that it was found
   if (it == states_.end()) {
@@ -148,7 +148,7 @@ unsigned int StateVector::getNumberOfStates() const {
 int StateVector::getStateBlockIndex(const StateKey& key) const {
 
   // Find the StateContainer for key
-  boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
+  std::unordered_map<StateID, StateContainer>::const_iterator it = states_.find(key.getID());
 
   // Check that the state exists in the state vector
   //  **Note the likely causes that this occurs:
@@ -174,7 +174,7 @@ std::vector<unsigned int> StateVector::getStateBlockSizes() const {
   result.resize(states_.size());
 
   // Iterate over states and populate result
-  for (boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.begin();
+  for (std::unordered_map<StateID, StateContainer>::const_iterator it = states_.begin();
        it != states_.end(); ++it ) {
 
     // Check that the local block index is in a valid range
@@ -199,7 +199,7 @@ void StateVector::update(const Eigen::VectorXd& perturbation) {
   BlockVector blkPerturb(this->getStateBlockSizes(), perturbation);
 
   // Iterate over states and update each
-  for ( boost::unordered_map<StateID, StateContainer>::const_iterator it = states_.begin(); it != states_.end(); ++it ) {
+  for ( std::unordered_map<StateID, StateContainer>::const_iterator it = states_.begin(); it != states_.end(); ++it ) {
 
     // Check for valid index
     if (it->second.localBlockIndex < 0) {

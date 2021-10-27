@@ -23,8 +23,8 @@ class SteamTrajPriorFactor : public ErrorEvaluatorX
  public:
 
   /// Shared pointer typedefs for readability
-  typedef boost::shared_ptr<SteamTrajPriorFactor> Ptr;
-  typedef boost::shared_ptr<const SteamTrajPriorFactor> ConstPtr;
+  typedef std::shared_ptr<SteamTrajPriorFactor> Ptr;
+  typedef std::shared_ptr<const SteamTrajPriorFactor> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

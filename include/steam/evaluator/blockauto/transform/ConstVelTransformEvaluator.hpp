@@ -20,8 +20,8 @@ class ConstVelTransformEvaluator : public TransformEvaluator
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ConstVelTransformEvaluator> Ptr;
-  typedef boost::shared_ptr<const ConstVelTransformEvaluator> ConstPtr;
+  typedef std::shared_ptr<ConstVelTransformEvaluator> Ptr;
+  typedef std::shared_ptr<const ConstVelTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

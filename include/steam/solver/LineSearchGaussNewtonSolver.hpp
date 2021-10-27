@@ -8,7 +8,6 @@
 #define STEAM_LINE_SEARCH_GAUSS_NEWTON_SOLVER_HPP
 
 #include <Eigen/Core>
-#include <boost/shared_ptr.hpp>
 
 #include <steam/solver/GaussNewtonSolverBase.hpp>
 

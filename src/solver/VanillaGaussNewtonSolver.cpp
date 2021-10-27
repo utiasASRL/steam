@@ -6,6 +6,7 @@
 
 #include <steam/solver/VanillaGaussNewtonSolver.hpp>
 
+#include <iomanip>
 #include <iostream>
 
 #include <steam/common/Timer.hpp>

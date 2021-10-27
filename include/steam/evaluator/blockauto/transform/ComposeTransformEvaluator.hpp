@@ -22,8 +22,8 @@ class ComposeTransformEvaluator : public TransformEvaluator
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ComposeTransformEvaluator> Ptr;
-  typedef boost::shared_ptr<const ComposeTransformEvaluator> ConstPtr;
+  typedef std::shared_ptr<ComposeTransformEvaluator> Ptr;
+  typedef std::shared_ptr<const ComposeTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

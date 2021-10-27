@@ -26,8 +26,8 @@ class PositionEvaluator : public BlockAutomaticEvaluator<Eigen::Matrix<double, 3
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<PositionEvaluator> Ptr;
-  typedef boost::shared_ptr<const PositionEvaluator> ConstPtr;
+  typedef std::shared_ptr<PositionEvaluator> Ptr;
+  typedef std::shared_ptr<const PositionEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

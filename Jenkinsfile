@@ -61,7 +61,7 @@ pipeline {
                         dir('lgmath') {
                             git branch: 'master', url: 'https://github.com/utiasASRL/lgmath.git'
                             sh '''
-                                source /opt/ros/foxy/setup.bash
+                                source /opt/ros/galactic/setup.bash
                                 colcon build --symlink-install --cmake-args "-DUSE_AMENT=ON"
                                 touch COLGON_IGNORE
                             '''
