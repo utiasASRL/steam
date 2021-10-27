@@ -141,7 +141,7 @@ void BaseNoiseModel<MEAS_DIM>::assertPositiveDefiniteMatrix(
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<int MEAS_DIM>
 StaticNoiseModel<MEAS_DIM>::StaticNoiseModel(const Eigen::Matrix<double,MEAS_DIM,MEAS_DIM>& matrix,
-                                             MatrixType type) 
+                                             MatrixType type)
 : BaseNoiseModel<MEAS_DIM>::BaseNoiseModel(matrix,type) {
 
 }

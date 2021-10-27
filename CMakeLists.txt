@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(steam)
 
-option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." OFF)
+option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." ON)
 
 # Compiler setup (assumed to be GNU)
 set(CMAKE_CXX_STANDARD 17)
@@ -108,13 +108,9 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-# May need the following
-ament_export_dependencies(
-  Eigen3 OpenMP
-  lgmath
-)
+ament_export_dependencies(eigen3_cmake_module)
+ament_export_dependencies(OpenMP Eigen3 lgmath)
 
 install(
   DIRECTORY include/
@@ -122,9 +118,7 @@ install(
 )
 
 install(
-  TARGETS
-    # Libraries
-    ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -135,41 +129,20 @@ install(
 endif()
 
 # Executables
+link_libraries(${PROJECT_NAME})
 add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
-target_link_libraries(SimpleBAandTrajPrior ${PROJECT_NAME})
-
 add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
-target_link_libraries(SimpleBAandCATrajPrior ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
-target_link_libraries(SimpleBundleAdjustment ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
-target_link_libraries(SimpleBundleAdjustmentFullRel ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
-target_link_libraries(SimpleBundleAdjustmentRelLand ${PROJECT_NAME})
-
 add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
-target_link_libraries(SimpleBundleAdjustmentRelLandX ${PROJECT_NAME})
-
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
-target_link_libraries(SimplePoseGraphRelax ${PROJECT_NAME})
-
 add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
-target_link_libraries(SimpleTrajectoryPrior ${PROJECT_NAME})
-
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
-target_link_libraries(SpherePoseGraphRelax ${PROJECT_NAME})
-
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
-target_link_libraries(TrustRegionExample ${PROJECT_NAME})
-
 add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
-target_link_libraries(MotionDistortedP2PandCATrajPrior ${PROJECT_NAME})
-
 add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
-target_link_libraries(SimpleP2PandCATrajPrior ${PROJECT_NAME})
+add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 
 if (USE_AMENT)
 
@@ -188,6 +161,7 @@ install(
     TrustRegionExample
     MotionDistortedP2PandCATrajPrior
     SimpleP2PandCATrajPrior
+    SimplePointCloudAlignment
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
