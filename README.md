@@ -10,7 +10,6 @@ STEAM (Simultaneous Trajectory Estimation and Mapping) Engine is an optimization
 
 - Compiler with C++17 support and OpenMP
 - CMake (>=3.16)
-- Boost (>=1.71.0)
 - Eigen (>=3.3.7)
 - [lgmath (>=1.1.0)](https://github.com/utiasASRL/lgmath.git)
 - (Optional) ROS2 Foxy or later (colcon+ament_cmake)
