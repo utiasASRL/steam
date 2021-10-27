@@ -20,21 +20,17 @@ if (NOT USE_AMENT)
 set(PROJECT_VERSION 1.1.0)
 
 # Find dependencies
-find_package(Boost REQUIRED system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-find_package(Eigen3 REQUIRED)
-find_package(lgmath REQUIRED)
+find_package(Eigen3 3.3.7 REQUIRED)
+find_package(lgmath 1.1.0 REQUIRED)
 
 # Build library
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    ${Boost_LIBRARIES}
-    ${OpenMP_LIBRARIES}
-    lgmath
+  PUBLIC lgmath
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
@@ -49,40 +45,46 @@ install(
   DESTINATION include
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(
+  TARGETS ${PROJECT_NAME}
   DESTINATION lib
-  EXPORT export_${PROJECT_NAME}
-)
-
-install(EXPORT export_${PROJECT_NAME}
-  FILE export_${PROJECT_NAME}.cmake
-  DESTINATION lib/cmake/${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
 )
 
 # Export
+set(PROJECT_LIBRARY ${PROJECT_NAME})
+
 include(CMakePackageConfigHelpers)
-# generate the config file that is includes the exports
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  INSTALL_DESTINATION "lib/cmake/example"
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
   NO_SET_AND_CHECK_MACRO
   NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
-# generate the version file for the config file
 write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-  VERSION "${Tutorial_VERSION_MAJOR}.${Tutorial_VERSION_MINOR}"
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
 )
-# install the configuration file
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+# export to build directory so no need to install in order to use find_package
+export(
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
+)
+
+# install export cmake files
+install(
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${PROJECT_NAME}Targets.cmake
   DESTINATION lib/cmake/${PROJECT_NAME}
 )
-# export to build directory as well so no need to install in order to use find_package
-export(EXPORT export_${PROJECT_NAME}
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/export_${PROJECT_NAME}.cmake"
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
 ## ROS2 ament_cmake flow
@@ -90,7 +92,6 @@ else()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(Boost REQUIRED system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -101,7 +102,7 @@ find_package(lgmath REQUIRED)
 # Libraries
 file(GLOB_RECURSE SOURCE src/*.cpp)
 add_library(${PROJECT_NAME} ${SOURCE})
-ament_target_dependencies(${PROJECT_NAME} Boost Eigen3 OpenMP lgmath)
+ament_target_dependencies(${PROJECT_NAME} Eigen3 OpenMP lgmath)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -109,7 +110,7 @@ target_include_directories(${PROJECT_NAME}
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(eigen3_cmake_module)
-ament_export_dependencies(Boost OpenMP Eigen3 lgmath)
+ament_export_dependencies(OpenMP Eigen3 lgmath)
 
 install(
   DIRECTORY include/
@@ -142,6 +143,7 @@ add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
 add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
 add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
+
 if (USE_AMENT)
 
 install(

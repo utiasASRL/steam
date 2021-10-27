@@ -19,8 +19,8 @@ class TransformErrorEval : public ErrorEvaluator<6,6>::type
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<TransformErrorEval> Ptr;
-  typedef boost::shared_ptr<const TransformErrorEval> ConstPtr;
+  typedef std::shared_ptr<TransformErrorEval> Ptr;
+  typedef std::shared_ptr<const TransformErrorEval> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor - error is difference between 'T' and identity (in Lie algebra space)

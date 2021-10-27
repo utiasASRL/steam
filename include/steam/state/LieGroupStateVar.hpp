@@ -22,8 +22,8 @@ class LieGroupStateVar : public StateVariable<TYPE>
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<LieGroupStateVar<TYPE,DIM> > Ptr;
-  typedef boost::shared_ptr<const LieGroupStateVar<TYPE,DIM> > ConstPtr;
+  typedef std::shared_ptr<LieGroupStateVar<TYPE,DIM> > Ptr;
+  typedef std::shared_ptr<const LieGroupStateVar<TYPE,DIM> > ConstPtr;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor

@@ -46,7 +46,7 @@ void StateVariable<TYPE>::setFromCopy(const StateVariableBase::ConstPtr& other) 
   if (!this->getKey().equals(other->getKey())) {
     throw std::invalid_argument("State variable keys did not match in setFromCopy()");
   }
-  StateVariable<TYPE>::ConstPtr p = boost::static_pointer_cast<const StateVariable<TYPE> >(other);
+  StateVariable<TYPE>::ConstPtr p = std::static_pointer_cast<const StateVariable<TYPE> >(other);
   value_ = p->value_;
 }
 

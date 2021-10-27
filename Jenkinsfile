@@ -7,7 +7,7 @@ pipeline {
                 stage('build deps (lgmath)') {
                     steps {
                         dir('lgmath') {
-                            git branch: 'feature/eigen3', credentialsId: 'ea1fced4-b1ad-4389-b294-74b0d3a7f607', url: 'https://github.com/utiasASRL/lgmath.git'
+                            git branch: 'master', url: 'https://github.com/utiasASRL/lgmath.git'
                             sh '''
                                 mkdir build && cd build
                                 cmake ..
@@ -59,9 +59,9 @@ pipeline {
                 stage('build deps (lgmath)') {
                     steps {
                         dir('lgmath') {
-                            git branch: 'feature/eigen3', credentialsId: 'ea1fced4-b1ad-4389-b294-74b0d3a7f607', url: 'https://github.com/utiasASRL/lgmath.git'
+                            git branch: 'master', url: 'https://github.com/utiasASRL/lgmath.git'
                             sh '''
-                                source /opt/ros/foxy/setup.bash
+                                source /opt/ros/galactic/setup.bash
                                 colcon build --symlink-install --cmake-args "-DUSE_AMENT=ON"
                                 touch COLGON_IGNORE
                             '''

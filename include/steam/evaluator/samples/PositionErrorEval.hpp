@@ -19,8 +19,8 @@ class PositionErrorEval : public ErrorEvaluator<3, 6>::type {
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<PositionErrorEval> Ptr;
-  typedef boost::shared_ptr<const PositionErrorEval> ConstPtr;
+  typedef std::shared_ptr<PositionErrorEval> Ptr;
+  typedef std::shared_ptr<const PositionErrorEval> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor - error is difference between linear component of 'T' and zero

@@ -15,7 +15,7 @@ namespace steam {
 
 
 template<int MEAS_DIM>
-DynamicNoiseModel<MEAS_DIM>::DynamicNoiseModel(boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval) :
+DynamicNoiseModel<MEAS_DIM>::DynamicNoiseModel(std::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval) :
 eval_(eval) {
   this->setByCovariance(eval_->evaluateCovariance());
 }

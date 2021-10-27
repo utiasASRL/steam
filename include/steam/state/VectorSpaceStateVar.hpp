@@ -19,8 +19,8 @@ class VectorSpaceStateVar : public StateVariable<Eigen::VectorXd>
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<VectorSpaceStateVar> Ptr;
-  typedef boost::shared_ptr<const VectorSpaceStateVar> ConstPtr;
+  typedef std::shared_ptr<VectorSpaceStateVar> Ptr;
+  typedef std::shared_ptr<const VectorSpaceStateVar> ConstPtr;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Construct from Eigen vector (perturbation dimension assumed to match vector)

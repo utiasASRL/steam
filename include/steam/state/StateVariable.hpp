@@ -21,8 +21,8 @@ class StateVariable : public StateVariableBase
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<StateVariable<TYPE> > Ptr;
-  typedef boost::shared_ptr<const StateVariable<TYPE> > ConstPtr;
+  typedef std::shared_ptr<StateVariable<TYPE> > Ptr;
+  typedef std::shared_ptr<const StateVariable<TYPE> > ConstPtr;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor based on perturbation dimension
