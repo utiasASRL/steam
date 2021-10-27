@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(steam)
 
-option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." ON)
+option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." OFF)
 
 # Compiler setup (assumed to be GNU)
 set(CMAKE_CXX_STANDARD 17)
