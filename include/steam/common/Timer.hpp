@@ -11,7 +11,6 @@
 // system timer
 #include <sys/time.h>
 #include <iostream>
-#include <boost/cstdint.hpp>
 
 namespace steam {
 

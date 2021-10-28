@@ -7,9 +7,10 @@
 #ifndef STEAM_STATE_VECTOR_HPP
 #define STEAM_STATE_VECTOR_HPP
 
-#include <steam/state/StateVariableBase.hpp>
-#include <boost/unordered_map.hpp>
+#include <map>
 #include <vector>
+
+#include <steam/state/StateVariableBase.hpp>
 
 namespace steam {
 
@@ -94,7 +95,7 @@ class StateVector
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Main container for state variables
   //////////////////////////////////////////////////////////////////////////////////////////////
-  boost::unordered_map<StateID, StateContainer> states_;
+  std::unordered_map<StateID, StateContainer> states_;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Block size of the related linear system

@@ -27,8 +27,8 @@ class LogMapEvaluator : public BlockAutomaticEvaluator<Eigen::Matrix<double,6,1>
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<LogMapEvaluator> Ptr;
-  typedef boost::shared_ptr<const LogMapEvaluator> ConstPtr;
+  typedef std::shared_ptr<LogMapEvaluator> Ptr;
+  typedef std::shared_ptr<const LogMapEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

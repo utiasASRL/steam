@@ -8,7 +8,6 @@
 #define STEAM_NOISE_MODEL_HPP
 
 #include <Eigen/Dense>
-#include <boost/shared_ptr.hpp>
 #include <mutex>
 
 namespace steam {
@@ -18,8 +17,8 @@ template <int MEAS_DIM>
 class NoiseEvaluator {
 public:
   /// Convenience typedefs
-  typedef boost::shared_ptr<NoiseEvaluator<MEAS_DIM> > Ptr;
-  typedef boost::shared_ptr<const NoiseEvaluator<MEAS_DIM> > ConstPtr;
+  typedef std::shared_ptr<NoiseEvaluator<MEAS_DIM> > Ptr;
+  typedef std::shared_ptr<const NoiseEvaluator<MEAS_DIM> > ConstPtr;
   
   /// \brief Default constructor.
   NoiseEvaluator()=default;
@@ -64,8 +63,8 @@ class BaseNoiseModel
   virtual ~BaseNoiseModel() = default;
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<BaseNoiseModel<MEAS_DIM> > Ptr;
-  typedef boost::shared_ptr<const BaseNoiseModel<MEAS_DIM> > ConstPtr;
+  typedef std::shared_ptr<BaseNoiseModel<MEAS_DIM> > Ptr;
+  typedef std::shared_ptr<const BaseNoiseModel<MEAS_DIM> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Set by covariance matrix
@@ -125,8 +124,8 @@ class StaticNoiseModel : public BaseNoiseModel<MEAS_DIM>
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<StaticNoiseModel<MEAS_DIM> > Ptr;
-  typedef boost::shared_ptr<const StaticNoiseModel<MEAS_DIM> > ConstPtr;
+  typedef std::shared_ptr<StaticNoiseModel<MEAS_DIM> > Ptr;
+  typedef std::shared_ptr<const StaticNoiseModel<MEAS_DIM> > ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Default constructor
@@ -168,7 +167,7 @@ class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
  public:
   /// \brief Constructor
   /// \param eval a pointer to a noise evaluator.
-  DynamicNoiseModel(boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval);
+  DynamicNoiseModel(std::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval);
 
   /// \brief Deault destructor.
   ~DynamicNoiseModel()=default;
@@ -191,7 +190,7 @@ class DynamicNoiseModel : public BaseNoiseModel<MEAS_DIM>
 
  private:
   /// \brief A pointer to a noise evaluator.
-  boost::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval_;
+  std::shared_ptr<NoiseEvaluator<MEAS_DIM>> eval_;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

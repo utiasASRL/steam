@@ -21,8 +21,8 @@ class LandmarkStateVar : public StateVariable<Eigen::Vector4d>
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<LandmarkStateVar> Ptr;
-  typedef boost::shared_ptr<const LandmarkStateVar> ConstPtr;
+  typedef std::shared_ptr<LandmarkStateVar> Ptr;
+  typedef std::shared_ptr<const LandmarkStateVar> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor from a global 3D point

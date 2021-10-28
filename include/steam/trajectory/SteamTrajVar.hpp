@@ -25,17 +25,17 @@ class SteamTrajVar
  public:
 
   /// Shared pointer typedefs for readability
-  typedef boost::shared_ptr<SteamTrajVar> Ptr;
-  typedef boost::shared_ptr<const SteamTrajVar> ConstPtr;
+  typedef std::shared_ptr<SteamTrajVar> Ptr;
+  typedef std::shared_ptr<const SteamTrajVar> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor
   //////////////////////////////////////////////////////////////////////////////////////////////
   SteamTrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-               const VectorSpaceStateVar::Ptr& velocity);
+               const VectorSpaceStateVar::Ptr& w_0k_ink);
 
   SteamTrajVar(const steam::Time& time, const se3::TransformEvaluator::Ptr& T_k0,
-               const VectorSpaceStateVar::Ptr& velocity, const Eigen::Matrix<double,12,12> cov);
+               const VectorSpaceStateVar::Ptr& w_0k_ink, const Eigen::Matrix<double,12,12> cov);
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Get pose evaluator
@@ -76,7 +76,7 @@ class SteamTrajVar
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Generalized 6D velocity state variable
   //////////////////////////////////////////////////////////////////////////////////////////////
-  VectorSpaceStateVar::Ptr velocity_;
+  VectorSpaceStateVar::Ptr w_0k_ink_;
 
  protected:
   Eigen::MatrixXd cov_;

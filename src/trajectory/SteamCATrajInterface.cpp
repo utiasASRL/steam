@@ -24,11 +24,11 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SteamCATrajInterface::add(const steam::Time& time,
                              const se3::TransformEvaluator::Ptr& T_k0,
-                             const VectorSpaceStateVar::Ptr& velocity,
+                             const VectorSpaceStateVar::Ptr& w_0k_ink,
                              const VectorSpaceStateVar::Ptr& acceleration) {
 
   // Check velocity input
-  if (velocity->getPerturbDim() != 6) {
+  if (w_0k_ink->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 
@@ -40,21 +40,21 @@ void SteamCATrajInterface::add(const steam::Time& time,
   // Todo, check that time does not already exist in map?
 
   // Make knot
-  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, velocity, acceleration));
+  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, w_0k_ink, acceleration));
 
   // Insert in map
   knotMap_.insert(knotMap_.end(),
-                  std::pair<boost::int64_t, SteamCATrajVar::Ptr>(time.nanosecs(), newEntry));
+                  std::pair<int64_t, SteamCATrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
 void SteamCATrajInterface::add(const steam::Time& time,
                              const se3::TransformEvaluator::Ptr& T_k0,
-                             const VectorSpaceStateVar::Ptr& velocity,
+                             const VectorSpaceStateVar::Ptr& w_0k_ink,
                              const VectorSpaceStateVar::Ptr& acceleration,
                              const Eigen::Matrix<double,18,18> cov) {
 
   // Check velocity input
-  if (velocity->getPerturbDim() != 6) {
+  if (w_0k_ink->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 
@@ -66,11 +66,11 @@ void SteamCATrajInterface::add(const steam::Time& time,
   // Todo, check that time does not already exist in map?
 
   // Make knot
-  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, velocity, acceleration, cov));
+  SteamCATrajVar::Ptr newEntry(new SteamCATrajVar(time, T_k0, w_0k_ink, acceleration, cov));
 
   // Insert in map
   knotMap_.insert(knotMap_.end(),
-                  std::pair<boost::int64_t, SteamCATrajVar::Ptr>(time.nanosecs(), newEntry));
+                  std::pair<int64_t, SteamCATrajVar::Ptr>(time.nanosecs(), newEntry));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +83,7 @@ TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam
   }
 
   // Get iterator to first element with time equal to or great than 'time'
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it1
       = knotMap_.lower_bound(time.nanosecs());
 
   // Check if time is passed the last entry
@@ -127,7 +127,7 @@ TransformEvaluator::ConstPtr SteamCATrajInterface::getInterpPoseEval(const steam
   }
 
   // Get iterators bounding the time interval
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
   if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
                              "should not trigger... report to a STEAM contributor.");
@@ -144,7 +144,7 @@ Eigen::VectorXd SteamCATrajInterface::getVelocity(const steam::Time& time) {
   }
 
   // Get iterator to first element with time equal to or greater than 'time'
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it1
      = knotMap_.lower_bound(time.nanosecs());
 
   // Check if time is passed the last entry
@@ -185,7 +185,7 @@ Eigen::VectorXd SteamCATrajInterface::getVelocity(const steam::Time& time) {
   }
 
   // Get iterators bounding the time interval
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; --it1;
   if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
     throw std::runtime_error("Requested trajectory evaluator at an invalid time. This exception "
                             "should not trigger... report to a STEAM contributor.");
@@ -279,7 +279,7 @@ Eigen::VectorXd SteamCATrajInterface::getVelocity(const steam::Time& time) {
   }
 
   // Get iterator to first element with time equal to or greater than 'time'
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it1
      = knotMap_.lower_bound(time.nanosecs());
 
   // Check if time is passed the last entry
@@ -328,7 +328,7 @@ void SteamCATrajInterface::addAccelerationPrior(const steam::Time& time,
   }
 
   // Try to find knot at same time
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it = knotMap_.find(time.nanosecs());
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it = knotMap_.find(time.nanosecs());
   if (it == knotMap_.end()) {
   throw std::runtime_error("[GpTrajectory][addVelocityPrior] no knot at provided time.");
   }
@@ -378,13 +378,13 @@ void SteamCATrajInterface::appendPriorCostTerms(
   // steam::GemanMcClureLossFunc::Ptr sharedLossFunc(new steam::GemanMcClureLossFunc(1));
 
   // Initialize first iterator
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1 = knotMap_.begin();
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it1 = knotMap_.begin();
   if (it1 == knotMap_.end()) {
     throw std::runtime_error("No knots...");
   }
 
   // Iterate through all states.. if any are unlocked, supply a prior term
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; ++it2;
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it2 = it1; ++it2;
   for (; it2 != knotMap_.end(); ++it1, ++it2) {
 
     // Get knots
@@ -436,7 +436,7 @@ Eigen::MatrixXd SteamCATrajInterface::getCovariance(const steam::Time& time) con
   }
 
   // Get iterator to first element with time equal to or great than 'time'
-  std::map<boost::int64_t, SteamTrajVar::Ptr>::const_iterator it1
+  std::map<int64_t, SteamTrajVar::Ptr>::const_iterator it1
       = knotMap_.lower_bound(time.nanosecs());
 
   // Check if time is passed the last entry

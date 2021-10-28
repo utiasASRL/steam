@@ -20,8 +20,8 @@ class FixedTransformEvaluator : public TransformEvaluator
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<FixedTransformEvaluator> Ptr;
-  typedef boost::shared_ptr<const FixedTransformEvaluator> ConstPtr;
+  typedef std::shared_ptr<FixedTransformEvaluator> Ptr;
+  typedef std::shared_ptr<const FixedTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

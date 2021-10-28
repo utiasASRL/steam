@@ -22,8 +22,8 @@ class InverseTransformEvaluator : public TransformEvaluator
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<InverseTransformEvaluator> Ptr;
-  typedef boost::shared_ptr<const InverseTransformEvaluator> ConstPtr;
+  typedef std::shared_ptr<InverseTransformEvaluator> Ptr;
+  typedef std::shared_ptr<const InverseTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

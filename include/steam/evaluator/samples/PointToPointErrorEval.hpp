@@ -24,8 +24,8 @@ class PointToPointErrorEval : public ErrorEvaluator<4,6>::type
 public:
 
 	/// Convenience typedefs
-	typedef boost::shared_ptr<PointToPointErrorEval> Ptr;
-	typedef boost::shared_ptr<const PointToPointErrorEval> ConstPtr;
+	typedef std::shared_ptr<PointToPointErrorEval> Ptr;
+	typedef std::shared_ptr<const PointToPointErrorEval> ConstPtr;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	/// \brief Constructor

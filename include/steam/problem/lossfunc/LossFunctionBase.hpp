@@ -7,8 +7,9 @@
 #ifndef STEAM_LOSS_FUNCTION_BASE_HPP
 #define STEAM_LOSS_FUNCTION_BASE_HPP
 
+#include <memory>
+
 #include <Eigen/Core>
-#include <boost/shared_ptr.hpp>
 
 namespace steam {
 
@@ -22,8 +23,8 @@ class LossFunctionBase
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<LossFunctionBase> Ptr;
-  typedef boost::shared_ptr<const LossFunctionBase> ConstPtr;
+  typedef std::shared_ptr<LossFunctionBase> Ptr;
+  typedef std::shared_ptr<const LossFunctionBase> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

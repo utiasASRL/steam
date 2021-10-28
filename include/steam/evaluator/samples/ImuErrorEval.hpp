@@ -19,8 +19,8 @@ class ImuErrorEval : public ErrorEvaluator<6,6>::type
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ImuErrorEval> Ptr;
-  typedef boost::shared_ptr<const ImuErrorEval> ConstPtr;
+  typedef std::shared_ptr<ImuErrorEval> Ptr;
+  typedef std::shared_ptr<const ImuErrorEval> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

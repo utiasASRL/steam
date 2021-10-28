@@ -28,8 +28,8 @@ class ComposeLandmarkEvaluator : public BlockAutomaticEvaluator<Eigen::Vector4d,
 public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ComposeLandmarkEvaluator> Ptr;
-  typedef boost::shared_ptr<const ComposeLandmarkEvaluator> ConstPtr;
+  typedef std::shared_ptr<ComposeLandmarkEvaluator> Ptr;
+  typedef std::shared_ptr<const ComposeLandmarkEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

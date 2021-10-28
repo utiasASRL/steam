@@ -7,8 +7,6 @@
 #ifndef STEAM_COST_TERM_BASE_HPP
 #define STEAM_COST_TERM_BASE_HPP
 
-#include <boost/shared_ptr.hpp>
-
 #include <steam/state/StateVector.hpp>
 #include <steam/blockmat/BlockSparseMatrix.hpp>
 #include <steam/blockmat/BlockVector.hpp>
@@ -25,8 +23,8 @@ class CostTermBase
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CostTermBase> Ptr;
-  typedef boost::shared_ptr<const CostTermBase> ConstPtr;
+  typedef std::shared_ptr<CostTermBase> Ptr;
+  typedef std::shared_ptr<const CostTermBase> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

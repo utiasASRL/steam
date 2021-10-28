@@ -16,20 +16,20 @@ namespace se3 {
 //////////////////////////////////////////////////////////////////////////////////////////////
 SteamTrajVar::SteamTrajVar(const steam::Time& time,
              const se3::TransformEvaluator::Ptr& T_k0,
-             const VectorSpaceStateVar::Ptr& velocity)
-  : time_(time), T_k0_(T_k0), velocity_(velocity) {
+             const VectorSpaceStateVar::Ptr& w_0k_ink)
+  : time_(time), T_k0_(T_k0), w_0k_ink_(w_0k_ink) {
 
   // Check velocity input
-  if (velocity->getPerturbDim() != 6) {
+  if (w_0k_ink->getPerturbDim() != 6) {
     throw std::invalid_argument("invalid velocity size");
   }
 }
 
 SteamTrajVar::SteamTrajVar(const steam::Time& time,
              const se3::TransformEvaluator::Ptr& T_k0,
-             const VectorSpaceStateVar::Ptr& velocity,
+             const VectorSpaceStateVar::Ptr& w_0k_ink,
              const Eigen::Matrix<double,12,12> cov)
-  : SteamTrajVar(time, T_k0, velocity) { cov_set_=true; cov_=cov; }
+  : SteamTrajVar(time, T_k0, w_0k_ink) { cov_set_=true; cov_=cov; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Get pose evaluator
@@ -42,7 +42,7 @@ const se3::TransformEvaluator::Ptr& SteamTrajVar::getPose() const {
 /// \brief Get velocity state variable
 //////////////////////////////////////////////////////////////////////////////////////////////
 const VectorSpaceStateVar::Ptr& SteamTrajVar::getVelocity() const {
-  return velocity_;
+  return w_0k_ink_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

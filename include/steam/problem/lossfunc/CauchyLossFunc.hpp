@@ -8,7 +8,6 @@
 #define STEAM_CAUCHY_LOSS_FUNCTION_HPP
 
 #include <Eigen/Core>
-#include <boost/shared_ptr.hpp>
 
 #include <steam/problem/lossfunc/LossFunctionBase.hpp>
 
@@ -22,8 +21,8 @@ class CauchyLossFunc : public LossFunctionBase
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<CauchyLossFunc> Ptr;
-  typedef boost::shared_ptr<const CauchyLossFunc> ConstPtr;
+  typedef std::shared_ptr<CauchyLossFunc> Ptr;
+  typedef std::shared_ptr<const CauchyLossFunc> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor -- k is the `threshold' based on number of std devs (1-3 is typical)

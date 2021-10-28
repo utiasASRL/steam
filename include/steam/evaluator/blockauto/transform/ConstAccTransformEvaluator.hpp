@@ -20,8 +20,8 @@ class ConstAccTransformEvaluator : public TransformEvaluator
  public:
 
   /// Convenience typedefs
-  typedef boost::shared_ptr<ConstAccTransformEvaluator> Ptr;
-  typedef boost::shared_ptr<const ConstAccTransformEvaluator> ConstPtr;
+  typedef std::shared_ptr<ConstAccTransformEvaluator> Ptr;
+  typedef std::shared_ptr<const ConstAccTransformEvaluator> ConstPtr;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   /// \brief Constructor

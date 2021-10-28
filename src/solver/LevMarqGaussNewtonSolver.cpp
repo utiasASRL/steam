@@ -6,6 +6,7 @@
 
 #include <steam/solver/LevMarqGaussNewtonSolver.hpp>
 
+#include <iomanip>
 #include <iostream>
 
 #include <steam/common/Timer.hpp>
