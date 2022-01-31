@@ -47,28 +47,23 @@ double ParallelizedCostTermCollection::cost() const {
   // Init
   double cost = 0;
 
-  // Set number of OpenMP threads
-  omp_set_num_threads(numThreads_);
-
   // Parallelize for the cost terms
-  #pragma omp parallel
-  {
-    #pragma omp for reduction(+:cost)
-    for(unsigned int i = 0; i < costTerms_.size(); i++) {
-      try {
-        double cost_i = costTerms_.at(i)->cost();
-        if(std::isnan(cost_i)) {
-          std::cout << "nan cost term!";
-        } else {
-          cost += cost_i;
-        }
-      } catch (const std::exception & e) {
-        std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
-      } catch (...) {
-        std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
+#pragma omp parallel for reduction(+:cost) num_threads(numThreads_)
+  for(unsigned int i = 0; i < costTerms_.size(); i++) {
+    try {
+      double cost_i = costTerms_.at(i)->cost();
+      if(std::isnan(cost_i)) {
+        std::cout << "nan cost term!";
+      } else {
+        cost += cost_i;
       }
+    } catch (const std::exception & e) {
+      std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
+    } catch (...) {
+      std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
     }
   }
+
   return cost;
 }
 
@@ -95,26 +90,17 @@ void ParallelizedCostTermCollection::buildGaussNewtonTerms(
     BlockSparseMatrix* approximateHessian,
     BlockVector* gradientVector) const {
 
-  // Locally disable any internal eigen multithreading -- we do our own OpenMP
-  Eigen::setNbThreads(1);
-
-  // Set number of OpenMP threads
-  omp_set_num_threads(numThreads_);
-
   // Parallelize for the cost terms
-  #pragma omp parallel
-  {
-    #pragma omp for
-    for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
-      try {
-        costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
-      } catch (const std::exception & e) {
-        std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
-      } catch (...) {
-        std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
-      }
-    } // end cost term loop
-  } // end parallel
+#pragma omp parallel for num_threads(numThreads_)
+  for (unsigned int c = 0 ; c < costTerms_.size(); c++) {
+    try {
+      costTerms_.at(c)->buildGaussNewtonTerms(stateVector, approximateHessian, gradientVector);
+    } catch (const std::exception & e) {
+      std::cout << "STEAM exception in parallel cost term:\n" << e.what() << std::endl;
+    } catch (...) {
+      std::cout << "STEAM exception in parallel cost term: (unknown)" << std::endl;
+    }
+  } // end cost term loop
 }
 
 } // steam
