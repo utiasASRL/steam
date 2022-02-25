@@ -53,7 +53,7 @@ double ParallelizedCostTermCollection::cost() const {
     try {
       double cost_i = costTerms_.at(i)->cost();
       if(std::isnan(cost_i)) {
-        std::cout << "nan cost term!";
+        std::cout << "nan cost term!" << std::endl;
       } else {
         cost += cost_i;
       }
