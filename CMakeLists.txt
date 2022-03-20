@@ -28,8 +28,8 @@ find_package(Eigen3 3.3.7 REQUIRED)
 find_package(lgmath 1.1.0 REQUIRED)
 
 # Build library
-file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
-add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+file(GLOB_RECURSE SOURCE "src/*.cpp")
+add_library(${PROJECT_NAME} SHARED ${SOURCE})
 target_link_libraries(${PROJECT_NAME}
   PUBLIC lgmath
 )
@@ -102,7 +102,12 @@ find_package(Eigen3 REQUIRED)
 find_package(lgmath REQUIRED)
 
 # Libraries
-file(GLOB_RECURSE SOURCE src/*.cpp)
+file(GLOB_RECURSE SOURCE
+  src/blockmat/*.cpp
+  src/evaluable/*.cpp
+  src/problem/*.cpp
+  src/solver/*.cpp
+)
 add_library(${PROJECT_NAME} ${SOURCE})
 ament_target_dependencies(${PROJECT_NAME} Boost OpenMP Eigen3 lgmath)
 target_include_directories(${PROJECT_NAME}
@@ -132,38 +137,38 @@ endif()
 
 # Executables
 link_libraries(${PROJECT_NAME})
-add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
-add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
-add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
-add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
-add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
-add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
-add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
-add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
-add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
+# add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
+# add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
+# add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
+# add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
+# add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
+# add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
+# add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
+# add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
+# add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
-add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
-add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
-add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
+# add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
+# add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
+# add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 
 if (USE_AMENT)
 
 install(
   TARGETS
     # Executables
-    SimpleBAandTrajPrior
-    SimpleBAandCATrajPrior
-    SimpleBundleAdjustment
-    SimpleBundleAdjustmentFullRel
-    SimpleBundleAdjustmentRelLand
-    SimpleBundleAdjustmentRelLandX
-    SimplePoseGraphRelax
-    SimpleTrajectoryPrior
-    SpherePoseGraphRelax
+    # SimpleBAandTrajPrior
+    # SimpleBAandCATrajPrior
+    # SimpleBundleAdjustment
+    # SimpleBundleAdjustmentFullRel
+    # SimpleBundleAdjustmentRelLand
+    # SimpleBundleAdjustmentRelLandX
+    # SimplePoseGraphRelax
+    # SimpleTrajectoryPrior
+    # SpherePoseGraphRelax
     TrustRegionExample
-    MotionDistortedP2PandCATrajPrior
-    SimpleP2PandCATrajPrior
-    SimplePointCloudAlignment
+    # MotionDistortedP2PandCATrajPrior
+    # SimpleP2PandCATrajPrior
+    # SimplePointCloudAlignment
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -173,13 +178,13 @@ install(
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
-  # Unit-tests
-  ament_add_gtest(time_test tests/time_test.cpp)
-  target_link_libraries(time_test ${PROJECT_NAME})
-  ament_add_gtest(pattern_test tests/pattern_test.cpp)
-  target_link_libraries(pattern_test ${PROJECT_NAME})
-  ament_add_gtest(evaluator_test tests/evaluator_test.cpp)
-  target_link_libraries(evaluator_test ${PROJECT_NAME})
+  # # Unit-tests
+  # ament_add_gtest(time_test tests/time_test.cpp)
+  # target_link_libraries(time_test ${PROJECT_NAME})
+  # ament_add_gtest(pattern_test tests/pattern_test.cpp)
+  # target_link_libraries(pattern_test ${PROJECT_NAME})
+  # ament_add_gtest(evaluator_test tests/evaluator_test.cpp)
+  # target_link_libraries(evaluator_test ${PROJECT_NAME})
 
   # Linting
   find_package(ament_lint_auto REQUIRED)

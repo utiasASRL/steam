@@ -16,7 +16,7 @@ class NodeBase {
   void addChild(const Ptr& child) { children_.emplace_back(child); }
 
   /** \brief Returns child at index */
-  Ptr at(const size_t& index) const { return children_[index]; }
+  Ptr at(const size_t& index) const { return children_.at(index); }
 
  private:
   std::vector<Ptr> children_;

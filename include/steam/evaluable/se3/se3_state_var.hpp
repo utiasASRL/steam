@@ -21,8 +21,8 @@ class SE3StateVar : public StateVar<lgmath::se3::Transformation> {
   bool update(const Eigen::VectorXd& perturbation) override;
   StateVarBase::Ptr clone() const override;
 
-  Node<T>::Ptr forward() const override;
-  void backward(const Eigen::MatrixXd& lhs, const Node<T>::Ptr& node,
+  typename Node<T>::Ptr forward() const override;
+  void backward(const Eigen::MatrixXd& lhs, const typename Node<T>::Ptr& node,
                 Jacobians& jacs) const override;
 };
 
