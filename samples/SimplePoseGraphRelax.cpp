@@ -121,7 +121,7 @@ void runPoseGraphRelax() {
 int main(int argc, char** argv) {
   std::cout << "Test single thread execution." << std::endl;
   runPoseGraphRelax();
-#if false
+#if true
   std::cout << "Test multi thread execution (C++11)." << std::endl;
   std::vector<std::thread> threads;
   for (int i = 1; i <= 10; ++i)

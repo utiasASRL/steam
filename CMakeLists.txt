@@ -107,6 +107,7 @@ file(GLOB_RECURSE SOURCE
   src/evaluable/*.cpp
   src/problem/*.cpp
   src/solver/*.cpp
+  src/data/*.cpp
 )
 add_library(${PROJECT_NAME} ${SOURCE})
 ament_target_dependencies(${PROJECT_NAME} Boost OpenMP Eigen3 lgmath)
@@ -145,7 +146,7 @@ link_libraries(${PROJECT_NAME})
 # add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
 # add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
-# add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
+add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
 # add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
 # add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
@@ -164,7 +165,7 @@ install(
     # SimpleBundleAdjustmentRelLandX
     SimplePoseGraphRelax
     # SimpleTrajectoryPrior
-    # SpherePoseGraphRelax
+    SpherePoseGraphRelax
     TrustRegionExample
     # MotionDistortedP2PandCATrajPrior
     # SimpleP2PandCATrajPrior
