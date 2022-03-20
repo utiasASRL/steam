@@ -24,10 +24,10 @@ SolverBase::SolverBase(OptimizationProblem* problem) : problem_(problem),
   currCost_ = prevCost_ = problem_->cost();
 
   // Set up state vector -- add all states that are not locked to vector
-  const std::vector<StateVariableBase::Ptr>& stateRef = problem_->getStateVariables();
+  const std::vector<StateVarBase::Ptr>& stateRef = problem_->getStateVariables();
   for (unsigned int i = 0; i < stateRef.size(); i++) {
-    const StateVariableBase::Ptr& stateVarRef = stateRef.at(i);
-    if (!stateVarRef->isLocked()) {
+    const StateVarBase::Ptr& stateVarRef = stateRef.at(i);
+    if (!stateVarRef->locked()) {
       stateVec_.addStateVariable(stateVarRef);
     }
   }
@@ -177,7 +177,7 @@ double SolverBase::proposeUpdate(const Eigen::VectorXd& stateStep) {
 
   // Make copy of state vector
   if (firstBackup_) {
-    stateVectorBackup_ = stateVec_;
+    stateVectorBackup_ = stateVec_.clone();
     firstBackup_ = false;
   } else {
     stateVectorBackup_.copyValues(stateVec_);

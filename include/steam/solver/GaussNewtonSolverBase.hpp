@@ -9,13 +9,11 @@
 
 #include <Eigen/Core>
 
-#include <steam/solver/SolverBase.hpp>
-
-#include <steam/state/StateVector.hpp>
-
 #include <steam/blockmat/BlockSparseMatrix.hpp>
 #include <steam/blockmat/BlockMatrix.hpp>
 #include <steam/blockmat/BlockVector.hpp>
+#include <steam/problem/StateVector.hpp>
+#include <steam/solver/SolverBase.hpp>
 
 namespace steam {
 
