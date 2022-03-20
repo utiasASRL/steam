@@ -31,7 +31,6 @@ auto ComposeEvaluator::forward() const -> Node<OutType>::Ptr {
 void ComposeEvaluator::backward(const Eigen::MatrixXd &lhs,
                                 const Node<OutType>::Ptr &node,
                                 Jacobians &jacs) const {
-
   const auto child1 = std::static_pointer_cast<Node<InType>>(node->at(0));
   const auto child2 = std::static_pointer_cast<Node<InType>>(node->at(1));
 
@@ -41,15 +40,15 @@ void ComposeEvaluator::backward(const Eigen::MatrixXd &lhs,
 
   if (transform2_->active()) {
     Eigen::MatrixXd new_lhs = lhs * child1->value().adjoint();
-    transform1_->backward(new_lhs, child2, jacs);
+    transform2_->backward(new_lhs, child2, jacs);
   }
 }
 
-ComposeEvaluator::Ptr
-compose(const Evaluable<ComposeEvaluator::InType>::ConstPtr &transform1,
-        const Evaluable<ComposeEvaluator::InType>::ConstPtr &transform2) {
+ComposeEvaluator::Ptr compose(
+    const Evaluable<ComposeEvaluator::InType>::ConstPtr &transform1,
+    const Evaluable<ComposeEvaluator::InType>::ConstPtr &transform2) {
   return ComposeEvaluator::MakeShared(transform1, transform2);
 }
 
-} // namespace se3
-} // namespace steam
+}  // namespace se3
+}  // namespace steam

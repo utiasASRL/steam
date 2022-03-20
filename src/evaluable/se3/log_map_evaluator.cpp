@@ -31,10 +31,10 @@ void LogMapEvaluator::backward(const Eigen::MatrixXd &lhs,
   }
 }
 
-LogMapEvaluator::Ptr
-tran2vec(const Evaluable<LogMapEvaluator::InType>::ConstPtr &transform) {
+LogMapEvaluator::Ptr tran2vec(
+    const Evaluable<LogMapEvaluator::InType>::ConstPtr &transform) {
   return LogMapEvaluator::MakeShared(transform);
 }
 
-} // namespace se3
-} // namespace steam
+}  // namespace se3
+}  // namespace steam

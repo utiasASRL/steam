@@ -1,6 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \file SimplePoseGraphRelax.cpp
-/// \brief A sample usage of the STEAM Engine library for a odometry-style pose graph relaxation
+/// \brief A sample usage of the STEAM Engine library for a odometry-style pose
+/// graph relaxation
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -11,115 +12,100 @@
 #include <lgmath.hpp>
 #include <steam.hpp>
 
+using SE3StateVar = steam::se3::SE3StateVar;
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Structure to store simulated relative transform measurements
 //////////////////////////////////////////////////////////////////////////////////////////////
 struct RelMeas {
-  unsigned int idxA; // index of pose variable A
-  unsigned int idxB; // index of pose variable B
-  lgmath::se3::Transformation meas_T_BA; // measured transform from A to B
+  unsigned int idxA;           // index of pose variable A
+  unsigned int idxB;           // index of pose variable B
+  SE3StateVar::Ptr meas_T_BA;  // measured transform from A to B
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves a relative pose graph problem
 //////////////////////////////////////////////////////////////////////////////////////////////
 void runPoseGraphRelax() {
-
   ///
   /// Setup 'Dataset'
-  ///   Here, we simulate a simple odometry-style dataset of relative poses (no loop closures).
-  ///   The addition of loop closures is trivial.
+  ///   Here, we simulate a simple odometry-style dataset of relative poses (no
+  ///   loop closures). The addition of loop closures is trivial.
   ///
 
   unsigned int numPoses = 1000;
   std::vector<RelMeas> measCollection;
 
   // Simulate some measurements
-  for (unsigned int i = 1; i < numPoses; i++)
-  {
+  for (unsigned int i = 1; i < numPoses; i++) {
     // 'Forward' in x with a small angular velocity
-    Eigen::Matrix<double,6,1> measVec;
+    Eigen::Matrix<double, 6, 1> measVec;
     double v_x = -1.0;
     double omega_z = 0.01;
     measVec << v_x, 0.0, 0.0, 0.0, 0.0, omega_z;
 
     // Create simulated relative measurement
     RelMeas meas;
-    meas.idxA = i-1;
+    meas.idxA = i - 1;
     meas.idxB = i;
-    meas.meas_T_BA = lgmath::se3::Transformation(measVec);
+    meas.meas_T_BA = SE3StateVar::MakeShared(SE3StateVar::T(measVec));
+    meas.meas_T_BA->locked() = true;
     measCollection.push_back(meas);
   }
+
+  // Initialize problem
+  steam::OptimizationProblem problem;
 
   ///
   /// Setup States
   ///
 
-  // steam state variables
-  std::vector<steam::se3::TransformStateVar::Ptr> poses;
-
-  // Setup state variables - initialized at identity
-  for (unsigned int i = 0; i < numPoses; i++)
-  {
-    steam::se3::TransformStateVar::Ptr temp(new steam::se3::TransformStateVar());
-    poses.push_back(temp);
+  // steam state variables - initialized at identity
+  std::vector<SE3StateVar::Ptr> poses;
+  for (unsigned int i = 0; i < numPoses; i++) {
+    poses.emplace_back(SE3StateVar::MakeShared(SE3StateVar::T()));
+    problem.addStateVariable(poses.back());
   }
 
   ///
   /// Setup Cost Terms
   ///
 
-  // steam cost terms
-  steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
-
   // Setup shared noise and loss functions
-  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(Eigen::MatrixXd::Identity(6,6)));
-  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  using Matrix6d = Eigen::Matrix<double, 6, 6>;
+  Matrix6d cov = Matrix6d::Identity();
+  const auto noise_model = std::make_shared<steam::StaticNoiseModel<6>>(cov);
+  const auto loss_function = std::make_shared<steam::L2LossFunc>();
 
   // Lock first pose (otherwise entire solution is 'floating')
-  //  **Note: alternatively we could add a prior (UnaryTransformError) to the first pose.
-  poses[0]->setLock(true);
+  //  **Note: alternatively we could add a prior (UnaryTransformError) to the
+  //  first pose.
+  poses[0]->locked() = true;
 
   // Turn measurements into cost terms
-  for (unsigned int i = 0; i < measCollection.size(); i++)
-  {
+  for (unsigned int i = 0; i < measCollection.size(); i++) {
     // Get first referenced state variable
-    steam::se3::TransformStateVar::Ptr& stateVarA = poses[measCollection[i].idxA];
-
+    const auto& stateVarA = poses[measCollection[i].idxA];
     // Get second referenced state variable
-    steam::se3::TransformStateVar::Ptr& stateVarB = poses[measCollection[i].idxB];
-
+    const auto& stateVarB = poses[measCollection[i].idxB];
     // Get transform measurement
-    lgmath::se3::Transformation& meas_T_BA = measCollection[i].meas_T_BA;
-
+    const auto& meas_T_BA = measCollection[i].meas_T_BA;
     // Construct error function
-    steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(meas_T_BA, stateVarB, stateVarA));
+    using namespace steam::se3;
+    const auto hat_T_AB = compose(stateVarA, inverse(stateVarB));
+    const auto error_function = tran2vec(compose(meas_T_BA, hat_T_AB));
 
-    // Create cost term and add to problem
-    steam::WeightedLeastSqCostTerm<6,6>::Ptr cost(new steam::WeightedLeastSqCostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
-    costTerms->add(cost);
+    // Construct cost term
+    const auto cost_term = std::make_shared<steam::WeightedLeastSqCostTerm<6>>(
+        error_function, noise_model, loss_function);
+    // Add cost term
+    problem.addCostTerm(cost_term);
   }
-
-  ///
-  /// Make Optimization Problem
-  ///
-
-  // Initialize problem
-  steam::OptimizationProblem problem;
-
-  // Add state variables
-  for (unsigned int i = 1; i < poses.size(); i++)
-  {
-    problem.addStateVariable(poses[i]);
-  }
-
-  // Add cost terms
-  problem.addCostTerm(costTerms);
 
   ///
   /// Setup Solver and Optimize
   ///
-  typedef steam::VanillaGaussNewtonSolver SolverType;
+  using SolverType = steam::VanillaGaussNewtonSolver;
 
   // Initialize parameters (enable verbose mode)
   SolverType::Params params;
@@ -132,17 +118,14 @@ void runPoseGraphRelax() {
   solver.optimize();
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   std::cout << "Test single thread execution." << std::endl;
   runPoseGraphRelax();
-
-#ifndef STEAM_USE_OBJECT_POOL
+#if false
   std::cout << "Test multi thread execution (C++11)." << std::endl;
   std::vector<std::thread> threads;
   for (int i = 1; i <= 10; ++i)
     threads.push_back(std::thread(runPoseGraphRelax));
-  for (auto &th : threads)
-    th.join();
+  for (auto& th : threads) th.join();
 #endif
 }
-

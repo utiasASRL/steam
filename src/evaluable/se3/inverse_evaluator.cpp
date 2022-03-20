@@ -31,10 +31,10 @@ void InverseEvaluator::backward(const Eigen::MatrixXd &lhs,
   }
 }
 
-InverseEvaluator::Ptr
-inverse(const Evaluable<InverseEvaluator::InType>::ConstPtr &transform) {
+InverseEvaluator::Ptr inverse(
+    const Evaluable<InverseEvaluator::InType>::ConstPtr &transform) {
   return InverseEvaluator::MakeShared(transform);
 }
 
-} // namespace se3
-} // namespace steam
+}  // namespace se3
+}  // namespace steam

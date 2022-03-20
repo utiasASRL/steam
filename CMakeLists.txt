@@ -143,7 +143,7 @@ link_libraries(${PROJECT_NAME})
 # add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
 # add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
 # add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
-# add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
+add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
 # add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
 # add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
@@ -162,13 +162,13 @@ install(
     # SimpleBundleAdjustmentFullRel
     # SimpleBundleAdjustmentRelLand
     # SimpleBundleAdjustmentRelLandX
-    # SimplePoseGraphRelax
+    SimplePoseGraphRelax
     # SimpleTrajectoryPrior
     # SpherePoseGraphRelax
     TrustRegionExample
     # MotionDistortedP2PandCATrajPrior
     # SimpleP2PandCATrajPrior
-    # SimplePointCloudAlignment
+    SimplePointCloudAlignment
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

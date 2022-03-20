@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "steam/evaluable/evaluable.hpp"
 #include "steam/evaluable/jacobians.hpp"
 #include "steam/problem/CostTermBase.hpp"
@@ -89,10 +91,16 @@ void WeightedLeastSqCostTerm<DIM>::buildGaussNewtonTerms(
   ErrorType error = this->evalWeightedAndWhitened(jacobian_contaner);
   const auto &jacobians = jacobian_contaner.get();
 
+  // Get map keys into a vector for sorting
+  std::vector<StateKey> keys;
+  keys.reserve(jacobians.size());
+  std::transform(jacobians.begin(), jacobians.end(), std::back_inserter(keys),
+                 [](const auto &pair) { return pair.first; });
+
   // For each jacobian
-  for (const auto &entries1 : jacobians) {
-    const auto &key1 = entries1.first;
-    const auto &jac1 = entries1.second;
+  for (size_t i = 0; i < keys.size(); i++) {
+    const auto &key1 = keys.at(i);
+    const auto &jac1 = jacobians.at(key1);
 
     // Get the key and state range affected
     unsigned int blkIdx1 = state_vec.getStateBlockIndex(key1);
@@ -106,9 +114,9 @@ void WeightedLeastSqCostTerm<DIM>::buildGaussNewtonTerms(
     { gradient_vector->mapAt(blkIdx1) += newGradTerm; }
 
     // For each jacobian (in upper half)
-    for (const auto &entries2 : jacobians) {
-      const auto &key2 = entries2.first;
-      const auto &jac2 = entries2.second;
+    for (size_t j = i; j < keys.size(); j++) {
+      const auto &key2 = keys.at(j);
+      const auto &jac2 = jacobians.at(key2);
 
       // Get the key and state range affected
       unsigned int blkIdx2 = state_vec.getStateBlockIndex(key2);
