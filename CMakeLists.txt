@@ -20,6 +20,7 @@ if (NOT USE_AMENT)
 set(PROJECT_VERSION 1.1.0)
 
 # Find dependencies
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -92,6 +93,7 @@ else()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -102,7 +104,7 @@ find_package(lgmath REQUIRED)
 # Libraries
 file(GLOB_RECURSE SOURCE src/*.cpp)
 add_library(${PROJECT_NAME} ${SOURCE})
-ament_target_dependencies(${PROJECT_NAME} Eigen3 OpenMP lgmath)
+ament_target_dependencies(${PROJECT_NAME} Boost OpenMP Eigen3 lgmath)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -110,7 +112,7 @@ target_include_directories(${PROJECT_NAME}
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(eigen3_cmake_module)
-ament_export_dependencies(OpenMP Eigen3 lgmath)
+ament_export_dependencies(Boost OpenMP Eigen3 lgmath)
 
 install(
   DIRECTORY include/
