@@ -8,17 +8,17 @@
 
 namespace steam {
 
-class StateVec {
+class StateVector {
  public:
   /** \brief Performs a deep copy of the state vector */
-  StateVec clone() const;
+  StateVector clone() const;
 
   /**
    * \brief Copy the values of 'other' into 'this'
    * \note states must already align,typically this means that one is already a
    * deep copy of the other
    */
-  void copyValues(const StateVec &other);
+  void copyValues(const StateVector &other);
 
   /** \brief Add state variable */
   void addStateVariable(const StateVarBase::Ptr &statevar);

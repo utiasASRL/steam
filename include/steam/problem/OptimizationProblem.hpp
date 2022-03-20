@@ -5,7 +5,7 @@
 
 #include "steam/evaluable/state_var.hpp"
 #include "steam/problem/CostTermBase.hpp"
-#include "steam/problem/StateVec.hpp"
+#include "steam/problem/StateVector.hpp"
 
 namespace steam {
 
@@ -51,7 +51,7 @@ class OptimizationProblem {
   double cost() const;
 
   /** \brief Fill in the supplied block matrices */
-  void buildGaussNewtonTerms(const StateVec& state_vector,
+  void buildGaussNewtonTerms(const StateVector& state_vector,
                              Eigen::SparseMatrix<double>* approximate_hessian,
                              Eigen::VectorXd* gradient_vector) const;
 

@@ -50,7 +50,8 @@ double OptimizationProblem::cost() const {
 }
 
 void OptimizationProblem::buildGaussNewtonTerms(
-    const StateVec &state_vec, Eigen::SparseMatrix<double> *approximate_hessian,
+    const StateVector &state_vec,
+    Eigen::SparseMatrix<double> *approximate_hessian,
     Eigen::VectorXd *gradient_vector) const {
   // Setup Matrices
   std::vector<unsigned int> sqSizes = state_vec.getStateBlockSizes();

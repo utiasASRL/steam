@@ -1,4 +1,4 @@
-#include "steam/problem/StateVec.hpp"
+#include "steam/problem/StateVector.hpp"
 
 #include <iostream>
 
@@ -6,8 +6,8 @@
 
 namespace steam {
 
-StateVec StateVec::clone() const {
-  StateVec cloned;
+StateVector StateVector::clone() const {
+  StateVector cloned;
   // map is copied to avoid re-hashing all the entries,
   cloned.states_ = states_;
   cloned.num_block_entries_ = num_block_entries_;
@@ -17,13 +17,13 @@ StateVec StateVec::clone() const {
   return cloned;
 }
 
-void StateVec::copyValues(const StateVec &other) {
+void StateVector::copyValues(const StateVector &other) {
   // Check state vector are the same size
   if (this->states_.empty() ||
       this->num_block_entries_ != other.num_block_entries_ ||
       this->states_.size() != other.states_.size()) {
     throw std::invalid_argument(
-        "StateVec size was not the same in copyValues()");
+        "StateVector size was not the same in copyValues()");
   }
 
   // Iterate over the state vectors and perform a "deep" copy without allocation
@@ -38,8 +38,8 @@ void StateVec::copyValues(const StateVec &other) {
         it->second.state->key() != it_other->second.state->key() ||
         it->second.local_block_index != it_other->second.local_block_index) {
       throw std::runtime_error(
-          "StateVec was missing an entry in copyValues(), "
-          "or structure of StateVec did not match.");
+          "StateVector was missing an entry in copyValues(), "
+          "or structure of StateVector did not match.");
     }
 
     // Copy
@@ -47,7 +47,7 @@ void StateVec::copyValues(const StateVec &other) {
   }
 }
 
-void StateVec::addStateVariable(const StateVarBase::Ptr &state) {
+void StateVector::addStateVariable(const StateVarBase::Ptr &state) {
   // Verify that state is not locked
   if (state->locked())
     throw std::invalid_argument(
@@ -58,7 +58,7 @@ void StateVec::addStateVariable(const StateVarBase::Ptr &state) {
   const auto &key = state->key();
   if (hasStateVariable(key))
     throw std::runtime_error(
-        "StateVec already contains the state being added.");
+        "StateVector already contains the state being added.");
 
   // Create new container
   StateContainer new_entry;
@@ -70,11 +70,12 @@ void StateVec::addStateVariable(const StateVarBase::Ptr &state) {
   num_block_entries_++;
 }
 
-bool StateVec::hasStateVariable(const StateKey &key) const {
+bool StateVector::hasStateVariable(const StateKey &key) const {
   return states_.find(key) != states_.end();
 }
 
-StateVarBase::ConstPtr StateVec::getStateVariable(const StateKey &key) const {
+StateVarBase::ConstPtr StateVector::getStateVariable(
+    const StateKey &key) const {
   // Find the StateContainer for key
   const auto it = states_.find(key);
 
@@ -87,9 +88,9 @@ StateVarBase::ConstPtr StateVec::getStateVariable(const StateKey &key) const {
   return it->second.state;
 }
 
-unsigned int StateVec::getNumberOfStates() const { return states_.size(); }
+unsigned int StateVector::getNumberOfStates() const { return states_.size(); }
 
-int StateVec::getStateBlockIndex(const StateKey &key) const {
+int StateVector::getStateBlockIndex(const StateKey &key) const {
   // Find the StateContainer for key
   const auto it = states_.find(key);
 
@@ -108,7 +109,7 @@ int StateVec::getStateBlockIndex(const StateKey &key) const {
   return it->second.local_block_index;
 }
 
-std::vector<unsigned int> StateVec::getStateBlockSizes() const {
+std::vector<unsigned int> StateVector::getStateBlockSizes() const {
   // Init return
   std::vector<unsigned int> result;
   result.resize(states_.size());
@@ -128,7 +129,7 @@ std::vector<unsigned int> StateVec::getStateBlockSizes() const {
   return result;
 }
 
-void StateVec::update(const Eigen::VectorXd &perturbation) {
+void StateVector::update(const Eigen::VectorXd &perturbation) {
   // Convert single vector to a block-vector of perturbations (checks sizes)
   BlockVector blk_perturb(getStateBlockSizes(), perturbation);
 

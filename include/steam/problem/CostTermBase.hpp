@@ -2,7 +2,7 @@
 
 #include "steam/blockmat/BlockSparseMatrix.hpp"
 #include "steam/blockmat/BlockVector.hpp"
-#include "steam/problem/StateVec.hpp"
+#include "steam/problem/StateVector.hpp"
 
 namespace steam {
 
@@ -27,7 +27,7 @@ class CostTermBase {
    * and right-hand (gradient vector) sides of the Gauss-Newton system of
    * equations.
    */
-  virtual void buildGaussNewtonTerms(const StateVec &state_vec,
+  virtual void buildGaussNewtonTerms(const StateVector &state_vec,
                                      BlockSparseMatrix *approximate_hessian,
                                      BlockVector *gradient_vector) const = 0;
 };

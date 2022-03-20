@@ -2,9 +2,9 @@
 
 #include "steam/evaluable/evaluable.hpp"
 #include "steam/evaluable/jacobians.hpp"
+#include "steam/problem/CostTermBase.hpp"
 #include "steam/problem/LossFunctions.hpp"
 #include "steam/problem/NoiseModel.hpp"
-#include "steam/problem/CostTermBase.hpp"
 
 namespace steam {
 
@@ -33,7 +33,7 @@ class WeightedLeastSqCostTerm : public CostTermBase {
    * and right-hand (gradient vector) sides of the Gauss-Newton system of
    * equations.
    */
-  void buildGaussNewtonTerms(const StateVec &state_vec,
+  void buildGaussNewtonTerms(const StateVector &state_vec,
                              BlockSparseMatrix *approximate_hessian,
                              BlockVector *gradient_vector) const override;
 
@@ -72,7 +72,7 @@ double WeightedLeastSqCostTerm<DIM>::cost() const {
 
 template <int DIM>
 void WeightedLeastSqCostTerm<DIM>::buildGaussNewtonTerms(
-    const StateVec &state_vec, BlockSparseMatrix *approximate_hessian,
+    const StateVector &state_vec, BlockSparseMatrix *approximate_hessian,
     BlockVector *gradient_vector) const {
   // Get square block indices (we know the hessian is block-symmetric)
   const std::vector<unsigned int> &blkSizes =
