@@ -149,7 +149,7 @@ link_libraries(${PROJECT_NAME})
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
 # add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
 # add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
-# add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
+add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 
 if (USE_AMENT)
 

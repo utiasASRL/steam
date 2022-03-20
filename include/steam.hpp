@@ -28,6 +28,9 @@
 // evaluable - vspace (vector space)
 #include <steam/evaluable/vspace/vspace_state_var.hpp>
 
+// evaluable - p2p
+#include <steam/evaluable/p2p/p2p_error_evaluator.hpp>
+
 // problem
 #include <steam/problem/LossFunctions.hpp>
 #include <steam/problem/NoiseModel.hpp>
