@@ -4,8 +4,8 @@
 #include <Eigen/Sparse>
 
 #include "steam/evaluable/state_var.hpp"
-#include "steam/problem2/CostTermBase.hpp"
-#include "steam/problem2/state_vec.hpp"
+#include "steam/problem/CostTermBase.hpp"
+#include "steam/problem/StateVec.hpp"
 
 namespace steam {
 

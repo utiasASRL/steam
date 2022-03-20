@@ -1,4 +1,4 @@
-#include "steam/problem2/OptimizationProblem.hpp"
+#include "steam/problem/OptimizationProblem.hpp"
 
 #include <iomanip>
 #include <iostream>

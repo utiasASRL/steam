@@ -4,7 +4,7 @@
 #include "steam/evaluable/jacobians.hpp"
 #include "steam/problem/LossFunctions.hpp"
 #include "steam/problem/NoiseModel.hpp"
-#include "steam/problem2/CostTermBase.hpp"
+#include "steam/problem/CostTermBase.hpp"
 
 namespace steam {
 
