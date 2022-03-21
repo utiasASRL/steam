@@ -103,11 +103,12 @@ find_package(lgmath REQUIRED)
 
 # Libraries
 file(GLOB_RECURSE SOURCE
+  src/data/*.cpp
   src/blockmat/*.cpp
   src/evaluable/*.cpp
   src/problem/*.cpp
   src/solver/*.cpp
-  src/data/*.cpp
+  src/trajectory/*.cpp
 )
 add_library(${PROJECT_NAME} ${SOURCE})
 ament_target_dependencies(${PROJECT_NAME} Boost OpenMP Eigen3 lgmath)
