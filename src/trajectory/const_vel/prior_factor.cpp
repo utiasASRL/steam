@@ -1,23 +1,24 @@
-#include "steam/trajectory/traj_prior_factor.hpp"
+#include "steam/trajectory/const_vel/prior_factor.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
-auto TrajPriorFactor::MakeShared(const TrajVar::ConstPtr& knot1,
-                                 const TrajVar::ConstPtr& knot2) -> Ptr {
-  return std::make_shared<TrajPriorFactor>(knot1, knot2);
+auto PriorFactor::MakeShared(const Variable::ConstPtr& knot1,
+                             const Variable::ConstPtr& knot2) -> Ptr {
+  return std::make_shared<PriorFactor>(knot1, knot2);
 }
 
-TrajPriorFactor::TrajPriorFactor(const TrajVar::ConstPtr& knot1,
-                                 const TrajVar::ConstPtr& knot2)
+PriorFactor::PriorFactor(const Variable::ConstPtr& knot1,
+                         const Variable::ConstPtr& knot2)
     : knot1_(knot1), knot2_(knot2) {}
 
-bool TrajPriorFactor::active() const {
+bool PriorFactor::active() const {
   return knot1_->getPose()->active() || knot1_->getVelocity()->active() ||
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
-auto TrajPriorFactor::forward() const -> Node<OutType>::Ptr {
+auto PriorFactor::forward() const -> Node<OutType>::Ptr {
   //
   const auto pose1_child = knot1_->getPose()->forward();
   const auto vel1_child = knot1_->getVelocity()->forward();
@@ -45,9 +46,9 @@ auto TrajPriorFactor::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
-void TrajPriorFactor::backward(const Eigen::MatrixXd& lhs,
-                               const Node<OutType>::Ptr& node,
-                               Jacobians& jacs) const {
+void PriorFactor::backward(const Eigen::MatrixXd& lhs,
+                           const Node<OutType>::Ptr& node,
+                           Jacobians& jacs) const {
   if (!active()) return;
 
   // clang-format off
@@ -108,5 +109,6 @@ void TrajPriorFactor::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

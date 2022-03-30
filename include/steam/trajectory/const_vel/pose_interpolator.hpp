@@ -5,26 +5,27 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/traj_time.hpp"
-#include "steam/trajectory/traj_var.hpp"
+#include "steam/trajectory/const_vel/variable.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
-class TrajPoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
+class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
  public:
   /// Shared pointer typedefs for readability
-  using Ptr = std::shared_ptr<TrajPoseInterpolator>;
-  using ConstPtr = std::shared_ptr<const TrajPoseInterpolator>;
+  using Ptr = std::shared_ptr<PoseInterpolator>;
+  using ConstPtr = std::shared_ptr<const PoseInterpolator>;
 
   using InPoseType = lgmath::se3::Transformation;
   using InVelType = Eigen::Matrix<double, 6, 1>;
   using OutType = lgmath::se3::Transformation;
 
-  static Ptr MakeShared(const Time& time, const TrajVar::ConstPtr& knot1,
-                        const TrajVar::ConstPtr& knot2);
-  TrajPoseInterpolator(const Time& time, const TrajVar::ConstPtr& knot1,
-                       const TrajVar::ConstPtr& knot2);
+  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
+                        const Variable::ConstPtr& knot2);
+  PoseInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+                   const Variable::ConstPtr& knot2);
 
   bool active() const override;
 
@@ -34,9 +35,9 @@ class TrajPoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
 
  private:
   /** \brief First (earlier) knot */
-  const TrajVar::ConstPtr knot1_;
+  const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
-  const TrajVar::ConstPtr knot2_;
+  const Variable::ConstPtr knot2_;
 
   /** \brief Interpolation coefficients */
   double psi11_;
@@ -49,5 +50,6 @@ class TrajPoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
   double lambda22_;
 };
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

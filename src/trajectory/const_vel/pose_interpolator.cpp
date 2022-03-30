@@ -1,17 +1,18 @@
-#include "steam/trajectory/traj_pose_interpolator.hpp"
+#include "steam/trajectory/const_vel/pose_interpolator.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
-TrajPoseInterpolator::Ptr TrajPoseInterpolator::MakeShared(
-    const Time& time, const TrajVar::ConstPtr& knot1,
-    const TrajVar::ConstPtr& knot2) {
-  return std::make_shared<TrajPoseInterpolator>(time, knot1, knot2);
+PoseInterpolator::Ptr PoseInterpolator::MakeShared(
+    const Time& time, const Variable::ConstPtr& knot1,
+    const Variable::ConstPtr& knot2) {
+  return std::make_shared<PoseInterpolator>(time, knot1, knot2);
 }
 
-TrajPoseInterpolator::TrajPoseInterpolator(const Time& time,
-                                           const TrajVar::ConstPtr& knot1,
-                                           const TrajVar::ConstPtr& knot2)
+PoseInterpolator::PoseInterpolator(const Time& time,
+                                   const Variable::ConstPtr& knot1,
+                                   const Variable::ConstPtr& knot2)
     : knot1_(knot1), knot2_(knot2) {
   // Calculate time constants
   double tau = (time - knot1->getTime()).seconds();
@@ -33,12 +34,12 @@ TrajPoseInterpolator::TrajPoseInterpolator(const Time& time,
   lambda22_ = 1.0 - T * psi21_ - psi22_;
 }
 
-bool TrajPoseInterpolator::active() const {
+bool PoseInterpolator::active() const {
   return knot1_->getPose()->active() || knot1_->getVelocity()->active() ||
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
-auto TrajPoseInterpolator::forward() const -> Node<OutType>::Ptr {
+auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {
   //
   const auto pose1_child = knot1_->getPose()->forward();
   const auto vel1_child = knot1_->getVelocity()->forward();
@@ -70,9 +71,9 @@ auto TrajPoseInterpolator::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
-void TrajPoseInterpolator::backward(const Eigen::MatrixXd& lhs,
-                                    const Node<OutType>::Ptr& node,
-                                    Jacobians& jacs) const {
+void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
+                                const Node<OutType>::Ptr& node,
+                                Jacobians& jacs) const {
   if (!active()) return;
 
   // clang-format off
@@ -134,5 +135,6 @@ void TrajPoseInterpolator::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

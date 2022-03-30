@@ -35,4 +35,4 @@
 #include "steam/solver/VanillaGaussNewtonSolver.hpp"
 
 // trajectory
-#include "steam/trajectory/traj_interface.hpp"
+#include "steam/trajectory/const_vel/interface.hpp"

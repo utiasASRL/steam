@@ -3,26 +3,27 @@
 #include <Eigen/Core>
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/traj_time.hpp"
-#include "steam/trajectory/traj_var.hpp"
+#include "steam/trajectory/const_vel/variable.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
 /** \brief Simple transform evaluator for a transformation state variable */
-class TrajPoseExtrapolator : public Evaluable<lgmath::se3::Transformation> {
+class PoseExtrapolator : public Evaluable<lgmath::se3::Transformation> {
  public:
   /// Shared pointer typedefs for readability
-  using Ptr = std::shared_ptr<TrajPoseExtrapolator>;
-  using ConstPtr = std::shared_ptr<const TrajPoseExtrapolator>;
+  using Ptr = std::shared_ptr<PoseExtrapolator>;
+  using ConstPtr = std::shared_ptr<const PoseExtrapolator>;
 
   using InType = Eigen::Matrix<double, 6, 1>;
   using OutType = lgmath::se3::Transformation;
 
   static Ptr MakeShared(const Time& time,
                         const Evaluable<InType>::ConstPtr& velocity);
-  TrajPoseExtrapolator(const Time& time,
-                       const Evaluable<InType>::ConstPtr& velocity);
+  PoseExtrapolator(const Time& time,
+                   const Evaluable<InType>::ConstPtr& velocity);
 
   bool active() const override;
 
@@ -37,5 +38,6 @@ class TrajPoseExtrapolator : public Evaluable<lgmath::se3::Transformation> {
   const Evaluable<InType>::ConstPtr velocity_;
 };
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

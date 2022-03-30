@@ -1,17 +1,18 @@
-#include "steam/trajectory/traj_velocity_interpolator.hpp"
+#include "steam/trajectory/const_vel/velocity_interpolator.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
-TrajVelocityInterpolator::Ptr TrajVelocityInterpolator::MakeShared(
-    const Time& time, const TrajVar::ConstPtr& knot1,
-    const TrajVar::ConstPtr& knot2) {
-  return std::make_shared<TrajVelocityInterpolator>(time, knot1, knot2);
+VelocityInterpolator::Ptr VelocityInterpolator::MakeShared(
+    const Time& time, const Variable::ConstPtr& knot1,
+    const Variable::ConstPtr& knot2) {
+  return std::make_shared<VelocityInterpolator>(time, knot1, knot2);
 }
 
-TrajVelocityInterpolator::TrajVelocityInterpolator(
-    const Time& time, const TrajVar::ConstPtr& knot1,
-    const TrajVar::ConstPtr& knot2)
+VelocityInterpolator::VelocityInterpolator(const Time& time,
+                                           const Variable::ConstPtr& knot1,
+                                           const Variable::ConstPtr& knot2)
     : knot1_(knot1), knot2_(knot2) {
   // Calculate time constants
   double tau = (time - knot1->getTime()).seconds();
@@ -33,12 +34,12 @@ TrajVelocityInterpolator::TrajVelocityInterpolator(
   lambda22_ = 1.0 - T * psi21_ - psi22_;
 }
 
-bool TrajVelocityInterpolator::active() const {
+bool VelocityInterpolator::active() const {
   return knot1_->getPose()->active() || knot1_->getVelocity()->active() ||
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
-auto TrajVelocityInterpolator::forward() const -> Node<OutType>::Ptr {
+auto VelocityInterpolator::forward() const -> Node<OutType>::Ptr {
   //
   const auto pose1_child = knot1_->getPose()->forward();
   const auto vel1_child = knot1_->getVelocity()->forward();
@@ -72,11 +73,12 @@ auto TrajVelocityInterpolator::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
-void TrajVelocityInterpolator::backward(const Eigen::MatrixXd& lhs,
-                                        const Node<OutType>::Ptr& node,
-                                        Jacobians& jacs) const {
+void VelocityInterpolator::backward(const Eigen::MatrixXd& lhs,
+                                    const Node<OutType>::Ptr& node,
+                                    Jacobians& jacs) const {
   throw std::runtime_error("Not implemented");
 }
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

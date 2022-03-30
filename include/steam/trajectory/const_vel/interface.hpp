@@ -4,21 +4,23 @@
 
 #include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/WeightedLeastSqCostTerm.hpp"
-#include "steam/trajectory/traj_time.hpp"
-#include "steam/trajectory/traj_var.hpp"
+#include "steam/trajectory/const_vel/variable.hpp"
+#include "steam/trajectory/interface.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
 /**
  * \brief The trajectory class wraps a set of state variables to provide an
  * interface that allows for continuous-time pose interpolation.
  */
-class TrajInterface {
+class Interface : public traj::Interface {
  public:
   /// Shared pointer typedefs for readability
-  using Ptr = std::shared_ptr<TrajInterface>;
-  using ConstPtr = std::shared_ptr<const TrajInterface>;
+  using Ptr = std::shared_ptr<Interface>;
+  using ConstPtr = std::shared_ptr<const Interface>;
 
   using PoseType = lgmath::se3::Transformation;
   using VelocityType = Eigen::Matrix<double, 6, 1>;
@@ -30,12 +32,12 @@ class TrajInterface {
    *        factors are needed for estimation. Without Qc the interpolation
    *        methods can be used safely.
    */
-  TrajInterface(const bool allowExtrapolation = false);
-  TrajInterface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
-                const bool allowExtrapolation = false);
+  Interface(const bool allowExtrapolation = false);
+  Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
+            const bool allowExtrapolation = false);
 
   /** \brief Add a new knot */
-  void add(const TrajVar::Ptr& knot);
+  void add(const Variable::Ptr& knot);
   void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
            const Evaluable<VelocityType>::Ptr& w_0k_ink);
   void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
@@ -68,7 +70,7 @@ class TrajInterface {
    * \brief Get binary cost terms associated with the prior for active parts of
    * the trajectory
    */
-  void addPriorCostTerms(OptimizationProblem& problem) const;
+  void addPriorCostTerms(OptimizationProblem& problem) const override;
 
  protected:
   /** \brief Ordered map of knots */
@@ -84,8 +86,9 @@ class TrajInterface {
   WeightedLeastSqCostTerm<6>::Ptr velocityPriorFactor_;
 
   /** \brief Ordered map of knots */
-  std::map<Time, TrajVar::Ptr> knotMap_;
+  std::map<Time, Variable::Ptr> knotMap_;
 };
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

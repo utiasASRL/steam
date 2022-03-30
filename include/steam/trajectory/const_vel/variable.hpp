@@ -5,34 +5,41 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/traj_time.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
 /**
  * \brief This class wraps a pose and velocity evaluator to act as a
  * discrete-time trajectory state variable for continuous-time trajectory
  * estimation.
  */
-class TrajVar {
+class Variable {
  public:
   /// Shared pointer typedefs for readability
-  using Ptr = std::shared_ptr<TrajVar>;
-  using ConstPtr = std::shared_ptr<const TrajVar>;
+  using Ptr = std::shared_ptr<Variable>;
+  using ConstPtr = std::shared_ptr<const Variable>;
 
   using PoseType = lgmath::se3::Transformation;
   using VelocityType = Eigen::Matrix<double, 6, 1>;
   using CovType = Eigen::Matrix<double, 12, 12>;
 
+  static Ptr MakeShared(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+                        const Evaluable<VelocityType>::Ptr& w_0k_ink);
+  static Ptr MakeShared(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+                        const Evaluable<VelocityType>::Ptr& w_0k_ink,
+                        const CovType& cov);
+
   /** \brief Constructor */
-  TrajVar(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-          const Evaluable<VelocityType>::Ptr& w_0k_ink);
-  TrajVar(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-          const Evaluable<VelocityType>::Ptr& w_0k_ink, const CovType& cov);
+  Variable(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+           const Evaluable<VelocityType>::Ptr& w_0k_ink);
+  Variable(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+           const Evaluable<VelocityType>::Ptr& w_0k_ink, const CovType& cov);
 
   /** \brief Constructor \todo should not be a base class */
-  virtual ~TrajVar() = default;
+  virtual ~Variable() = default;
 
   /** \brief Get timestamp */
   const Time& getTime() const;
@@ -62,5 +69,6 @@ class TrajVar {
   bool cov_set_ = false;
 };
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

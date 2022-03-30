@@ -5,26 +5,27 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/traj_time.hpp"
-#include "steam/trajectory/traj_var.hpp"
+#include "steam/trajectory/const_vel/variable.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
-class TrajVelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
+class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
  public:
   /// Shared pointer typedefs for readability
-  using Ptr = std::shared_ptr<TrajVelocityInterpolator>;
-  using ConstPtr = std::shared_ptr<const TrajVelocityInterpolator>;
+  using Ptr = std::shared_ptr<VelocityInterpolator>;
+  using ConstPtr = std::shared_ptr<const VelocityInterpolator>;
 
   using InPoseType = lgmath::se3::Transformation;
   using InVelType = Eigen::Matrix<double, 6, 1>;
   using OutType = Eigen::Matrix<double, 6, 1>;
 
-  static Ptr MakeShared(const Time& time, const TrajVar::ConstPtr& knot1,
-                        const TrajVar::ConstPtr& knot2);
-  TrajVelocityInterpolator(const Time& time, const TrajVar::ConstPtr& knot1,
-                           const TrajVar::ConstPtr& knot2);
+  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
+                        const Variable::ConstPtr& knot2);
+  VelocityInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+                       const Variable::ConstPtr& knot2);
 
   bool active() const override;
 
@@ -34,9 +35,9 @@ class TrajVelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
 
  private:
   /** \brief First (earlier) knot */
-  const TrajVar::ConstPtr knot1_;
+  const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
-  const TrajVar::ConstPtr knot2_;
+  const Variable::ConstPtr knot2_;
 
   /** \brief Interpolation coefficients */
   double psi11_;
@@ -49,5 +50,6 @@ class TrajVelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   double lambda22_;
 };
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

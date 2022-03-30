@@ -1,46 +1,48 @@
-#include "steam/trajectory/traj_interface.hpp"
+#include "steam/trajectory/const_vel/interface.hpp"
 
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
 #include "steam/problem/LossFunctions.hpp"
 #include "steam/problem/NoiseModel.hpp"
-#include "steam/trajectory/traj_pose_extrapolator.hpp"
-#include "steam/trajectory/traj_pose_interpolator.hpp"
-#include "steam/trajectory/traj_prior_factor.hpp"
-#include "steam/trajectory/traj_velocity_interpolator.hpp"
+#include "steam/trajectory/const_vel/pose_extrapolator.hpp"
+#include "steam/trajectory/const_vel/pose_interpolator.hpp"
+#include "steam/trajectory/const_vel/prior_factor.hpp"
+#include "steam/trajectory/const_vel/velocity_interpolator.hpp"
 
 namespace steam {
 namespace traj {
+namespace const_vel {
 
-TrajInterface::TrajInterface(const bool allowExtrapolation)
+Interface::Interface(const bool allowExtrapolation)
     : Qc_inv_(Eigen::Matrix<double, 6, 6>::Identity()),
       allowExtrapolation_(allowExtrapolation) {}
 
-TrajInterface::TrajInterface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
-                             const bool allowExtrapolation)
+Interface::Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
+                     const bool allowExtrapolation)
     : Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {}
 
-void TrajInterface::add(const TrajVar::Ptr& knot) {
+void Interface::add(const Variable::Ptr& knot) {
   knotMap_.insert(knotMap_.end(),
-                  std::pair<Time, TrajVar::Ptr>(knot->getTime(), knot));
+                  std::pair<Time, Variable::Ptr>(knot->getTime(), knot));
 }
 
-void TrajInterface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-                        const Evaluable<VelocityType>::Ptr& w_0k_ink) {
-  add(std::make_shared<TrajVar>(time, T_k0, w_0k_ink));
+void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+                    const Evaluable<VelocityType>::Ptr& w_0k_ink) {
+  add(std::make_shared<Variable>(time, T_k0, w_0k_ink));
 }
 
-void TrajInterface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-                        const Evaluable<VelocityType>::Ptr& w_0k_ink,
-                        const CovType& cov) {
-  add(std::make_shared<TrajVar>(time, T_k0, w_0k_ink, cov));
+void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+                    const Evaluable<VelocityType>::Ptr& w_0k_ink,
+                    const CovType& cov) {
+  add(std::make_shared<Variable>(time, T_k0, w_0k_ink, cov));
 }
 
-auto TrajInterface::getPoseInterpolator(const Time& time) const
+auto Interface::getPoseInterpolator(const Time& time) const
     -> Evaluable<PoseType>::ConstPtr {
   // Check that map is not empty
   if (knotMap_.empty())
-    throw std::runtime_error("[STEAMTraj][getPoseInterpolator] map was empty");
+    throw std::runtime_error(
+        "[ConstVelTraj][getPoseInterpolator] map was empty");
 
   // Get iterator to first element with time equal to or greater than 'time'
   auto it1 = knotMap_.lower_bound(time);
@@ -51,8 +53,8 @@ auto TrajInterface::getPoseInterpolator(const Time& time) const
     if (allowExtrapolation_) {
       --it1;  // should be safe, as we checked that the map was not empty..
       const auto& endKnot = it1->second;
-      const auto T_t_k = TrajPoseExtrapolator::MakeShared(
-          time - endKnot->getTime(), endKnot->getVelocity());
+      const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->getTime(),
+                                                      endKnot->getVelocity());
       return se3::compose(T_t_k, endKnot->getPose());
     } else {
       throw std::runtime_error(
@@ -71,7 +73,7 @@ auto TrajInterface::getPoseInterpolator(const Time& time) const
     // If we allow extrapolation, return constant-velocity interpolated entry
     if (allowExtrapolation_) {
       const auto& startKnot = it1->second;
-      const auto T_t_k = TrajPoseExtrapolator::MakeShared(
+      const auto T_t_k = PoseExtrapolator::MakeShared(
           time - startKnot->getTime(), startKnot->getVelocity());
       return se3::compose(T_t_k, startKnot->getPose());
     } else {
@@ -90,14 +92,14 @@ auto TrajInterface::getPoseInterpolator(const Time& time) const
   }
 
   // Create interpolated evaluator
-  return TrajPoseInterpolator::MakeShared(time, it1->second, it2->second);
+  return PoseInterpolator::MakeShared(time, it1->second, it2->second);
 }
 
-auto TrajInterface::getVelocityInterpolator(const Time& time) const
+auto Interface::getVelocityInterpolator(const Time& time) const
     -> Evaluable<VelocityType>::ConstPtr {
   // Check that map is not empty
   if (knotMap_.empty())
-    throw std::runtime_error("[STEAMTraj][getEvaluator] map was empty");
+    throw std::runtime_error("[ConstVelTraj][getEvaluator] map was empty");
 
   // Get iterator to first element with time equal to or greater than 'time'
   auto it1 = knotMap_.lower_bound(time);
@@ -143,20 +145,20 @@ auto TrajInterface::getVelocityInterpolator(const Time& time) const
   }
 
   // Create interpolated evaluator
-  return TrajVelocityInterpolator::MakeShared(time, it1->second, it2->second);
+  return VelocityInterpolator::MakeShared(time, it1->second, it2->second);
 }
 
-void TrajInterface::addPosePrior(const Time& time, const PoseType& T_k0,
-                                 const Eigen::Matrix<double, 6, 6>& cov) {
+void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
+                             const Eigen::Matrix<double, 6, 6>& cov) {
   // Check that map is not empty
   if (knotMap_.empty())
-    throw std::runtime_error("[STEAMTraj][addPosePrior] map was empty.");
+    throw std::runtime_error("[ConstVelTraj][addPosePrior] map was empty.");
 
   // Try to find knot at same time
   auto it = knotMap_.find(time);
   if (it == knotMap_.end())
     throw std::runtime_error(
-        "[STEAMTraj][addPosePrior] no knot at provided time.");
+        "[ConstVelTraj][addPosePrior] no knot at provided time.");
 
   // Get reference
   const auto& knot = it->second;
@@ -164,7 +166,7 @@ void TrajInterface::addPosePrior(const Time& time, const PoseType& T_k0,
   // Check that the pose is not locked
   if (!knot->getPose()->active())
     throw std::runtime_error(
-        "[STEAMTraj][addPosePrior] tried to add prior to locked pose.");
+        "[ConstVelTraj][addPosePrior] tried to add prior to locked pose.");
 
   // Set up loss function, noise model, and error function
   const auto T_k0_meas = se3::SE3StateVar::MakeShared(T_k0);
@@ -179,18 +181,17 @@ void TrajInterface::addPosePrior(const Time& time, const PoseType& T_k0,
       error_function, noise_model, loss_function);
 }
 
-void TrajInterface::addVelocityPrior(const Time& time,
-                                     const VelocityType& w_0k_ink,
-                                     const Eigen::Matrix<double, 6, 6>& cov) {
+void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
+                                 const Eigen::Matrix<double, 6, 6>& cov) {
   // Check that map is not empty
   if (knotMap_.empty())
-    throw std::runtime_error("[STEAMTraj][addVelocityPrior] map was empty.");
+    throw std::runtime_error("[ConstVelTraj][addVelocityPrior] map was empty.");
 
   // Try to find knot at same time
   auto it = knotMap_.find(time);
   if (it == knotMap_.end())
     throw std::runtime_error(
-        "[STEAMTraj][addVelocityPrior] no knot at provided time.");
+        "[ConstVelTraj][addVelocityPrior] no knot at provided time.");
 
   // Get reference
   const auto& knot = it->second;
@@ -198,7 +199,7 @@ void TrajInterface::addVelocityPrior(const Time& time,
   // Check that the velocity is not locked
   if (!knot->getVelocity()->active())
     throw std::runtime_error(
-        "[STEAMTraj][addVelocityPrior] tried to add prior to locked pose.");
+        "[ConstVelTraj][addVelocityPrior] tried to add prior to locked pose.");
 
   // Set up loss function, noise model, and error function
   const auto w_0k_ink_meas = vspace::VSpaceStateVar<6>::MakeShared(w_0k_ink);
@@ -213,7 +214,7 @@ void TrajInterface::addVelocityPrior(const Time& time,
       error_function, noise_model, loss_function);
 }
 
-void TrajInterface::addPriorCostTerms(OptimizationProblem& problem) const {
+void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   // If empty, return none
   if (knotMap_.empty()) return;
 
@@ -251,7 +252,7 @@ void TrajInterface::addPriorCostTerms(OptimizationProblem& problem) const {
       const auto noise_model =
           std::make_shared<StaticNoiseModel<12>>(Qi_inv, steam::INFORMATION);
       //
-      const auto error_function = TrajPriorFactor::MakeShared(knot1, knot2);
+      const auto error_function = PriorFactor::MakeShared(knot1, knot2);
       // Create cost term
       const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<12>>(
           error_function, noise_model, loss_function);
@@ -261,5 +262,6 @@ void TrajInterface::addPriorCostTerms(OptimizationProblem& problem) const {
   }
 }
 
+}  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

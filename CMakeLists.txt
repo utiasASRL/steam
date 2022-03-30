@@ -10,9 +10,6 @@ add_compile_options(-march=native -O3 -Wall -pedantic -Wno-unused-function)
 
 # define number of threads to be used by OpenMP in steam
 add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
-# Use a object pool to improve performance but no longer thread safe as the object pool
-# is a singleton and is based on openmp. There is about ~10 gain in speed.
-# add_definitions(-DSTEAM_USE_OBJECT_POOL)
 
 ## cmake flow (default)
 if (NOT USE_AMENT)
@@ -28,7 +25,14 @@ find_package(Eigen3 3.3.7 REQUIRED)
 find_package(lgmath 1.1.0 REQUIRED)
 
 # Build library
-file(GLOB_RECURSE SOURCE "src/*.cpp")
+file(GLOB_RECURSE SOURCE
+  src/data/*.cpp
+  src/blockmat/*.cpp
+  src/evaluable/*.cpp
+  src/problem/*.cpp
+  src/solver/*.cpp
+  src/trajectory/*.cpp
+)
 add_library(${PROJECT_NAME} SHARED ${SOURCE})
 target_link_libraries(${PROJECT_NAME}
   PUBLIC lgmath
@@ -139,38 +143,38 @@ endif()
 
 # Executables
 link_libraries(${PROJECT_NAME})
-# add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
-# add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
+add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
+add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
+add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
+add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
+add_executable(SimpleConstVelTrajPrior samples/SimpleConstVelTrajPrior.cpp)
 # add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
+# add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
+# add_executable(SimpleBAandConstAccTrajPrior samples/SimpleBAandConstAccTrajPrior.cpp)
 # add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
 # add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
 # add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
-add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
-# add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
-add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
-add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
 # add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
 # add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
-add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 
 if (USE_AMENT)
 
 install(
   TARGETS
     # Executables
-    # SimpleBAandTrajPrior
-    # SimpleBAandCATrajPrior
+    SimplePoseGraphRelax
+    SpherePoseGraphRelax
+    SimplePointCloudAlignment
+    TrustRegionExample
+    SimpleConstVelTrajPrior
+    # SimpleBAandConstVelTrajPrior
+    # SimpleBAandConstAccTrajPrior
     # SimpleBundleAdjustment
     # SimpleBundleAdjustmentFullRel
     # SimpleBundleAdjustmentRelLand
     # SimpleBundleAdjustmentRelLandX
-    SimplePoseGraphRelax
-    # SimpleTrajectoryPrior
-    SpherePoseGraphRelax
-    TrustRegionExample
     # MotionDistortedP2PandCATrajPrior
     # SimpleP2PandCATrajPrior
-    SimplePointCloudAlignment
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
