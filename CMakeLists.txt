@@ -148,7 +148,7 @@ add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
 add_executable(SimpleConstVelTrajPrior samples/SimpleConstVelTrajPrior.cpp)
-# add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
+add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
 # add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
 # add_executable(SimpleBAandConstAccTrajPrior samples/SimpleBAandConstAccTrajPrior.cpp)
 # add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
@@ -167,12 +167,12 @@ install(
     SimplePointCloudAlignment
     TrustRegionExample
     SimpleConstVelTrajPrior
-    # SimpleBAandConstVelTrajPrior
-    # SimpleBAandConstAccTrajPrior
-    # SimpleBundleAdjustment
+    SimpleBundleAdjustment
     # SimpleBundleAdjustmentFullRel
     # SimpleBundleAdjustmentRelLand
     # SimpleBundleAdjustmentRelLandX
+    # SimpleBAandConstVelTrajPrior
+    # SimpleBAandConstAccTrajPrior
     # MotionDistortedP2PandCATrajPrior
     # SimpleP2PandCATrajPrior
   LIBRARY DESTINATION lib

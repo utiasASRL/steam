@@ -20,6 +20,7 @@
 
 #include "steam/evaluable/p2p/p2p_error_evaluator.hpp"
 #include "steam/evaluable/se3/evaluables.hpp"
+#include "steam/evaluable/stereo/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
 
 // problem
