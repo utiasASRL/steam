@@ -30,25 +30,27 @@ int main(int argc, char** argv) {
   }
 
   // Load dataset
+  // clang-format off
   data::SimpleBaDataset dataset = data::parseSimpleBaDataset(filename);
-  std::cout << "Problem has: " << dataset.frames_gt.size() << " poses"
-            << std::endl;
-  std::cout << "             " << dataset.land_gt.size() << " landmarks"
-            << std::endl;
-  std::cout << "            ~"
-            << double(dataset.meas.size()) / dataset.frames_gt.size()
-            << " meas per pose" << std::endl
-            << std::endl;
+  std::cout << "Problem has: " << dataset.frames_gt.size() << " poses" << std::endl;
+  std::cout << "             " << dataset.land_gt.size() << " landmarks" << std::endl;
+  std::cout << "            ~" << double(dataset.meas.size()) / dataset.frames_gt.size()
+            << " meas per pose" << std::endl << std::endl;
+  // clang-format on
 
   ///
   /// Make Optimization Problem
   ///
 
-  steam::OptimizationProblem problem;
+  OptimizationProblem problem;
 
   ///
   /// Setup and Initialize States
   ///
+
+  // Setup T_cv as a locked se3 state variable
+  const auto pose_c_v = se3::SE3StateVar::MakeShared(dataset.T_cv);
+  pose_c_v->locked() = true;
 
   // Ground truth
   std::vector<se3::SE3StateVar::Ptr> poses_gt_k_0;
@@ -82,10 +84,6 @@ int main(int argc, char** argv) {
     landmarks_ic.emplace_back(
         stereo::HomoPointStateVar::MakeShared(dataset.land_ic[i].point));
 
-  // Setup T_cv as a locked se3 state variable
-  const auto pose_c_v = se3::SE3StateVar::MakeShared(dataset.T_cv);
-  pose_c_v->locked() = true;
-
   // Add pose variables
   for (unsigned int i = 1; i < poses_ic_k_0.size(); i++)
     problem.addStateVariable(poses_ic_k_0[i]);
@@ -99,8 +97,8 @@ int main(int argc, char** argv) {
 
   // Setup shared noise and loss function
   const auto sharedCameraNoiseModel =
-      std::make_shared<steam::StaticNoiseModel<4>>(dataset.noise);
-  const auto sharedLossFunc = std::make_shared<steam::L2LossFunc>();
+      std::make_shared<StaticNoiseModel<4>>(dataset.noise);
+  const auto sharedLossFunc = std::make_shared<L2LossFunc>();
 
   // Setup camera intrinsics
   const auto sharedIntrinsics = std::make_shared<stereo::CameraIntrinsics>();
@@ -125,7 +123,7 @@ int main(int argc, char** argv) {
         dataset.meas[i].data, sharedIntrinsics, pose_c_0, landmark);
 
     // Construct cost term
-    const auto cost = std::make_shared<steam::WeightedLeastSqCostTerm<4>>(
+    const auto cost = std::make_shared<WeightedLeastSqCostTerm<4>>(
         errorfunc, sharedCameraNoiseModel, sharedLossFunc);
 
     // Add cost term

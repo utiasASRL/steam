@@ -149,11 +149,10 @@ add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
 add_executable(SimpleConstVelTrajPrior samples/SimpleConstVelTrajPrior.cpp)
 add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
-# add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
+add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
+add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
+add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
 # add_executable(SimpleBAandConstAccTrajPrior samples/SimpleBAandConstAccTrajPrior.cpp)
-# add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
-# add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
-# add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
 # add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
 # add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
 
@@ -168,10 +167,9 @@ install(
     TrustRegionExample
     SimpleConstVelTrajPrior
     SimpleBundleAdjustment
-    # SimpleBundleAdjustmentFullRel
-    # SimpleBundleAdjustmentRelLand
-    # SimpleBundleAdjustmentRelLandX
-    # SimpleBAandConstVelTrajPrior
+    SimpleBundleAdjustmentRelLand
+    SimpleBundleAdjustmentFullRel
+    SimpleBAandConstVelTrajPrior
     # SimpleBAandConstAccTrajPrior
     # MotionDistortedP2PandCATrajPrior
     # SimpleP2PandCATrajPrior

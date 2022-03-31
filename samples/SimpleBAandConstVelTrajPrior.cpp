@@ -1,8 +1,8 @@
 /**
- * \file SimpleBundleAdjustmentFullRel.cpp
- * \author Michael Warren, Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ * \file SimpleBAandConstVelTrajPrior.cpp
+ * \author Sean Anderson, Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
  * \brief A sample usage of the STEAM Engine library for a bundle adjustment
- * problem with relative landmarks and poses.
+ * problem with relative landmarks and trajectory smoothing factors.
  */
 #include <iostream>
 
@@ -12,7 +12,37 @@
 
 using namespace steam;
 
+/** \brief Structure to store trajectory state variables */
+struct TrajStateVar {
+  traj::Time time;
+  se3::SE3StateVar::Ptr pose;
+  vspace::VSpaceStateVar<6>::Ptr velocity;
+};
+
+/** \brief Example that loads and solves simple bundle adjustment problems */
 int main(int argc, char** argv) {
+  ///
+  /// Setup Traj Prior
+  ///
+
+  // Smoothing factor diagonal -- in this example, we penalize accelerations in
+  // each dimension except for the forward and yaw (this should be fairly
+  // typical)
+  double lin_acc_stddev_x = 1.00;  // body-centric (e.g. x is usually forward)
+  double lin_acc_stddev_y = 0.01;  // body-centric (e.g. y is usually side-slip)
+  double lin_acc_stddev_z = 0.01;  // body-centric (e.g. z is usually 'jump')
+  double ang_acc_stddev_x = 0.01;  // ~roll
+  double ang_acc_stddev_y = 0.01;  // ~pitch
+  double ang_acc_stddev_z = 1.00;  // ~yaw
+  Eigen::Array<double, 1, 6> Qc_diag;
+  Qc_diag << lin_acc_stddev_x, lin_acc_stddev_y, lin_acc_stddev_z,
+      ang_acc_stddev_x, ang_acc_stddev_y, ang_acc_stddev_z;
+
+  // Make Qc_inv
+  Eigen::Matrix<double, 6, 6> Qc_inv;
+  Qc_inv.setZero();
+  Qc_inv.diagonal() = 1.0 / Qc_diag;
+
   ///
   /// Parse Dataset
   ///
@@ -33,6 +63,7 @@ int main(int argc, char** argv) {
   // clang-format off
   data::SimpleBaDataset dataset = data::parseSimpleBaDataset(filename);
   std::cout << "Problem has: " << dataset.frames_gt.size() << " poses" << std::endl;
+  std::cout << "             " << dataset.frames_gt.size() << " velocities" << std::endl;
   std::cout << "             " << dataset.land_gt.size() << " landmarks" << std::endl;
   std::cout << "            ~" << double(dataset.meas.size()) / dataset.frames_gt.size()
             << " meas per pose" << std::endl << std::endl;
@@ -64,7 +95,8 @@ int main(int argc, char** argv) {
   std::vector<stereo::HomoPointStateVar::Ptr> landmarks_gt;
 
   // State variable containers (and related data)
-  std::vector<se3::SE3StateVar::Ptr> relposes_ic_k_kp;
+  std::vector<TrajStateVar> traj_state_vars;
+  std::vector<traj::const_vel::Variable::Ptr> traj_evals_ic;
   std::vector<stereo::HomoPointStateVar::Ptr> landmarks_ic;
 
   // Record the frame in which the landmark is first seen in order to set up
@@ -85,10 +117,26 @@ int main(int argc, char** argv) {
     landmarks_gt.emplace_back(
         stereo::HomoPointStateVar::MakeShared(dataset.land_gt[i].point));
 
-  // Create all the relative transforms from the initial poses
-  for (unsigned int i = 1; i < dataset.frames_ic.size(); i++)
-    relposes_ic_k_kp.emplace_back(se3::SE3StateVar::MakeShared(
-        dataset.frames_ic[i].T_k0 / dataset.frames_ic[i - 1].T_k0));
+  // Zero velocity
+  Eigen::Matrix<double, 6, 1> initVelocity;
+  initVelocity.setZero();
+
+  // Setup state variables using initial condition
+  for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
+    traj::Time time(dataset.frames_ic[i].time);
+    const auto pose = se3::SE3StateVar::MakeShared(dataset.frames_ic[i].T_k0);
+    const auto vel = vspace::VSpaceStateVar<6>::MakeShared(initVelocity);
+    traj_state_vars.emplace_back(TrajStateVar{time, pose, vel});
+  }
+
+  // Lock first pose (otherwise entire solution is 'floating')
+  //  **Note: alternatively we could add a prior to the first pose.
+  traj_state_vars.at(0).pose->locked() = true;
+
+  // Setup Trajectory
+  traj::const_vel::Interface traj(Qc_inv);
+  for (const auto& state : traj_state_vars)
+    traj.add(state.time, state.pose, state.velocity);
 
   // Setup relative landmarks
   landmarks_ic.resize(dataset.land_ic.size(), nullptr);
@@ -122,9 +170,12 @@ int main(int argc, char** argv) {
     }
   }
 
-  // Add pose variables
-  for (unsigned int i = 0; i < relposes_ic_k_kp.size(); i++)
-    problem.addStateVariable(relposes_ic_k_kp[i]);
+  // Add state variables
+  for (const auto& state : traj_state_vars) {
+    problem.addStateVariable(state.pose);
+    problem.addStateVariable(state.velocity);
+  }
+
   // Add landmark variables
   for (unsigned int i = 0; i < landmarks_ic.size(); i++)
     problem.addStateVariable(landmarks_ic[i]);
@@ -161,12 +212,10 @@ int main(int argc, char** argv) {
       // In this case, the transform remains fixed as an identity transform
       tf_vb_va = tf_identity;
     } else {
-      // Initialize from first relative transform
       unsigned int firstObsIndex = landmark_map[landmarkIdx];
-      tf_vb_va = relposes_ic_k_kp[firstObsIndex];
-      // Compose through the chain of transforms
-      for (unsigned int j = firstObsIndex + 1; j < frameIdx; j++)
-        tf_vb_va = se3::compose(relposes_ic_k_kp[j], tf_vb_va);
+      tf_vb_va =
+          se3::compose(traj_state_vars[frameIdx].pose,
+                       se3::inverse(traj_state_vars[firstObsIndex].pose));
     }
 
     // Compose with camera to vehicle transform
@@ -183,6 +232,9 @@ int main(int argc, char** argv) {
     // Add cost term
     problem.addCostTerm(cost);
   }
+
+  // Trajectory prior smoothing terms
+  traj.addPriorCostTerms(problem);
 
   ///
   /// Setup Solver and Optimize
