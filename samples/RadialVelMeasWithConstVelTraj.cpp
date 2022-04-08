@@ -1,8 +1,8 @@
 /**
- * \file RadialVelocityMeasurement.cpp
+ * \file RatialVelMeasWithConstVelTraj.cpp
  * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
  * \brief Simple example that uses pointwise radial velocity measurements to
- * estimate body velocity of the vehicle, assuming no motion distortion.
+ * estimate body velocity of the vehicle, taking into account motion distortion.
  */
 #include <iostream>
 
@@ -13,6 +13,9 @@ using namespace steam;
 
 // clang-format off
 int main(int argc, char **argv) {
+  // Time horizon, consider this the time for getting a full lidar scan
+  const double T = 1.0;
+
   // The vehicle-inertial transformation at t=0, assuming to be identity for
   // simplicity
   Eigen::Matrix4d T_iv = Eigen::Matrix4d::Identity();
@@ -30,6 +33,9 @@ int main(int argc, char **argv) {
   w_iv_inv << -2.0, 0.0, 0.0, 0.0, 0.0, 0.8;
   Eigen::Matrix<double, 6, 1> w_is_ins = lgmath::se3::tranAd(T_sv) * w_iv_inv;
 
+  // measurement time
+  std::vector<double> ts{0.25 * T, 0.5 * T, 0.75 * T};
+
   // The homogeneous coordinates of the landmarks in the inertial frame with
   // timestamp being measured
   std::vector<Eigen::Vector4d> lm_ini;
@@ -38,7 +44,11 @@ int main(int argc, char **argv) {
   lm_ini.emplace_back(Eigen::Vector4d{0.0, -2.0, 0.0, 1.0});
 
   std::vector<Eigen::Vector4d> lm_ins;
-  for (const auto &lm : lm_ini) lm_ins.emplace_back(T_sv * T_vi * lm);
+  for (size_t i=0; i< lm_ini.size(); i++) {
+    const auto &lm = lm_ini[i];
+    const auto &t = ts[i];
+    lm_ins.emplace_back(T_sv * lgmath::se3::vec2tran(t * w_iv_inv) * T_vi * lm);
+  }
 
   std::vector<Eigen::Vector4d> dot_lm_ins;
   for (const auto &lm : lm_ins)
@@ -64,12 +74,27 @@ int main(int argc, char **argv) {
   // sensor-vehicle transformation - this is fixed
   const auto T_sv_var = se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(T_sv));
   T_sv_var->locked() = true;
-  // vehicle velocity to be estimated
-  const auto w_iv_inv_var = vspace::VSpaceStateVar<6>::MakeShared(Eigen::Matrix<double, 6, 1>::Zero());
-  const auto w_is_ins_eval = se3::compose_velocity(T_sv_var, w_iv_inv_var);
+  // vehicle pose at t=0, fixed
+  const auto T_vi_at0_var = se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(T_vi));
+  T_vi_at0_var->locked() = true;
+  // vehicle velocity at t=0, to be estimated
+  const auto w_iv_inv_at0_var = vspace::VSpaceStateVar<6>::MakeShared(Eigen::Matrix<double, 6, 1>::Zero());
+  // vehicle pose at t=T, to be estimated
+  const auto T_vi_atT_var = se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(T_vi));
+  // vehicle velocity at t=0, to be estimated
+  const auto w_iv_inv_atT_var = vspace::VSpaceStateVar<6>::MakeShared(Eigen::Matrix<double, 6, 1>::Zero());
 
   // add states
-  problem.addStateVariable(w_iv_inv_var);
+  problem.addStateVariable(w_iv_inv_at0_var);
+  problem.addStateVariable(T_vi_atT_var);
+  problem.addStateVariable(w_iv_inv_atT_var);
+
+  // trajectory interface
+  Eigen::Matrix<double, 6, 6> Qc_inv = Eigen::Matrix<double, 6, 6>::Zero();
+  Qc_inv.diagonal() << 1e0, 1e0, 1e0, 1e0, 1e0, 1e0;
+  traj::const_vel::Interface traj(Qc_inv);
+  traj.add(traj::Time(0.0), T_vi_at0_var, w_iv_inv_at0_var);
+  traj.add(traj::Time(T), T_vi_atT_var, w_iv_inv_atT_var);
 
   const auto loss_function = std::make_shared<L2LossFunc>();
   Eigen::Matrix<double, 1, 1> meas_cov = Eigen::Matrix<double, 1, 1>::Identity();
@@ -77,6 +102,8 @@ int main(int argc, char **argv) {
   for (size_t i = 0; i < rv_measurements.size(); ++i) {
     const auto &lm = lm_ins.at(i);
     const auto &rv = rv_measurements.at(i);
+    const auto w_iv_inv_att_eval = traj.getVelocityInterpolator(traj::Time(ts[i]));
+    const auto w_is_ins_eval = se3::compose_velocity(T_sv_var, w_iv_inv_att_eval);
     const auto rv_error = p2p::RadialVelErrorEvaluator::MakeShared(w_is_ins_eval, lm.head<3>(), rv);
     const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<1>>(rv_error, meas_noise_model, loss_function);
     problem.addCostTerm(cost_term);
@@ -84,9 +111,11 @@ int main(int argc, char **argv) {
 
   Eigen::Matrix<double, 6, 6> prior_cov = Eigen::Matrix<double, 6, 6>::Zero();
   prior_cov.diagonal() << 1e4, 1e-2, 1e-2, 1e-2, 1e-2, 1e4;
-  const auto prior_noise_model = std::make_shared<StaticNoiseModel<6>>(prior_cov);
-  const auto prior_cost_term = std::make_shared<WeightedLeastSqCostTerm<6>>(w_iv_inv_var, prior_noise_model, loss_function);
-  problem.addCostTerm(prior_cost_term);
+  Eigen::Matrix<double, 6, 1> prior_w_iv_inv_at0 = Eigen::Matrix<double, 6, 1>::Zero();
+  traj.addVelocityPrior(traj::Time(0.0), prior_w_iv_inv_at0, prior_cov);
+
+  // add prior cost terms
+  traj.addPriorCostTerms(problem);
 
   using SolverType = VanillaGaussNewtonSolver;
 
@@ -101,7 +130,8 @@ int main(int argc, char **argv) {
   solver.optimize();
 
   std::cout << "Ground truth body velocity: " << w_iv_inv.transpose() << std::endl;
-  std::cout << "Estimated body velocity: " << w_iv_inv_var->value().transpose() << std::endl;
+  std::cout << "Estimated body velocity at t=0: " << w_iv_inv_at0_var->value().transpose() << std::endl;
+  std::cout << "Estimated body velocity at t=T: " << w_iv_inv_atT_var->value().transpose() << std::endl;
 
   return 0;
 }
