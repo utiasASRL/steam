@@ -18,7 +18,7 @@
 #include "steam/evaluable/evaluable.hpp"
 #include "steam/evaluable/state_var.hpp"
 
-#include "steam/evaluable/p2p/p2p_error_evaluator.hpp"
+#include "steam/evaluable/p2p/evaluables.hpp"
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/stereo/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"

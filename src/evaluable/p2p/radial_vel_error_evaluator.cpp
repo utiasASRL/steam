@@ -19,19 +19,20 @@ RadialVelErrorEvaluator::RadialVelErrorEvaluator(
 bool RadialVelErrorEvaluator::active() const { return w_iv_inv_->active(); }
 
 auto RadialVelErrorEvaluator::value() const -> OutType {
-  const auto numerator = pv_.transpose() * D_ *
-                         lgmath::se3::point2fs(pv_, 1.0) * w_iv_inv_->value();
-  const auto denominator = std::sqrt(double(pv_.transpose() * pv_));
+  const Eigen::Matrix<double, 1, 1> numerator =
+      (pv_.transpose() * D_ * lgmath::se3::point2fs(pv_, 1.0) *
+       w_iv_inv_->value());
+  const double denominator = std::sqrt(double(pv_.transpose() * pv_));
   return r_ - numerator / denominator;
 }
 
 auto RadialVelErrorEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child = w_iv_inv_->forward();
   //
-  const auto numerator =
+  const Eigen::Matrix<double, 1, 1> numerator =
       pv_.transpose() * D_ * lgmath::se3::point2fs(pv_, 1.0) * child->value();
-  const auto denominator = std::sqrt(double(pv_.transpose() * pv_));
-  const auto error = r_ - numerator / denominator;
+  const double denominator = std::sqrt(double(pv_.transpose() * pv_));
+  const Eigen::Matrix<double, 1, 1> error = r_ - numerator / denominator;
   //
   const auto node = Node<OutType>::MakeShared(error);
   node->addChild(child);

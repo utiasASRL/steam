@@ -143,6 +143,7 @@ endif()
 
 # Executables
 link_libraries(${PROJECT_NAME})
+add_executable(RadialVelocityMeasurement samples/RadialVelocityMeasurement.cpp)
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
@@ -158,6 +159,7 @@ if (USE_AMENT)
 install(
   TARGETS
     # Executables
+    RadialVelocityMeasurement
     SimplePoseGraphRelax
     SpherePoseGraphRelax
     SimplePointCloudAlignment
