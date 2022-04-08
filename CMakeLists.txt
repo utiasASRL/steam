@@ -152,9 +152,6 @@ add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
 add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
 add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
 add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
-# add_executable(SimpleBAandConstAccTrajPrior samples/SimpleBAandConstAccTrajPrior.cpp)
-# add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
-# add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
 
 if (USE_AMENT)
 
@@ -170,9 +167,6 @@ install(
     SimpleBundleAdjustmentRelLand
     SimpleBundleAdjustmentFullRel
     SimpleBAandConstVelTrajPrior
-    # SimpleBAandConstAccTrajPrior
-    # MotionDistortedP2PandCATrajPrior
-    # SimpleP2PandCATrajPrior
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -182,13 +176,11 @@ install(
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
-  # # Unit-tests
-  # ament_add_gtest(time_test tests/time_test.cpp)
-  # target_link_libraries(time_test ${PROJECT_NAME})
-  # ament_add_gtest(pattern_test tests/pattern_test.cpp)
-  # target_link_libraries(pattern_test ${PROJECT_NAME})
-  # ament_add_gtest(evaluator_test tests/evaluator_test.cpp)
-  # target_link_libraries(evaluator_test ${PROJECT_NAME})
+  # Unit-tests
+  ament_add_gtest(time_test tests/time_test.cpp)
+  target_link_libraries(time_test ${PROJECT_NAME})
+  ament_add_gtest(pattern_test tests/pattern_test.cpp)
+  target_link_libraries(pattern_test ${PROJECT_NAME})
 
   # Linting
   find_package(ament_lint_auto REQUIRED)

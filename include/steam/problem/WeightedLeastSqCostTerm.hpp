@@ -76,14 +76,6 @@ template <int DIM>
 void WeightedLeastSqCostTerm<DIM>::buildGaussNewtonTerms(
     const StateVector &state_vec, BlockSparseMatrix *approximate_hessian,
     BlockVector *gradient_vector) const {
-  // Get square block indices (we know the hessian is block-symmetric)
-  const std::vector<unsigned int> &blkSizes =
-      approximate_hessian->getIndexing().rowIndexing().blkSizes();
-
-  // Init dynamic matrices
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> newHessianTerm;
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> newGradTerm;
-
   // Compute the weighted and whitened errors and jacobians
   // err = sqrt(w)*sqrt(R^-1)*rawError
   // jac = sqrt(w)*sqrt(R^-1)*rawJacobian
@@ -106,8 +98,7 @@ void WeightedLeastSqCostTerm<DIM>::buildGaussNewtonTerms(
     unsigned int blkIdx1 = state_vec.getStateBlockIndex(key1);
 
     // Calculate terms needed to update the right-hand-side
-    unsigned int size1 = blkSizes.at(blkIdx1);
-    newGradTerm = (-1) * jac1.leftCols(size1).transpose() * error;
+    Eigen::MatrixXd newGradTerm = (-1) * jac1.transpose() * error;
 
 // Update the right-hand side (thread critical)
 #pragma omp critical(b_update)
@@ -122,20 +113,18 @@ void WeightedLeastSqCostTerm<DIM>::buildGaussNewtonTerms(
       unsigned int blkIdx2 = state_vec.getStateBlockIndex(key2);
 
       // Calculate terms needed to update the Gauss-Newton left-hand side
-      unsigned int size2 = blkSizes.at(blkIdx2);
-      unsigned int row;
-      unsigned int col;
-      if (blkIdx1 <= blkIdx2) {
-        row = blkIdx1;
-        col = blkIdx2;
-        newHessianTerm =
-            jac1.leftCols(size1).transpose() * jac2.leftCols(size2);
-      } else {
-        row = blkIdx2;
-        col = blkIdx1;
-        newHessianTerm =
-            jac2.leftCols(size2).transpose() * jac1.leftCols(size1);
-      }
+      unsigned int row, col;
+      const Eigen::MatrixXd newHessianTerm = [&]() -> Eigen::MatrixXd {
+        if (blkIdx1 <= blkIdx2) {
+          row = blkIdx1;
+          col = blkIdx2;
+          return jac1.transpose() * jac2;
+        } else {
+          row = blkIdx2;
+          col = blkIdx1;
+          return jac2.transpose() * jac1;
+        }
+      }();
 
       // Update the left-hand side (thread critical)
       BlockSparseMatrix::BlockRowEntry &entry =

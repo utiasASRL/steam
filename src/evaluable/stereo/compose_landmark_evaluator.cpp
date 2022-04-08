@@ -47,8 +47,8 @@ void ComposeLandmarkEvaluator::backward(const Eigen::MatrixXd& lhs,
 
   if (landmark_->active()) {
     // Construct Jacobian
-    Eigen::Matrix<double, 4, 6> land_jac;
-    land_jac.block<4, 3>(0, 0) = child1->value().matrix().block<4, 3>(0, 0);
+    Eigen::Matrix<double, 4, 3> land_jac =
+        child1->value().matrix().block<4, 3>(0, 0);
     landmark_->backward(lhs * land_jac, child2, jacs);
   }
 }

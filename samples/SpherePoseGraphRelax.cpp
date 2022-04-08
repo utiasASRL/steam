@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
   ///
   /// Setup Solver and Optimize
   ///
-  using SolverType = steam::VanillaGaussNewtonSolver;
+  using SolverType = steam::DoglegGaussNewtonSolver;
 
   // Initialize parameters (enable verbose mode)
   SolverType::Params params;

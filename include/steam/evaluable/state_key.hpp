@@ -15,6 +15,7 @@ using StateKeyHash = std::hash<unsigned int>;
 inline StateKey NewStateKey() {
   static std::mutex mtx;
   static unsigned int id = 0;
+  std::lock_guard<std::mutex> lock(mtx);
   return id++;
 }
 #else
