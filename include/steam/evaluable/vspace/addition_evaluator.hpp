@@ -23,6 +23,7 @@ class AdditionEvaluator : public Evaluable<Eigen::Matrix<double, DIM, 1>> {
 
   bool active() const override;
 
+  OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
   void backward(const Eigen::MatrixXd& lhs,
                 const typename Node<OutType>::Ptr& node,
@@ -62,6 +63,11 @@ AdditionEvaluator<DIM>::AdditionEvaluator(
 template <int DIM>
 bool AdditionEvaluator<DIM>::active() const {
   return v1_->active() || v2_->active();
+}
+
+template <int DIM>
+auto AdditionEvaluator<DIM>::value() const -> OutType {
+  return v1_->value() + v2_->value();
 }
 
 template <int DIM>

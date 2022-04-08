@@ -18,6 +18,10 @@ bool ComposeEvaluator::active() const {
   return transform1_->active() || transform2_->active();
 }
 
+auto ComposeEvaluator::value() const -> OutType {
+  return transform1_->value() * transform2_->value();
+}
+
 auto ComposeEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child1 = transform1_->forward();
   const auto child2 = transform2_->forward();

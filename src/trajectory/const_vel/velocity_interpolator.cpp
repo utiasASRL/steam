@@ -39,6 +39,31 @@ bool VelocityInterpolator::active() const {
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
+auto VelocityInterpolator::value() const -> OutType {
+  //
+  const auto pose1 = knot1_->getPose()->value();
+  const auto vel1 = knot1_->getVelocity()->value();
+  const auto pose2 = knot2_->getPose()->value();
+  const auto vel2 = knot2_->getVelocity()->value();
+
+  // Get relative matrix info
+  const auto T_21 = pose2 / pose1;
+  // Get se3 algebra of relative matrix
+  const auto xi_21 = T_21.vec();
+  // Calculate the 6x6 associated Jacobian
+  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  // Calculate interpolated relative se3 algebra
+  Eigen::Matrix<double, 6, 1> xi_i1 =
+      lambda12_ * vel1 + psi11_ * xi_21 + psi12_ * J_21_inv * vel2;
+  // Calculate the 6x6 associated Jacobian
+  Eigen::Matrix<double, 6, 6> J_t1 = lgmath::se3::vec2jac(xi_i1);
+  // Calculate interpolated relative se3 algebra
+  Eigen::VectorXd xi_it =
+      J_t1 * (lambda22_ * vel1 + psi21_ * xi_21 + psi22_ * J_21_inv * vel2);
+
+  return xi_it;
+}
+
 auto VelocityInterpolator::forward() const -> Node<OutType>::Ptr {
   //
   const auto pose1_child = knot1_->getPose()->forward();

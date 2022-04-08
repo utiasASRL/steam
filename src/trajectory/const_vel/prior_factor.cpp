@@ -18,6 +18,27 @@ bool PriorFactor::active() const {
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
+auto PriorFactor::value() const -> OutType {
+  //
+  const auto pose1 = knot1_->getPose()->value();
+  const auto vel1 = knot1_->getVelocity()->value();
+  const auto pose2 = knot2_->getPose()->value();
+  const auto vel2 = knot2_->getVelocity()->value();
+
+  // Precompute values
+  const auto T_21 = pose2 / pose1;
+  const auto xi_21 = T_21.vec();
+  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+
+  // Compute error
+  double deltaTime = (knot2_->getTime() - knot1_->getTime()).seconds();
+  OutType error;
+  error.head<6>() = xi_21 - deltaTime * vel1;
+  error.tail<6>() = J_21_inv * vel2 - vel1;
+
+  return error;
+}
+
 auto PriorFactor::forward() const -> Node<OutType>::Ptr {
   //
   const auto pose1_child = knot1_->getPose()->forward();

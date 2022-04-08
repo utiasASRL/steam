@@ -21,6 +21,8 @@ StateVarBase::Ptr SE3StateVar::clone() const {
   return std::make_shared<SE3StateVar>(*this);
 }
 
+auto SE3StateVar::value() const -> T { return value_; }
+
 auto SE3StateVar::forward() const -> Node<T>::Ptr {
   return Node<T>::MakeShared(this->value_);
 }

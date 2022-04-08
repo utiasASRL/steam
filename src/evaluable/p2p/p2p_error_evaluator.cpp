@@ -20,6 +20,10 @@ P2PErrorEvaluator::P2PErrorEvaluator(const Evaluable<InType>::ConstPtr &T_rq,
 
 bool P2PErrorEvaluator::active() const { return T_rq_->active(); }
 
+auto P2PErrorEvaluator::value() const -> OutType {
+  return D_ * (reference_ - T_rq_->value() * query_);
+}
+
 auto P2PErrorEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child = T_rq_->forward();
   const auto T_rq = child->value();

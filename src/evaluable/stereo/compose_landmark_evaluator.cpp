@@ -18,6 +18,10 @@ bool ComposeLandmarkEvaluator::active() const {
   return transform_->active() || landmark_->active();
 }
 
+auto ComposeLandmarkEvaluator::value() const -> OutType {
+  return transform_->value() * landmark_->value();
+}
+
 auto ComposeLandmarkEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child1 = transform_->forward();
   const auto child2 = landmark_->forward();

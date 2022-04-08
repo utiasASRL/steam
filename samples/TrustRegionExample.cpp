@@ -38,6 +38,14 @@ class DivergenceErrorEval
   /** \brief Returns whether or not an evaluator contains unlocked states */
   bool active() const override { return input_->active(); }
 
+  OutType value() const override {
+    double x = input_->value().value();
+    OutType v;
+    v(0, 0) = x + 1.0;
+    v(1, 0) = -2.0 * x * x + x - 1.0;
+    return v;
+  }
+
   /** \brief Evaluate the error, i.e. forward pass */
   steam::Node<OutType>::Ptr forward() const override {
     // Get node from input evaluable

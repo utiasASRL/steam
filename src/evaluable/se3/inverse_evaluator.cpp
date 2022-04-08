@@ -13,6 +13,10 @@ InverseEvaluator::InverseEvaluator(const Evaluable<InType>::ConstPtr &transform)
 
 bool InverseEvaluator::active() const { return transform_->active(); }
 
+auto InverseEvaluator::value() const -> OutType {
+  return transform_->value().inverse();
+}
+
 auto InverseEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child = transform_->forward();
   const auto value = child->value().inverse();

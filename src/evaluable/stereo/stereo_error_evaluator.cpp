@@ -21,6 +21,10 @@ StereoErrorEvaluator::StereoErrorEvaluator(
 
 bool StereoErrorEvaluator::active() const { return eval_->active(); }
 
+auto StereoErrorEvaluator::value() const -> OutType {
+  return meas_ - cameraModel(eval_->value());
+}
+
 auto StereoErrorEvaluator::forward() const -> Node<OutType>::Ptr {
   // error between measurement and point estimate projected in camera frame
   const auto child = eval_->forward();

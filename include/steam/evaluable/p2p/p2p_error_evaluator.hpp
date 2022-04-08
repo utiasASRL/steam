@@ -26,6 +26,7 @@ class P2PErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
 
   bool active() const override;
 
+  OutType value() const override;
   Node<OutType>::Ptr forward() const override;
   void backward(const Eigen::MatrixXd &lhs, const Node<OutType>::Ptr &node,
                 Jacobians &jacs) const override;

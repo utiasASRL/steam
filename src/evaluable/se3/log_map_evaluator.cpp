@@ -13,6 +13,10 @@ LogMapEvaluator::LogMapEvaluator(const Evaluable<InType>::ConstPtr &transform)
 
 bool LogMapEvaluator::active() const { return transform_->active(); }
 
+auto LogMapEvaluator::value() const -> OutType {
+  return transform_->value().vec();
+}
+
 auto LogMapEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child = transform_->forward();
   const auto value = child->value().vec();

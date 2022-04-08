@@ -23,6 +23,7 @@ class ScalarMultEvaluator : public Evaluable<Eigen::Matrix<double, DIM, 1>> {
 
   bool active() const override;
 
+  OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
   void backward(const Eigen::MatrixXd& lhs,
                 const typename Node<OutType>::Ptr& node,
@@ -60,6 +61,11 @@ ScalarMultEvaluator<DIM>::ScalarMultEvaluator(
 template <int DIM>
 bool ScalarMultEvaluator<DIM>::active() const {
   return v_->active();
+}
+
+template <int DIM>
+auto ScalarMultEvaluator<DIM>::value() const -> OutType {
+  return s_ * v_->value();
 }
 
 template <int DIM>

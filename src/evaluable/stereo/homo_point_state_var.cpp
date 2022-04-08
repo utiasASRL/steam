@@ -28,6 +28,8 @@ StateVarBase::Ptr HomoPointStateVar::clone() const {
   return std::make_shared<HomoPointStateVar>(*this);
 }
 
+auto HomoPointStateVar::value() const -> T { return this->value_; }
+
 auto HomoPointStateVar::forward() const -> Node<T>::Ptr {
   return Node<T>::MakeShared(this->value_);
 }

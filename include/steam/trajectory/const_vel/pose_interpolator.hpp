@@ -29,6 +29,7 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
 
   bool active() const override;
 
+  OutType value() const override;
   Node<OutType>::Ptr forward() const override;
   void backward(const Eigen::MatrixXd& lhs, const Node<OutType>::Ptr& node,
                 Jacobians& jacs) const override;

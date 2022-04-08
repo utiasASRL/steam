@@ -15,7 +15,7 @@ class Evaluable {
 
   virtual ~Evaluable() = default;
 
-  T evaluate() const { return this->forward()->value(); }
+  T evaluate() const { return this->value(); }
   T evaluate(const Eigen::MatrixXd& lhs, Jacobians& jacs) const {
     const auto end_node = this->forward();
     backward(lhs, end_node, jacs);
@@ -23,6 +23,7 @@ class Evaluable {
   }
 
   virtual bool active() const = 0;
+  virtual T value() const = 0;
   virtual typename Node<T>::Ptr forward() const = 0;
   virtual void backward(const Eigen::MatrixXd& lhs,
                         const typename Node<T>::Ptr& node,

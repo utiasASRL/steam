@@ -21,6 +21,7 @@ class NegationEvaluator : public Evaluable<Eigen::Matrix<double, DIM, 1>> {
 
   bool active() const override;
 
+  OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
   void backward(const Eigen::MatrixXd& lhs,
                 const typename Node<OutType>::Ptr& node,
@@ -54,6 +55,11 @@ NegationEvaluator<DIM>::NegationEvaluator(
 template <int DIM>
 bool NegationEvaluator<DIM>::active() const {
   return v_->active();
+}
+
+template <int DIM>
+auto NegationEvaluator<DIM>::value() const -> OutType {
+  return -v_->value();
 }
 
 template <int DIM>

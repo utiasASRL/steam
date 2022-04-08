@@ -16,6 +16,11 @@ PoseExtrapolator::PoseExtrapolator(const Time& time,
 
 bool PoseExtrapolator::active() const { return velocity_->active(); }
 
+auto PoseExtrapolator::value() const -> OutType {
+  return OutType(
+      Eigen::Matrix<double, 6, 1>(time_.seconds() * velocity_->value()));
+}
+
 auto PoseExtrapolator::forward() const -> Node<OutType>::Ptr {
   //
   const auto child = velocity_->forward();
