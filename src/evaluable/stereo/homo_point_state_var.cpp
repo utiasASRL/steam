@@ -28,18 +28,6 @@ StateVarBase::Ptr HomoPointStateVar::clone() const {
   return std::make_shared<HomoPointStateVar>(*this);
 }
 
-auto HomoPointStateVar::value() const -> T { return this->value_; }
-
-auto HomoPointStateVar::forward() const -> Node<T>::Ptr {
-  return Node<T>::MakeShared(this->value_);
-}
-
-void HomoPointStateVar::backward(const Eigen::MatrixXd& lhs,
-                                 const Node<T>::Ptr& node,
-                                 Jacobians& jacs) const {
-  if (this->active()) jacs.add(this->key(), lhs);
-}
-
 void HomoPointStateVar::refreshHomogeneousScaling() {
   // Get length of xyz-portion of landmark
   const double invmag = 1.0 / this->value_.head<3>().norm();

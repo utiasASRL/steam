@@ -21,11 +21,6 @@ class HomoPointStateVar : public StateVar<Eigen::Matrix<double, 4, 1>> {
   bool update(const Eigen::VectorXd& perturbation) override;
   StateVarBase::Ptr clone() const override;
 
-  T value() const override;
-  typename Node<T>::Ptr forward() const override;
-  void backward(const Eigen::MatrixXd& lhs, const typename Node<T>::Ptr& node,
-                Jacobians& jacs) const override;
-
  private:
   /** \brief Refresh the homogeneous scaling */
   void refreshHomogeneousScaling();

@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     if (measCollection[i].idA == poses_k_0.size() - 1 &&
         measCollection[i].idB == poses_k_0.size()) {
       lgmath::se3::Transformation T_k_0 =
-          measCollection[i].T_BA * poses_k_0[poses_k_0.size() - 1]->getValue();
+          measCollection[i].T_BA * poses_k_0[poses_k_0.size() - 1]->value();
       const auto temp = SE3StateVar::MakeShared(T_k_0);
       poses_k_0.push_back(temp);
       problem.addStateVariable(poses_k_0.back());

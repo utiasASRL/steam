@@ -16,7 +16,7 @@ class StateVarBase {
 
   virtual ~StateVarBase() = default;
 
-  /** \brief Updates a state from a perturbation */
+  /** \brief Updates this state from a perturbation */
   virtual bool update(const Eigen::VectorXd& perturbation) = 0;
   /** \brief Returns a clone of the state */
   virtual Ptr clone() const = 0;
@@ -49,10 +49,15 @@ class StateVar : public StateVarBase, public Evaluable<T> {
     value_ = std::static_pointer_cast<const StateVar<T>>(other)->value_;
   }
 
-  const T& getValue() const { return value_; }
-  void setValue(const T& value) { value_ = value; }
-
   bool active() const override { return !locked(); }
+  T value() const override { return value_; }
+  typename Node<T>::Ptr forward() const override {
+    return Node<T>::MakeShared(value_);
+  }
+  void backward(const Eigen::MatrixXd& lhs, const typename Node<T>::Ptr& node,
+                Jacobians& jacs) const override {
+    if (active()) jacs.add(key(), lhs);
+  }
 
  protected:
   T value_;

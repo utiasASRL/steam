@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   solver.optimize();
 
   std::cout << "true T_mq:\n" << T_mq << std::endl;
-  std::cout << "estimated T_mq:\n" << T_mq_var->getValue() << std::endl;
+  std::cout << "estimated T_mq:\n" << T_mq_var->value() << std::endl;
 
   return 0;
 }

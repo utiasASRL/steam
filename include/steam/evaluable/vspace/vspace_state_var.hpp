@@ -21,11 +21,6 @@ class VSpaceStateVar : public StateVar<Eigen::Matrix<double, DIM, 1>> {
 
   bool update(const Eigen::VectorXd& perturbation) override;
   StateVarBase::Ptr clone() const override;
-
-  T value() const override;
-  typename Node<T>::Ptr forward() const override;
-  void backward(const Eigen::MatrixXd& lhs, const typename Node<T>::Ptr& node,
-                Jacobians& jacs) const override;
 };
 
 template <int DIM>
@@ -49,23 +44,6 @@ bool VSpaceStateVar<DIM>::update(const Eigen::VectorXd& perturbation) {
 template <int DIM>
 StateVarBase::Ptr VSpaceStateVar<DIM>::clone() const {
   return std::make_shared<VSpaceStateVar<DIM>>(*this);
-}
-
-template <int DIM>
-auto VSpaceStateVar<DIM>::value() const -> T {
-  return this->value_;
-}
-
-template <int DIM>
-auto VSpaceStateVar<DIM>::forward() const -> typename Node<T>::Ptr {
-  return Node<T>::MakeShared(this->value_);
-}
-
-template <int DIM>
-void VSpaceStateVar<DIM>::backward(const Eigen::MatrixXd& lhs,
-                                   const typename Node<T>::Ptr& node,
-                                   Jacobians& jacs) const {
-  if (this->active()) jacs.add(this->key(), lhs);
 }
 
 }  // namespace vspace

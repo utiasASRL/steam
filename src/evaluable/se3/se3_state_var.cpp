@@ -21,16 +21,5 @@ StateVarBase::Ptr SE3StateVar::clone() const {
   return std::make_shared<SE3StateVar>(*this);
 }
 
-auto SE3StateVar::value() const -> T { return value_; }
-
-auto SE3StateVar::forward() const -> Node<T>::Ptr {
-  return Node<T>::MakeShared(this->value_);
-}
-
-void SE3StateVar::backward(const Eigen::MatrixXd &lhs, const Node<T>::Ptr &node,
-                           Jacobians &jacs) const {
-  if (this->active()) jacs.add(this->key(), lhs);
-}
-
 }  // namespace se3
 }  // namespace steam
