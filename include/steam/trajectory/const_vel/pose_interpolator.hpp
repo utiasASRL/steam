@@ -49,6 +49,9 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
   double lambda12_;
   double lambda21_;
   double lambda22_;
+
+  /** \brief internal auto-diff evaluator */
+  Evaluable<OutType>::ConstPtr T_i0_;
 };
 
 }  // namespace const_vel

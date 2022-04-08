@@ -1,5 +1,9 @@
 #include "steam/trajectory/const_vel/pose_interpolator.hpp"
 
+#include "steam/evaluable/se3/evaluables.hpp"
+#include "steam/evaluable/vspace/evaluables.hpp"
+#include "steam/trajectory/const_vel/evaluable/jinv_velocity_evaluator.hpp"
+
 namespace steam {
 namespace traj {
 namespace const_vel {
@@ -32,6 +36,28 @@ PoseInterpolator::PoseInterpolator(const Time& time,
   lambda12_ = tau - T * psi11_ - psi12_;
   lambda21_ = -psi21_;
   lambda22_ = 1.0 - T * psi21_ - psi22_;
+
+  // construct computation graph
+  const auto pose1 = knot1_->getPose();
+  const auto vel1 = knot1_->getVelocity();
+  const auto pose2 = knot2_->getPose();
+  const auto vel2 = knot2_->getVelocity();
+
+  using namespace steam::se3;
+  using namespace steam::vspace;
+  // Get relative matrix info
+  const auto T_21 = compose_rinv(pose2, pose1);
+  // Get se3 algebra of relative matrix
+  const auto xi_21 = tran2vec(T_21);
+  // Calculate interpolated relative se3 algebra
+  const auto _t1 = smult<6>(vel1, lambda12_);
+  const auto _t2 = smult<6>(xi_21, psi11_);
+  const auto _t3 = smult<6>(jinv_velocity(xi_21, vel2), psi12_);
+  const auto xi_i1 = add<6>(_t1, add<6>(_t2, _t3));
+  // calculate interpolated relative transformation matrix
+  const auto T_i1 = vec2tran(xi_i1);
+  // compose to get global transform
+  T_i0_ = compose(T_i1, pose1);
 }
 
 bool PoseInterpolator::active() const {
@@ -39,124 +65,16 @@ bool PoseInterpolator::active() const {
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
-auto PoseInterpolator::value() const -> OutType {
-  //
-  const auto pose1 = knot1_->getPose()->value();
-  const auto vel1 = knot1_->getVelocity()->value();
-  const auto pose2 = knot2_->getPose()->value();
-  const auto vel2 = knot2_->getVelocity()->value();
-
-  // Get relative matrix info
-  const auto T_21 = pose2 / pose1;
-  // Get se3 algebra of relative matrix
-  const auto xi_21 = T_21.vec();
-  // Calculate the 6x6 associated Jacobian
-  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  // Calculate interpolated relative se3 algebra
-  Eigen::Matrix<double, 6, 1> xi_i1 =
-      lambda12_ * vel1 + psi11_ * xi_21 + psi12_ * J_21_inv * vel2;
-  // Calculate interpolated relative transformation matrix
-  lgmath::se3::Transformation T_i1(xi_i1);
-  // Return `global' interpolated transform
-  const auto T_ik = T_i1 * pose1;
-
-  return T_ik;
-}
+auto PoseInterpolator::value() const -> OutType { return T_i0_->value(); }
 
 auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {
-  //
-  const auto pose1_child = knot1_->getPose()->forward();
-  const auto vel1_child = knot1_->getVelocity()->forward();
-  const auto pose2_child = knot2_->getPose()->forward();
-  const auto vel2_child = knot2_->getVelocity()->forward();
-
-  // Get relative matrix info
-  const auto T_21 = pose2_child->value() / pose1_child->value();
-  // Get se3 algebra of relative matrix
-  const auto xi_21 = T_21.vec();
-  // Calculate the 6x6 associated Jacobian
-  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  // Calculate interpolated relative se3 algebra
-  Eigen::Matrix<double, 6, 1> xi_i1 = lambda12_ * vel1_child->value() +
-                                      psi11_ * xi_21 +
-                                      psi12_ * J_21_inv * vel2_child->value();
-  // Calculate interpolated relative transformation matrix
-  lgmath::se3::Transformation T_i1(xi_i1);
-  // Return `global' interpolated transform
-  const auto T_ik = T_i1 * pose1_child->value();
-
-  //
-  const auto node = Node<OutType>::MakeShared(T_ik);
-  node->addChild(pose1_child);
-  node->addChild(vel1_child);
-  node->addChild(pose2_child);
-  node->addChild(vel2_child);
-
-  return node;
+  return T_i0_->forward();
 }
 
 void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
                                 const Node<OutType>::Ptr& node,
                                 Jacobians& jacs) const {
-  if (!active()) return;
-
-  // clang-format off
-  const auto pose1_child = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
-  const auto vel1_child = std::static_pointer_cast<Node<InVelType>>(node->at(1));
-  const auto pose2_child = std::static_pointer_cast<Node<InPoseType>>(node->at(2));
-  const auto vel2_child = std::static_pointer_cast<Node<InVelType>>(node->at(3));
-  // clang-format on
-
-  // Get relative matrix info
-  const auto T_21 = pose2_child->value() / pose1_child->value();
-  // Get se3 algebra of relative matrix
-  const auto xi_21 = T_21.vec();
-  // Calculate the 6x6 associated Jacobian
-  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  // Calculate interpolated relative se3 algebra
-  Eigen::Matrix<double, 6, 1> xi_i1 = lambda12_ * vel1_child->value() +
-                                      psi11_ * xi_21 +
-                                      psi12_ * J_21_inv * vel2_child->value();
-  // Calculate interpolated relative transformation matrix
-  lgmath::se3::Transformation T_i1(xi_i1);
-  // Calculate the 6x6 Jacobian associated with the interpolated relative
-  // transformation matrix
-  const auto J_i1 = lgmath::se3::vec2jac(xi_i1);
-
-  // Knot 1 transform
-  if (knot1_->getPose()->active() || knot2_->getPose()->active()) {
-    // Precompute matrix
-    Eigen::Matrix<double, 6, 6> w =
-        psi11_ * J_i1 * J_21_inv +
-        0.5 * psi12_ * J_i1 * lgmath::se3::curlyhat(vel2_child->value()) *
-            J_21_inv;
-
-    // Check if transform1 is active
-    if (knot1_->getPose()->active()) {
-      Eigen::Matrix<double, 6, 6> jacobian =
-          (-1) * w * T_21.adjoint() + T_i1.adjoint();
-      knot1_->getPose()->backward(lhs * jacobian, pose1_child, jacs);
-    }
-
-    // Check if transform2 is active
-    if (knot2_->getPose()->active()) {
-      knot2_->getPose()->backward(lhs * w, pose2_child, jacs);
-    }
-  }
-
-  // 6 x 6 Velocity Jacobian 1
-  if (knot1_->getVelocity()->active()) {
-    // Add Jacobian
-    Eigen::Matrix<double, 6, 6> jacobian = lambda12_ * J_i1;
-    knot1_->getVelocity()->backward(lhs * jacobian, vel1_child, jacs);
-  }
-
-  // 6 x 6 Velocity Jacobian 2
-  if (knot2_->getVelocity()->active()) {
-    // Add Jacobian
-    Eigen::Matrix<double, 6, 6> jacobian = psi12_ * J_i1 * J_21_inv;
-    knot2_->getVelocity()->backward(lhs * jacobian, vel2_child, jacs);
-  }
+  return T_i0_->backward(lhs, node, jacs);
 }
 
 }  // namespace const_vel

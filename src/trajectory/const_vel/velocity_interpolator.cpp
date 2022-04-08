@@ -1,5 +1,10 @@
 #include "steam/trajectory/const_vel/velocity_interpolator.hpp"
 
+#include "steam/evaluable/se3/evaluables.hpp"
+#include "steam/evaluable/vspace/evaluables.hpp"
+#include "steam/trajectory/const_vel/evaluable/j_velocity_evaluator.hpp"
+#include "steam/trajectory/const_vel/evaluable/jinv_velocity_evaluator.hpp"
+
 namespace steam {
 namespace traj {
 namespace const_vel {
@@ -32,6 +37,30 @@ VelocityInterpolator::VelocityInterpolator(const Time& time,
   lambda12_ = tau - T * psi11_ - psi12_;
   lambda21_ = -psi21_;
   lambda22_ = 1.0 - T * psi21_ - psi22_;
+
+  // construct computation graph
+  const auto pose1 = knot1_->getPose();
+  const auto vel1 = knot1_->getVelocity();
+  const auto pose2 = knot2_->getPose();
+  const auto vel2 = knot2_->getVelocity();
+
+  using namespace steam::se3;
+  using namespace steam::vspace;
+  // Get relative matrix info
+  const auto T_21 = compose_rinv(pose2, pose1);
+  // Get se3 algebra of relative matrix
+  const auto xi_21 = tran2vec(T_21);
+  // calculate interpolated relative se3 algebra
+  const auto _t1 = smult<6>(vel1, lambda12_);
+  const auto _t2 = smult<6>(xi_21, psi11_);
+  const auto _t3 = smult<6>(jinv_velocity(xi_21, vel2), psi12_);
+  const auto xi_i1 = add<6>(_t1, add<6>(_t2, _t3));
+  // calculate interpolated relative se3 algebra
+  const auto _s1 = smult<6>(vel1, lambda22_);
+  const auto _s2 = smult<6>(xi_21, psi21_);
+  const auto _s3 = smult<6>(jinv_velocity(xi_21, vel2), psi22_);
+  const auto xi_it_linear = add<6>(_s1, add<6>(_s2, _s3));
+  xi_it_ = j_velocity(xi_i1, xi_it_linear);
 }
 
 bool VelocityInterpolator::active() const {
@@ -39,69 +68,16 @@ bool VelocityInterpolator::active() const {
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
-auto VelocityInterpolator::value() const -> OutType {
-  //
-  const auto pose1 = knot1_->getPose()->value();
-  const auto vel1 = knot1_->getVelocity()->value();
-  const auto pose2 = knot2_->getPose()->value();
-  const auto vel2 = knot2_->getVelocity()->value();
-
-  // Get relative matrix info
-  const auto T_21 = pose2 / pose1;
-  // Get se3 algebra of relative matrix
-  const auto xi_21 = T_21.vec();
-  // Calculate the 6x6 associated Jacobian
-  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  // Calculate interpolated relative se3 algebra
-  Eigen::Matrix<double, 6, 1> xi_i1 =
-      lambda12_ * vel1 + psi11_ * xi_21 + psi12_ * J_21_inv * vel2;
-  // Calculate the 6x6 associated Jacobian
-  Eigen::Matrix<double, 6, 6> J_t1 = lgmath::se3::vec2jac(xi_i1);
-  // Calculate interpolated relative se3 algebra
-  Eigen::VectorXd xi_it =
-      J_t1 * (lambda22_ * vel1 + psi21_ * xi_21 + psi22_ * J_21_inv * vel2);
-
-  return xi_it;
-}
+auto VelocityInterpolator::value() const -> OutType { return xi_it_->value(); }
 
 auto VelocityInterpolator::forward() const -> Node<OutType>::Ptr {
-  //
-  const auto pose1_child = knot1_->getPose()->forward();
-  const auto vel1_child = knot1_->getVelocity()->forward();
-  const auto pose2_child = knot2_->getPose()->forward();
-  const auto vel2_child = knot2_->getVelocity()->forward();
-
-  // Get relative matrix info
-  const auto T_21 = pose2_child->value() / pose1_child->value();
-  // Get se3 algebra of relative matrix
-  const auto xi_21 = T_21.vec();
-  // Calculate the 6x6 associated Jacobian
-  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  // Calculate interpolated relative se3 algebra
-  Eigen::Matrix<double, 6, 1> xi_i1 = lambda12_ * vel1_child->value() +
-                                      psi11_ * xi_21 +
-                                      psi12_ * J_21_inv * vel2_child->value();
-  // Calculate the 6x6 associated Jacobian
-  Eigen::Matrix<double, 6, 6> J_t1 = lgmath::se3::vec2jac(xi_i1);
-  // Calculate interpolated relative se3 algebra
-  Eigen::VectorXd xi_it =
-      J_t1 * (lambda22_ * vel1_child->value() + psi21_ * xi_21 +
-              psi22_ * J_21_inv * vel2_child->value());
-
-  //
-  const auto node = Node<OutType>::MakeShared(xi_it);
-  node->addChild(pose1_child);
-  node->addChild(vel1_child);
-  node->addChild(pose2_child);
-  node->addChild(vel2_child);
-
-  return node;
+  return xi_it_->forward();
 }
 
 void VelocityInterpolator::backward(const Eigen::MatrixXd& lhs,
                                     const Node<OutType>::Ptr& node,
                                     Jacobians& jacs) const {
-  throw std::runtime_error("Not implemented");
+  return xi_it_->backward(lhs, node, jacs);
 }
 
 }  // namespace const_vel

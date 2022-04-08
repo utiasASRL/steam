@@ -49,6 +49,9 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   double lambda12_;
   double lambda21_;
   double lambda22_;
+
+  /** \brief internal auto-diff evaluator */
+  Evaluable<OutType>::ConstPtr xi_it_;
 };
 
 }  // namespace const_vel
