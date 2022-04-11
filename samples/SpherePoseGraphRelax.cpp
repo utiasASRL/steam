@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 
   // Setup shared noise and loss functions
   const auto sharedNoiseModel = std::make_shared<steam::StaticNoiseModel<6>>(
-      measCollection[0].sqrtInformation, steam::SQRT_INFORMATION);
+      measCollection[0].sqrtInformation, steam::NoiseType::SQRT_INFORMATION);
   const auto sharedLossFunc = std::make_shared<steam::L2LossFunc>();
 
   // Turn measurements into cost terms

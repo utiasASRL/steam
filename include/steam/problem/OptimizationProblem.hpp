@@ -4,8 +4,8 @@
 #include <Eigen/Sparse>
 
 #include "steam/evaluable/state_var.hpp"
-#include "steam/problem/CostTermBase.hpp"
 #include "steam/problem/StateVector.hpp"
+#include "steam/problem/cost_term/base_cost_term.hpp"
 
 namespace steam {
 
@@ -42,7 +42,7 @@ class OptimizationProblem {
    * \brief Add a cost term (should depend on active states that were added to
    * the problem)
    */
-  void addCostTerm(const CostTermBase::ConstPtr& costTerm);
+  void addCostTerm(const BaseCostTerm::ConstPtr& costTerm);
 
   /** \brief Get the total number of cost terms */
   unsigned int getNumberOfCostTerms() const;
@@ -60,7 +60,7 @@ class OptimizationProblem {
   const unsigned int num_threads_;
 
   /** \brief Collection of cost terms */
-  std::vector<CostTermBase::ConstPtr> cost_terms_;
+  std::vector<BaseCostTerm::ConstPtr> cost_terms_;
 
   /** \brief Collection of state variables */
   std::vector<StateVarBase::Ptr> state_vars_;

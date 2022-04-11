@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 
 #include "steam/problem/OptimizationProblem.hpp"
-#include "steam/problem/WeightedLeastSqCostTerm.hpp"
+#include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
@@ -25,6 +25,10 @@ class Interface : public traj::Interface {
   using PoseType = lgmath::se3::Transformation;
   using VelocityType = Eigen::Matrix<double, 6, 1>;
   using CovType = Eigen::Matrix<double, 12, 12>;
+
+  static Ptr MakeShared(const bool allowExtrapolation = false);
+  static Ptr MakeShared(const Eigen::Matrix<double, 6, 6>& Qc_inv,
+                        const bool allowExtrapolation = false);
 
   /**
    * \brief Constructor

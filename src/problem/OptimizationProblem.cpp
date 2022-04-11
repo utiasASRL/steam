@@ -17,7 +17,7 @@ const std::vector<StateVarBase::Ptr> &OptimizationProblem::getStateVariables()
   return state_vars_;
 }
 
-void OptimizationProblem::addCostTerm(const CostTermBase::ConstPtr &costTerm) {
+void OptimizationProblem::addCostTerm(const BaseCostTerm::ConstPtr &costTerm) {
   cost_terms_.push_back(costTerm);
 }
 

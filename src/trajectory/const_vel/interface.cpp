@@ -2,8 +2,8 @@
 
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
-#include "steam/problem/LossFunctions.hpp"
-#include "steam/problem/NoiseModel.hpp"
+#include "steam/problem/loss_func/loss_funcs.hpp"
+#include "steam/problem/noise_model/static_noise_model.hpp"
 #include "steam/trajectory/const_vel/pose_extrapolator.hpp"
 #include "steam/trajectory/const_vel/pose_interpolator.hpp"
 #include "steam/trajectory/const_vel/prior_factor.hpp"
@@ -12,6 +12,15 @@
 namespace steam {
 namespace traj {
 namespace const_vel {
+
+auto Interface::MakeShared(const bool allowExtrapolation) -> Ptr {
+  return std::make_shared<Interface>(allowExtrapolation);
+}
+
+auto Interface::MakeShared(const Eigen::Matrix<double, 6, 6>& Qc_inv,
+                           const bool allowExtrapolation) -> Ptr {
+  return std::make_shared<Interface>(Qc_inv, allowExtrapolation);
+}
 
 Interface::Interface(const bool allowExtrapolation)
     : Qc_inv_(Eigen::Matrix<double, 6, 6>::Identity()),
@@ -249,8 +258,8 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
       Qi_inv.block<6, 6>(6, 0) = Qi_inv.block<6, 6>(0, 6) =
           -6.0 * one_over_dt2 * Qc_inv_;
       Qi_inv.block<6, 6>(6, 6) = 4.0 * one_over_dt * Qc_inv_;
-      const auto noise_model =
-          std::make_shared<StaticNoiseModel<12>>(Qi_inv, steam::INFORMATION);
+      const auto noise_model = std::make_shared<StaticNoiseModel<12>>(
+          Qi_inv, NoiseType::INFORMATION);
       //
       const auto error_function = PriorFactor::MakeShared(knot1, knot2);
       // Create cost term
