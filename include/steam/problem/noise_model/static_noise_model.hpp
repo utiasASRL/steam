@@ -102,8 +102,8 @@ void StaticNoiseModel<DIM>::setByInformation(const MatrixT& matrix) {
   assertPositiveDefiniteMatrix(matrix);
   // Perform an LLT decomposition
   Eigen::LLT<MatrixT> lltOfInformation(matrix);
-  // Set internal storage matrix
-  sqrtInformation_ = matrix;  // todo: check this is upper triangular
+  // Store upper triangular matrix (the square root information matrix)
+  setBySqrtInformation(lltOfInformation.matrixL().transpose());
 }
 
 template <int DIM>
