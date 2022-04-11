@@ -85,9 +85,9 @@ int main(int argc, char** argv) {
   ///
 
   // Setup shared noise and loss functions
-  const auto sharedNoiseModel = std::make_shared<steam::StaticNoiseModel<6>>(
+  const auto sharedNoiseModel = steam::StaticNoiseModel<6>::MakeShared(
       measCollection[0].sqrtInformation, steam::NoiseType::SQRT_INFORMATION);
-  const auto sharedLossFunc = std::make_shared<steam::L2LossFunc>();
+  const auto sharedLossFunc = steam::L2LossFunc::MakeShared();
 
   // Turn measurements into cost terms
   for (unsigned int i = 0; i < measCollection.size(); i++) {
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     const auto error_function = tran2vec(compose(meas_T_BA, hat_T_AB));
 
     // Construct cost term
-    const auto cost_term = std::make_shared<steam::WeightedLeastSqCostTerm<6>>(
+    const auto cost_term = steam::WeightedLeastSqCostTerm<6>::MakeShared(
         error_function, sharedNoiseModel, sharedLossFunc);
     // Add cost term
     problem.addCostTerm(cost_term);

@@ -71,21 +71,21 @@ int main(int argc, char **argv) {
   // add states
   problem.addStateVariable(w_iv_inv_var);
 
-  const auto loss_function = std::make_shared<L2LossFunc>();
+  const auto loss_function = L2LossFunc::MakeShared();
   Eigen::Matrix<double, 1, 1> meas_cov = Eigen::Matrix<double, 1, 1>::Identity();
-  const auto meas_noise_model = std::make_shared<StaticNoiseModel<1>>(meas_cov);
+  const auto meas_noise_model = StaticNoiseModel<1>::MakeShared(meas_cov);
   for (size_t i = 0; i < rv_measurements.size(); ++i) {
     const auto &lm = lm_ins.at(i);
     const auto &rv = rv_measurements.at(i);
     const auto rv_error = p2p::RadialVelErrorEvaluator::MakeShared(w_is_ins_eval, lm.head<3>(), rv);
-    const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<1>>(rv_error, meas_noise_model, loss_function);
+    const auto cost_term = WeightedLeastSqCostTerm<1>::MakeShared(rv_error, meas_noise_model, loss_function);
     problem.addCostTerm(cost_term);
   }
 
   Eigen::Matrix<double, 6, 6> prior_cov = Eigen::Matrix<double, 6, 6>::Zero();
   prior_cov.diagonal() << 1e4, 1e-2, 1e-2, 1e-2, 1e-2, 1e4;
-  const auto prior_noise_model = std::make_shared<StaticNoiseModel<6>>(prior_cov);
-  const auto prior_cost_term = std::make_shared<WeightedLeastSqCostTerm<6>>(w_iv_inv_var, prior_noise_model, loss_function);
+  const auto prior_noise_model = StaticNoiseModel<6>::MakeShared(prior_cov);
+  const auto prior_cost_term = WeightedLeastSqCostTerm<6>::MakeShared(w_iv_inv_var, prior_noise_model, loss_function);
   problem.addCostTerm(prior_cost_term);
 
   using SolverType = VanillaGaussNewtonSolver;
