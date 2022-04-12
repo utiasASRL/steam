@@ -37,8 +37,8 @@ int main(int argc, char **argv) {
 
   // shared noise and loss functions
   Eigen::Matrix3d cov = Eigen::Matrix3d::Identity();
-  const auto noise_model = std::make_shared<steam::StaticNoiseModel<3>>(cov);
-  const auto loss_function = std::make_shared<steam::L2LossFunc>();
+  const auto noise_model = steam::StaticNoiseModel<3>::MakeShared(cov);
+  const auto loss_function = steam::L2LossFunc::MakeShared();
 
   // cost terms
   for (int i = 0; i < ref_pts.cols(); i++) {
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     const auto error_function = steam::p2p::p2pError(
         T_mq_var, ref_pts.block<3, 1>(0, i), qry_pts.block<3, 1>(0, i));
     // Construct cost term
-    const auto cost_term = std::make_shared<steam::WeightedLeastSqCostTerm<3>>(
+    const auto cost_term = steam::WeightedLeastSqCostTerm<3>::MakeShared(
         error_function, noise_model, loss_function);
     // Add cost term
     problem.addCostTerm(cost_term);

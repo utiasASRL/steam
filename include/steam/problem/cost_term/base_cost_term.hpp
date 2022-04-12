@@ -12,12 +12,12 @@ namespace steam {
  * \note Functions must be provided to calculate the scalar 'cost' and to build
  * the contributions to the Gauss-Newton system of equations.
  */
-class CostTermBase {
+class BaseCostTerm {
  public:
-  using Ptr = std::shared_ptr<CostTermBase>;
-  using ConstPtr = std::shared_ptr<const CostTermBase>;
+  using Ptr = std::shared_ptr<BaseCostTerm>;
+  using ConstPtr = std::shared_ptr<const BaseCostTerm>;
 
-  virtual ~CostTermBase() = default;
+  virtual ~BaseCostTerm() = default;
 
   /** \brief Compute the cost to the objective function */
   virtual double cost() const = 0;

@@ -4,24 +4,28 @@
 
 #include "steam/evaluable/evaluable.hpp"
 #include "steam/evaluable/jacobians.hpp"
-#include "steam/problem/CostTermBase.hpp"
-#include "steam/problem/LossFunctions.hpp"
-#include "steam/problem/NoiseModel.hpp"
+#include "steam/problem/cost_term/base_cost_term.hpp"
+#include "steam/problem/loss_func/base_loss_func.hpp"
+#include "steam/problem/noise_model/base_noise_model.hpp"
 
 namespace steam {
 
 template <int DIM>
-class WeightedLeastSqCostTerm : public CostTermBase {
+class WeightedLeastSqCostTerm : public BaseCostTerm {
  public:
   using Ptr = std::shared_ptr<WeightedLeastSqCostTerm<DIM>>;
   using ConstPtr = std::shared_ptr<const WeightedLeastSqCostTerm<DIM>>;
 
   using ErrorType = Eigen::Matrix<double, DIM, 1>;  // DIM is measurement dim
 
+  static Ptr MakeShared(
+      const typename Evaluable<ErrorType>::ConstPtr &error_function,
+      const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
+      const BaseLossFunc::ConstPtr &loss_function);
   WeightedLeastSqCostTerm(
       const typename Evaluable<ErrorType>::ConstPtr &error_function,
       const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
-      const LossFunctionBase::ConstPtr &loss_function);
+      const BaseLossFunc::ConstPtr &loss_function);
 
   /**
    * \brief Evaluates the cost of this term. Error is first whitened by the
@@ -54,14 +58,23 @@ class WeightedLeastSqCostTerm : public CostTermBase {
   /** \brief Noise model */
   typename BaseNoiseModel<DIM>::ConstPtr noise_model_;
   /** \brief Loss function */
-  LossFunctionBase::ConstPtr loss_function_;
+  BaseLossFunc::ConstPtr loss_function_;
 };
+
+template <int DIM>
+auto WeightedLeastSqCostTerm<DIM>::MakeShared(
+    const typename Evaluable<ErrorType>::ConstPtr &error_function,
+    const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
+    const BaseLossFunc::ConstPtr &loss_function) -> Ptr {
+  return std::make_shared<WeightedLeastSqCostTerm<DIM>>(
+      error_function, noise_model, loss_function);
+}
 
 template <int DIM>
 WeightedLeastSqCostTerm<DIM>::WeightedLeastSqCostTerm(
     const typename Evaluable<ErrorType>::ConstPtr &error_function,
     const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
-    const LossFunctionBase::ConstPtr &loss_function)
+    const BaseLossFunc::ConstPtr &loss_function)
     : error_function_(error_function),
       noise_model_(noise_model),
       loss_function_(loss_function) {}

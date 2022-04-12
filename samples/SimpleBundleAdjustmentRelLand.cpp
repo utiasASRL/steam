@@ -139,8 +139,8 @@ int main(int argc, char** argv) {
 
   // Setup shared noise and loss function
   const auto sharedCameraNoiseModel =
-      std::make_shared<StaticNoiseModel<4>>(dataset.noise);
-  const auto sharedLossFunc = std::make_shared<L2LossFunc>();
+      StaticNoiseModel<4>::MakeShared(dataset.noise);
+  const auto sharedLossFunc = L2LossFunc::MakeShared();
 
   // Setup camera intrinsics
   const auto sharedIntrinsics = std::make_shared<stereo::CameraIntrinsics>();
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
         dataset.meas[i].data, sharedIntrinsics, tf_cb_va, landmark);
 
     // Construct cost term
-    const auto cost = std::make_shared<WeightedLeastSqCostTerm<4>>(
+    const auto cost = WeightedLeastSqCostTerm<4>::MakeShared(
         errorfunc, sharedCameraNoiseModel, sharedLossFunc);
 
     // Add cost term

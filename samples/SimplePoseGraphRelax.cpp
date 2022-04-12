@@ -74,8 +74,8 @@ void runPoseGraphRelax() {
   // Setup shared noise and loss functions
   using Matrix6d = Eigen::Matrix<double, 6, 6>;
   Matrix6d cov = Matrix6d::Identity();
-  const auto noise_model = std::make_shared<steam::StaticNoiseModel<6>>(cov);
-  const auto loss_function = std::make_shared<steam::L2LossFunc>();
+  const auto noise_model = steam::StaticNoiseModel<6>::MakeShared(cov);
+  const auto loss_function = steam::L2LossFunc::MakeShared();
 
   // Lock first pose (otherwise entire solution is 'floating')
   //  **Note: alternatively we could add a prior (UnaryTransformError) to the
@@ -96,7 +96,7 @@ void runPoseGraphRelax() {
     const auto error_function = tran2vec(compose(meas_T_BA, hat_T_AB));
 
     // Construct cost term
-    const auto cost_term = std::make_shared<steam::WeightedLeastSqCostTerm<6>>(
+    const auto cost_term = steam::WeightedLeastSqCostTerm<6>::MakeShared(
         error_function, noise_model, loss_function);
     // Add cost term
     problem.addCostTerm(cost_term);

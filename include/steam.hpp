@@ -24,10 +24,10 @@
 #include "steam/evaluable/vspace/evaluables.hpp"
 
 // problem
-#include "steam/problem/LossFunctions.hpp"
-#include "steam/problem/NoiseModel.hpp"
 #include "steam/problem/OptimizationProblem.hpp"
-#include "steam/problem/WeightedLeastSqCostTerm.hpp"
+#include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
+#include "steam/problem/loss_func/loss_funcs.hpp"
+#include "steam/problem/noise_model/static_noise_model.hpp"
 
 // solver
 #include "steam/solver/DoglegGaussNewtonSolver.hpp"

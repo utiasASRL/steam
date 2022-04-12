@@ -96,16 +96,16 @@ int main(int argc, char **argv) {
   traj.add(traj::Time(0.0), T_vi_at0_var, w_iv_inv_at0_var);
   traj.add(traj::Time(T), T_vi_atT_var, w_iv_inv_atT_var);
 
-  const auto loss_function = std::make_shared<L2LossFunc>();
+  const auto loss_function = L2LossFunc::MakeShared();
   Eigen::Matrix<double, 1, 1> meas_cov = Eigen::Matrix<double, 1, 1>::Identity();
-  const auto meas_noise_model = std::make_shared<StaticNoiseModel<1>>(meas_cov);
+  const auto meas_noise_model = StaticNoiseModel<1>::MakeShared(meas_cov);
   for (size_t i = 0; i < rv_measurements.size(); ++i) {
     const auto &lm = lm_ins.at(i);
     const auto &rv = rv_measurements.at(i);
     const auto w_iv_inv_att_eval = traj.getVelocityInterpolator(traj::Time(ts[i]));
     const auto w_is_ins_eval = se3::compose_velocity(T_sv_var, w_iv_inv_att_eval);
     const auto rv_error = p2p::RadialVelErrorEvaluator::MakeShared(w_is_ins_eval, lm.head<3>(), rv);
-    const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<1>>(rv_error, meas_noise_model, loss_function);
+    const auto cost_term = WeightedLeastSqCostTerm<1>::MakeShared(rv_error, meas_noise_model, loss_function);
     problem.addCostTerm(cost_term);
   }
 

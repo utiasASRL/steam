@@ -102,14 +102,14 @@ steam::OptimizationProblem setupDivergenceProblem() {
 
   // Setup shared noise and loss function
   Eigen::Matrix2d cov = Eigen::Matrix2d::Identity();
-  const auto noise_model = std::make_shared<steam::StaticNoiseModel<2>>(cov);
-  const auto loss_function = std::make_shared<steam::L2LossFunc>();
+  const auto noise_model = steam::StaticNoiseModel<2>::MakeShared(cov);
+  const auto loss_function = steam::L2LossFunc::MakeShared();
 
   // Error function
   const auto error_function = DivergenceErrorEval::MakeShared(state_var);
 
   // Setup cost term
-  const auto cost_term = std::make_shared<steam::WeightedLeastSqCostTerm<2>>(
+  const auto cost_term = steam::WeightedLeastSqCostTerm<2>::MakeShared(
       error_function, noise_model, loss_function);
 
   // Init problem
