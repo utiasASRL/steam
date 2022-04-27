@@ -7,6 +7,7 @@
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
+#include "steam/solver/GaussNewtonSolverBase.hpp"
 
 namespace steam {
 namespace traj {
@@ -44,8 +45,8 @@ class Interface : public traj::Interface {
   void add(const Variable::Ptr& knot);
   void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
            const Evaluable<VelocityType>::Ptr& w_0k_ink);
-  void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-           const Evaluable<VelocityType>::Ptr& w_0k_ink, const CovType& cov);
+  // void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+  //          const Evaluable<VelocityType>::Ptr& w_0k_ink, const CovType& cov);
 
   /** \brief Get transform evaluator */
   Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
@@ -53,6 +54,28 @@ class Interface : public traj::Interface {
   /** \brief Get velocity evaluator */
   Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(
       const Time& time) const;
+
+  /** \brief Get state covariance using interpolation/extrapolation */
+  Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver, 
+      const Time& time);
+
+  /**
+   * \brief Queries Hessian for knot covariance and neighbouring (prev. & next)
+   * cross-covariances (if they exist) and stores in the corresponding knots.
+   */
+  void queryKnotCovariance(GaussNewtonSolverBase& solver, 
+      std::map<Time, Variable::Ptr>::iterator it);
+
+  /** \brief Reset covariance queries s.t. old covariances are not re-used */
+  void resetCovarianceQuery();
+
+  /** \brief Interpolate covariance between two knot times */
+  Eigen::MatrixXd interpCovariance(const Time& time, const Variable::Ptr& knot1, 
+      const Variable::Ptr& knot2) const;
+
+  /** \brief Interpolate covariance between two knot times */
+  Eigen::MatrixXd extrapCovariance(const Time& time, 
+    const Variable::Ptr& endKnot) const;
 
   /**
    * \brief Add a unary pose prior factor at a knot time. Note that only a
@@ -75,6 +98,11 @@ class Interface : public traj::Interface {
    * the trajectory
    */
   void addPriorCostTerms(OptimizationProblem& problem) const override;
+
+  /**
+   * \brief Compute inverse covariance of prior factor
+   */
+  Eigen::Matrix<double, 12, 12> computeQinv(const double& deltatime) const;
 
  protected:
   /** \brief Ordered map of knots */

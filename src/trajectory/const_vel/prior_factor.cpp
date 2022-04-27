@@ -130,6 +130,57 @@ void PriorFactor::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
+/** \brief Get Jacobian of knot 1 */
+auto PriorFactor::jacKnot1(const Variable::ConstPtr& knot1, 
+    const Variable::ConstPtr& knot2) -> Eigen::Matrix<double, 12, 12> {
+  // precompute
+  const auto T_21 = knot2->getPose()->value() / knot1->getPose()->value();
+  const auto xi_21 = T_21.vec();
+  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  double deltaTime = (knot2->getTime() - knot1->getTime()).seconds();
+  const auto Jinv_12 = J_21_inv * T_21.adjoint();
+
+  // init jacobian
+  Eigen::Matrix<double, 12, 12> jacobian;
+  jacobian.setZero();
+
+  // pose
+  jacobian.block<6, 6>(0, 0) = -Jinv_12;
+  jacobian.block<6, 6>(6, 0) =
+      -0.5 * lgmath::se3::curlyhat(knot2->getVelocity()->value()) * Jinv_12;
+
+  // velocity
+  jacobian.block<6, 6>(0, 6) =
+      -deltaTime * Eigen::Matrix<double, 6, 6>::Identity();
+  jacobian.block<6, 6>(6, 6) = -Eigen::Matrix<double, 6, 6>::Identity();
+
+  return jacobian;
+}
+
+/** \brief Get Jacobian of knot 2 */
+auto PriorFactor::jacKnot2(const Variable::ConstPtr& knot1, 
+    const Variable::ConstPtr& knot2) -> Eigen::Matrix<double, 12, 12> {
+  // precompute
+  const auto T_21 = knot2->getPose()->value() / knot1->getPose()->value();
+  const auto xi_21 = T_21.vec();
+  const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  double deltaTime = (knot2->getTime() - knot1->getTime()).seconds();
+
+  // init jacobian
+  Eigen::Matrix<double, 12, 12> jacobian;
+  jacobian.setZero();
+
+  // pose
+  jacobian.block<6, 6>(0, 0) = J_21_inv;
+  jacobian.block<6, 6>(6, 0) =
+      0.5 * lgmath::se3::curlyhat(knot2->getVelocity()->value()) * J_21_inv;
+
+  // velocity
+  jacobian.block<6, 6>(6, 6) = J_21_inv;  
+
+  return jacobian;
+}
+
 }  // namespace const_vel
 }  // namespace traj
 }  // namespace steam

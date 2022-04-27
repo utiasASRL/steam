@@ -33,6 +33,14 @@ class PriorFactor : public Evaluable<Eigen::Matrix<double, 12, 1>> {
   void backward(const Eigen::MatrixXd& lhs, const Node<OutType>::Ptr& node,
                 Jacobians& jacs) const override;
 
+  /** \brief Compute Jacobian of knot 1 */
+  static Eigen::Matrix<double, 12, 12> jacKnot1(const Variable::ConstPtr& knot1, 
+      const Variable::ConstPtr& knot2);
+
+  /** \brief Compute Jacobian of knot 2 */
+  static Eigen::Matrix<double, 12, 12> jacKnot2(const Variable::ConstPtr& knot1,  
+      const Variable::ConstPtr& knot2);
+
  private:
   /** \brief First (earlier) knot */
   const Variable::ConstPtr knot1_;
