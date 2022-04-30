@@ -9,25 +9,23 @@
 namespace steam {
 namespace p2p {
 
-class P2PErrorWithDopplerCompensationEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
+class P2PErrorDopplerEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
  public:
-  using Ptr = std::shared_ptr<P2PErrorWithDopplerCompensationEvaluator>;
-  using ConstPtr = std::shared_ptr<const P2PErrorWithDopplerCompensationEvaluator>;
+  using Ptr = std::shared_ptr<P2PErrorDopplerEvaluator>;
+  using ConstPtr = std::shared_ptr<const P2PErrorDopplerEvaluator>;
 
-  using InType = lgmath::se3::Transformation;
-  using VType = Eigen::Matrix<double, 6, 1>;
+  using PoseInType = lgmath::se3::Transformation;
+  using VelInType = Eigen::Matrix<double, 6, 1>;
   using OutType = Eigen::Matrix<double, 3, 1>;
 
-  static Ptr MakeShared(const Evaluable<InType>::ConstPtr &T_rq,
+  static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &T_rq,
+                        const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
                         const Eigen::Vector3d &reference,
-                        const Eigen::Vector3d &query,
-                        const float beta,
-                        const Evaluable<VType>::ConstPtr &w_r_q_in_q);
-  P2PErrorWithDopplerCompensationEvaluator(const Evaluable<InType>::ConstPtr &T_rq,
-                    const Eigen::Vector3d &reference,
-                    const Eigen::Vector3d &query,
-                    const float beta,
-                    const Evaluable<VType>::ConstPtr &w_r_q_in_q);
+                        const Eigen::Vector3d &query, const float beta);
+  P2PErrorDopplerEvaluator(const Evaluable<PoseInType>::ConstPtr &T_rq,
+                           const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
+                           const Eigen::Vector3d &reference,
+                           const Eigen::Vector3d &query, const float beta);
 
   bool active() const override;
 
@@ -38,20 +36,20 @@ class P2PErrorWithDopplerCompensationEvaluator : public Evaluable<Eigen::Matrix<
 
  private:
   // evaluable
-  const Evaluable<InType>::ConstPtr T_rq_;
+  const Evaluable<PoseInType>::ConstPtr T_rq_;
+  const Evaluable<VelInType>::ConstPtr w_r_q_in_q_;
   // constants
   Eigen::Matrix<double, 3, 4> D_ = Eigen::Matrix<double, 3, 4>::Zero();
   Eigen::Vector4d reference_ = Eigen::Vector4d::Constant(1);
   Eigen::Vector4d query_ = Eigen::Vector4d::Constant(1);
-  float beta_ = 0.049;
-  // evaluable
-  const Evaluable<VType>::ConstPtr w_r_q_in_q_;
+  const float beta_;
 };
 
-P2PErrorWithDopplerCompensationEvaluator::Ptr p2pError(
-    const Evaluable<P2PErrorWithDopplerCompensationEvaluator::InType>::ConstPtr &T_rq,
-    const Eigen::Vector3d &reference, const Eigen::Vector3d &query, const float beta,
-    const Evaluable<P2PErrorWithDopplerCompensationEvaluator::VType>::ConstPtr &w_r_q_in_q);
+P2PErrorDopplerEvaluator::Ptr p2pErrorDoppler(
+    const Evaluable<P2PErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
+    const Evaluable<P2PErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
+    const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
+    const float beta);
 
 }  // namespace p2p
 }  // namespace steam
