@@ -57,29 +57,20 @@ class Variable {
   /** \brief Get covariance matrix */
   const CovType& getCovariance() const;
 
-  /** \brief Get cross-covariance with previous knot (1 row above) */
-  const CovType& getCovPrev() const;
-
-  /** \brief Get cross-covariance with next knot (1 row below) */
-  const CovType& getCovNext() const;
+  /** \brief Get cross-covariance with subsequent knot */
+  const CovType& getCrossCov() const;
 
   /** \brief Returns true if covariance is set */
   bool covarianceSet() const;
 
-  /** \brief Returns true if cross-covariance with previous knot is set */
-  bool covPrevSet() const;
-
-  /** \brief Returns true if cross-covariance with next knot is set */
-  bool covNextSet() const;
+  /** \brief Returns true if cross-covariance with subsequent knot is set */
+  bool crossCovSet() const;
 
   /** \brief Set covariance matrix */
   void setCovariance(const CovType& cov);
 
-  /** \brief Set cross-covariance with previous knot (1 row above) */
-  void setCovPrev(const CovType& cov);
-
-  /** \brief Set cross-covariance with next knot (1 row below) */
-  void setCovNext(const CovType& cov);
+  /** \brief Set cross-covariance with subsequent knot */
+  void setCrossCov(const CovType& cov);
 
   /** \brief Set bool set variables for all covariances to be false */
   void resetCovariance();
@@ -98,15 +89,9 @@ class Variable {
   CovType cov_;
   bool cov_set_ = false;
 
-  /** \brief State keys for adjacent knots along trajectory */
-  std::vector<steam::StateKey> prev_keys_;
-  std::vector<steam::StateKey> next_keys_;
-
-  /** \brief Cross covariances for adjacent knots along trajectory */
-  CovType prev_cov_;
-  CovType next_cov_;
-  bool prev_cov_set_ = false;
-  bool next_cov_set_ = false;
+  /** \brief Cross-covariance between this knot and the subsequent knot */
+  CovType cross_cov_;
+  bool cross_cov_set_ = false;
 };
 
 }  // namespace const_vel

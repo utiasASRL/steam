@@ -62,45 +62,30 @@ auto Variable::getCovariance() const -> const CovType& {
   return cov_; 
 }
 
-auto Variable::getCovPrev() const -> const CovType& {
-  if (!prev_cov_set_)
+auto Variable::getCrossCov() const -> const CovType& {
+  if (!cross_cov_set_)
     throw std::runtime_error(
-        "[ConstVelTraj][Variable] requested prev. cross-cov. without setting.");
-  return prev_cov_;
-}
-
-auto Variable::getCovNext() const -> const CovType& {
-  if (!next_cov_set_)
-    throw std::runtime_error(
-        "[ConstVelTraj][Variable] requested next cross-cov. without setting.");
-  return next_cov_;
+        "[ConstVelTraj][Variable] requested cross-cov. without setting.");
+  return cross_cov_;
 }
 
 bool Variable::covarianceSet() const { return cov_set_; }
 
-bool Variable::covPrevSet() const { return prev_cov_set_; }
-
-bool Variable::covNextSet() const { return next_cov_set_; }
+bool Variable::crossCovSet() const { return cross_cov_set_; }
 
 void Variable::setCovariance(const CovType& cov) {
   cov_ = cov;
   cov_set_ = true;
 }
 
-void Variable::setCovPrev(const CovType& cov) {
-  prev_cov_ = cov;
-  prev_cov_set_ = true;
-}
-
-void Variable::setCovNext(const CovType& cov) {
-  next_cov_ = cov;
-  next_cov_set_ = true;
+void Variable::setCrossCov(const CovType& cov) {
+  cross_cov_ = cov;
+  cross_cov_set_ = true;
 }
 
 void Variable::resetCovariance() {
   cov_set_ = false;
-  prev_cov_set_ = false;
-  next_cov_set_ = false;
+  cross_cov_set_ = false;
 }
 
 }  // namespace const_vel

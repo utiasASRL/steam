@@ -219,7 +219,7 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
     queryKnotCovariance(solver, it1);
   if (!it2->second->covarianceSet())
     queryKnotCovariance(solver, it2);
-  if (!it1->second->covNextSet() || !it2->second->covPrevSet())
+  if (!it1->second->crossCovSet())
     throw std::runtime_error(
         "[ConstVelTraj][getCovariance] Missing cross-covariance between knots. This exception "
         "should not trigger... report to a STEAM contributor.");
@@ -240,8 +240,7 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
   // we want to save out any relevant cross-covariances while we query
   // for the requested knot
 
-  // initialize prev. and next knot iterators
-  auto it_prev = knotMap_.end();
+  // initialize iterator to subsequent (next) knot
   auto it_next = std::next(it, 1);
 
   // vector of keys for block covariance query
@@ -249,20 +248,9 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
   std::vector<StateKey> ckeys;
 
   // block idx for each knot
-  std::vector<unsigned int> bidx_prev;
   std::vector<unsigned int> bidx_curr;
   std::vector<unsigned int> bidx_next;
   unsigned int bidx = 0;
-
-  // prev. knot if it exists
-  if (it != knotMap_.begin()) {
-    it_prev = std::next(it, -1);
-    std::vector<StateKey> temp = it_prev->second->getActiveKeys();
-    for (unsigned int i = 0; i < temp.size(); ++i) {
-      rkeys.push_back(temp[i]);
-      bidx_prev.push_back(bidx++);
-    }
-  }
 
   // curr. knot (should always have either pose or velocity unlocked)
   auto& knot_curr = it->second;
@@ -272,7 +260,6 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
     ckeys.push_back(keys_curr[i]);
     bidx_curr.push_back(bidx++);
   }
-
 
   // next knot if it exists
   if (it_next != knotMap_.end()) {
@@ -286,22 +273,6 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
   // query covariance blocks
   auto block_cov = solver.queryCovarianceBlock(rkeys, ckeys);
 
-  // cross-covariance (prev, curr) if it exists
-  if (bidx_prev.size() > 0) {
-    Eigen::MatrixXd cross_cov = Eigen::MatrixXd(bidx_prev.size()*6, bidx_curr.size()*6);
-    for (unsigned int r = 0; r < bidx_prev.size(); ++r){
-      for (unsigned int c = 0; c < bidx_curr.size(); ++c)
-        cross_cov.block(6*r, 6*c, 6, 6) = block_cov.at(bidx_prev[r], c);
-    }
-
-    // assign to prev knot
-    auto& knot_prev = it_prev->second;
-    knot_prev->setCovNext(cross_cov.transpose());
-
-    // assign to curr knot
-    knot_curr->setCovPrev(cross_cov);
-  }
-
   // covariance of requested knot (should always have either pose or velocity unlocked)
   Eigen::MatrixXd cov = Eigen::MatrixXd(bidx_curr.size()*6, bidx_curr.size()*6);
   for (unsigned int r = 0; r < bidx_curr.size(); ++r){
@@ -310,20 +281,14 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
   }
   knot_curr->setCovariance(cov);
 
-  // cross-covariance (curr, next) if it exists
+  // cross-covariance if it exists
   if (bidx_next.size() > 0) {
     Eigen::MatrixXd cross_cov = Eigen::MatrixXd(bidx_next.size()*6, bidx_curr.size()*6);
     for (unsigned int r = 0; r < bidx_next.size(); ++r){
       for (unsigned int c = 0; c < bidx_curr.size(); ++c)
         cross_cov.block(6*r, 6*c, 6, 6) = block_cov.at(bidx_next[r], c);
     }
-
-    // assign to next knot
-    auto& knot_next = it_next->second;
-    knot_next->setCovPrev(cross_cov.transpose());
-
-    // assign to curr knot
-    knot_curr->setCovNext(cross_cov);
+    knot_curr->setCrossCov(cross_cov);
   }
 }
 
@@ -363,43 +328,24 @@ auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1,
   // Covariance of knot1 and knot2
   Eigen::Matrix<double, 24, 24> P_1n2 = Eigen::Matrix<double, 24, 24>::Zero();
   P_1n2.block<12, 12>(0, 0) = knot1->getCovariance();
-  P_1n2.block<12, 12>(12, 0) = knot1->getCovNext();
+  P_1n2.block<12, 12>(12, 0) = knot1->getCrossCov();
   P_1n2.block<12, 12>(0, 12) = P_1n2.block<12, 12>(12, 0).transpose();
   P_1n2.block<12, 12>(12, 12) = knot2->getCovariance();
 
-  // TODO: Figure out why commented out equation doesn't work
-  // // Helper matrices
-  // Eigen::Matrix<double, 24, 12> A;
-  // A.block<12, 12>(0, 0) = F_t1.transpose()*Qt1_inv*E_t1;
-  // A.block<12, 12>(12, 0) = E_2t.transpose()*Q2t_inv*F_2t;
+  // Helper matrices
+  Eigen::Matrix<double, 24, 12> A;
+  A.block<12, 12>(0, 0) = F_t1.transpose()*Qt1_inv*E_t1;
+  A.block<12, 12>(12, 0) = E_2t.transpose()*Q2t_inv*F_2t;
 
-  // Eigen::Matrix<double, 24, 24> B = Eigen::Matrix<double, 24, 24>::Zero();
-  // B.block<12, 12>(0, 0) = F_t1.transpose()*Qt1_inv*F_t1;
-  // B.block<12, 12>(12, 12) = E_2t.transpose()*Q2t_inv*E_2t;
+  Eigen::Matrix<double, 24, 24> B = Eigen::Matrix<double, 24, 24>::Zero();
+  B.block<12, 12>(0, 0) = F_t1.transpose()*Qt1_inv*F_t1;
+  B.block<12, 12>(12, 12) = E_2t.transpose()*Q2t_inv*E_2t;
 
-  // // interpolated covariance
-  // auto P_t_inv = E_t1.transpose()*Qt1_inv*E_t1 + F_2t.transpose()*Q2t_inv*F_2t
-  //     - A.transpose()*(P_1n2.inverse() + B)*A;
+  // interpolated covariance
+  auto P_t_inv = E_t1.transpose()*Qt1_inv*E_t1 + F_2t.transpose()*Q2t_inv*F_2t
+      - A.transpose()*(P_1n2.inverse() + B).inverse()*A;
 
-  // return P_t_inv.inverse();
-
-  Eigen::Matrix<double, 36, 24> D = Eigen::Matrix<double, 36, 24>::Zero();
-  D.block<12, 12>(0, 0) = Eigen::Matrix<double, 12, 12>::Identity();
-  D.block<12, 12>(24, 12) = Eigen::Matrix<double, 12, 12>::Identity();
-
-  Eigen::Matrix<double, 24, 24> Qinv = Eigen::Matrix<double, 24, 24>::Zero();
-  Qinv.block<12, 12>(0, 0) = Qt1_inv;
-  Qinv.block<12, 12>(12, 12) = Q2t_inv;
-
-  Eigen::Matrix<double, 24, 36> J = Eigen::Matrix<double, 24, 36>::Zero();
-  J.block<12, 12>(0, 0) = -F_t1;
-  J.block<12, 12>(0, 12) = E_t1;
-  J.block<12, 12>(12, 12) = -F_2t;
-  J.block<12, 12>(12, 24) = E_2t;
-
-  auto P_all_inv = D*P_1n2.inverse()*D.transpose() + J.transpose()*Qinv*J;
-  auto P_all = P_all_inv.inverse();
-  return P_all.block<12, 12>(12, 12);
+  return P_t_inv.inverse();
 }
 
 auto Interface::extrapCovariance(const Time& time, 
@@ -519,15 +465,8 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
     if (knot1->getPose()->active() || knot1->getVelocity()->active() ||
         knot2->getPose()->active() || knot2->getVelocity()->active()) {
       // Generate 12 x 12 information matrix for GP prior factor
-      Eigen::Matrix<double, 12, 12> Qi_inv = computeQinv((knot2->getTime() - knot1->getTime()).seconds());
-      // double one_over_dt =
-      //     1.0 / (knot2->getTime() - knot1->getTime()).seconds();
-      // double one_over_dt2 = one_over_dt * one_over_dt;
-      // double one_over_dt3 = one_over_dt2 * one_over_dt;
-      // Qi_inv.block<6, 6>(0, 0) = 12.0 * one_over_dt3 * Qc_inv_;
-      // Qi_inv.block<6, 6>(6, 0) = Qi_inv.block<6, 6>(0, 6) =
-      //     -6.0 * one_over_dt2 * Qc_inv_;
-      // Qi_inv.block<6, 6>(6, 6) = 4.0 * one_over_dt * Qc_inv_;
+      Eigen::Matrix<double, 12, 12> Qi_inv = computeQinv(
+          (knot2->getTime() - knot1->getTime()).seconds());
       const auto noise_model = std::make_shared<StaticNoiseModel<12>>(
           Qi_inv, NoiseType::INFORMATION);
       //
