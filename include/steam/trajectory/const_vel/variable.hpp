@@ -73,7 +73,7 @@ class Variable {
   void setCrossCov(const CovType& cov);
 
   /** \brief Set bool set variables for all covariances to be false */
-  void resetCovariance();
+  void resetCovariances();
 
  private:
   /** \brief Timestamp of trajectory variable */

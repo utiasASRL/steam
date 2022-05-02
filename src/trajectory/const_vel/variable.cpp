@@ -83,7 +83,7 @@ void Variable::setCrossCov(const CovType& cov) {
   cross_cov_set_ = true;
 }
 
-void Variable::resetCovariance() {
+void Variable::resetCovariances() {
   cov_set_ = false;
   cross_cov_set_ = false;
 }

@@ -180,7 +180,10 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
             "[ConstVelTraj][getCovariance] extrapolation from a locked knot not implemented.");
       if (!endKnot->covarianceSet())  // query covariance if we don't have it
         queryKnotCovariance(solver, it1);
-      return extrapCovariance(time, endKnot);
+      auto output = extrapCovariance(time, endKnot);
+      if (!saveCovariances_)
+        endKnot->resetCovariances();
+      return output;
     } else {
       throw std::runtime_error(
           "[ConstVelTraj][getCovariance] Requested covariance at an invalid time (extrapolation).");
@@ -196,7 +199,10 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
           "[ConstVelTraj][getCovariance] requested knot is locked (not part of the optimization).");
     if (!knot1->covarianceSet())  // query covariance if we don't have it
       queryKnotCovariance(solver, it1);
-    return knot1->getCovariance();
+    auto output = knot1->getCovariance();
+    if (!saveCovariances_)
+      knot1->resetCovariances();
+    return output;
   }
 
   // Check if we requested before first time
@@ -231,14 +237,18 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
         "[ConstVelTraj][getCovariance] Interpolating between locked states not implemented.");
 
   // interpolate
-  return interpCovariance(time, it1->second, it2->second);
+  auto output = interpCovariance(time, it1->second, it2->second);
+  if (!saveCovariances_) {
+    it1->second->resetCovariances();
+    it2->second->resetCovariances();
+  }
+  return output;
 }
 
 void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
     std::map<Time, Variable::Ptr>::iterator it) {
   // Since covariance querying in steam computes entire columns at a time,
-  // we want to save out any relevant cross-covariances while we query
-  // for the requested knot
+  // we should also query the cross-covariance with the subsequent knot
 
   // initialize iterator to subsequent (next) knot
   auto it_next = std::next(it, 1);
@@ -292,13 +302,19 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
   }
 }
 
-void Interface::resetCovarianceQuery() {
+void Interface::resetCovarianceQueries() {
   // If empty, return none
   if (knotMap_.empty()) return;
 
   // Iterate through all knots
   for (auto it = knotMap_.begin(); it != knotMap_.end(); ++it)
-    it->second->resetCovariance();
+    it->second->resetCovariances();
+}
+
+void Interface::setSaveCovariances(const bool& flag) {
+  saveCovariances_ = flag;
+  if (!saveCovariances_)
+    resetCovarianceQueries();
 }
 
 auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1, 

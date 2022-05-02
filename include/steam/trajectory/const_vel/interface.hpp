@@ -66,8 +66,11 @@ class Interface : public traj::Interface {
   void queryKnotCovariance(GaussNewtonSolverBase& solver, 
       std::map<Time, Variable::Ptr>::iterator it);
 
-  /** \brief Reset covariance queries s.t. old covariances are not re-used */
-  void resetCovarianceQuery();
+  /** \brief Reset covariance queries s.t. saved covariances are not re-used */
+  void resetCovarianceQueries();
+
+  /** \brief Set to save queried knot covariances */
+  void setSaveCovariances(const bool& flag);
 
   /** \brief Interpolate covariance between two knot times */
   Eigen::MatrixXd interpCovariance(const Time& time, const Variable::Ptr& knot1, 
@@ -110,6 +113,15 @@ class Interface : public traj::Interface {
 
   /** \brief Allow for extrapolation */
   const bool allowExtrapolation_;
+
+  /**
+   * \brief Save queried knot covariances. Setting to true will make repeated
+   * covariance interp./extrap. queries with the same knots more efficient. However,
+   * resetCovarianceQueries() must manually be called to reset the saved covariances 
+   * if the optimization problem is modified and the knot covariances need updating.
+   * Default setting is false.
+   */
+  bool saveCovariances_ = false;
 
   /** \brief Pose prior */
   WeightedLeastSqCostTerm<6>::Ptr posePriorFactor_;
