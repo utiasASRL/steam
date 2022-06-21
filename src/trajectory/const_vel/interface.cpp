@@ -9,7 +9,7 @@
 #include "steam/trajectory/const_vel/prior_factor.hpp"
 #include "steam/trajectory/const_vel/velocity_interpolator.hpp"
 
-#include <iostream> // TODO: remove after debugging
+#include <iostream>  // TODO: remove after debugging
 
 namespace steam {
 namespace traj {
@@ -166,8 +166,7 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
     -> Eigen::MatrixXd {
   // Check that map is not empty
   if (knotMap_.empty())
-    throw std::runtime_error(
-        "[ConstVelTraj][getCovariance] map was empty");
+    throw std::runtime_error("[ConstVelTraj][getCovariance] map was empty");
 
   // Get iterator to first element with time equal to or greater than 'time'
   auto it1 = knotMap_.lower_bound(time);
@@ -180,16 +179,17 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
       const auto& endKnot = it1->second;
       if (!endKnot->getPose()->active() && !endKnot->getVelocity()->active())
         throw std::runtime_error(
-            "[ConstVelTraj][getCovariance] extrapolation from a locked knot not implemented.");
+            "[ConstVelTraj][getCovariance] extrapolation from a locked knot "
+            "not implemented.");
       if (!endKnot->covarianceSet())  // query covariance if we don't have it
         queryKnotCovariance(solver, it1);
       auto output = extrapCovariance(time, endKnot);
-      if (!saveCovariances_)
-        endKnot->resetCovariances();
+      if (!saveCovariances_) endKnot->resetCovariances();
       return output;
     } else {
       throw std::runtime_error(
-          "[ConstVelTraj][getCovariance] Requested covariance at an invalid time (extrapolation).");
+          "[ConstVelTraj][getCovariance] Requested covariance at an invalid "
+          "time (extrapolation).");
     }
   }
 
@@ -199,19 +199,20 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
     const auto& knot1 = it1->second;
     if (!knot1->getPose()->active() && !knot1->getVelocity()->active())
       throw std::runtime_error(
-          "[ConstVelTraj][getCovariance] requested knot is locked (not part of the optimization).");
+          "[ConstVelTraj][getCovariance] requested knot is locked (not part of "
+          "the optimization).");
     if (!knot1->covarianceSet())  // query covariance if we don't have it
       queryKnotCovariance(solver, it1);
     auto output = knot1->getCovariance();
-    if (!saveCovariances_)
-      knot1->resetCovariances();
+    if (!saveCovariances_) knot1->resetCovariances();
     return output;
   }
 
   // Check if we requested before first time
   if (it1 == knotMap_.begin()) {
     throw std::runtime_error(
-        "[ConstVelTraj][getCovariance] Requested covariance before first time.");
+        "[ConstVelTraj][getCovariance] Requested covariance before first "
+        "time.");
   }
 
   // Get iterators bounding the time interval
@@ -219,25 +220,26 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
   --it1;
   if (time <= it1->second->getTime() || time >= it2->second->getTime()) {
     throw std::runtime_error(
-        "[ConstVelTraj][getCovariance] Requested covariance at an invalid time. This exception "
+        "[ConstVelTraj][getCovariance] Requested covariance at an invalid "
+        "time. This exception "
         "should not trigger... report to a STEAM contributor.");
   }
 
   // query knot covariances if missing
-  if (!it1->second->covarianceSet())
-    queryKnotCovariance(solver, it1);
-  if (!it2->second->covarianceSet())
-    queryKnotCovariance(solver, it2);
+  if (!it1->second->covarianceSet()) queryKnotCovariance(solver, it1);
+  if (!it2->second->covarianceSet()) queryKnotCovariance(solver, it2);
   if (!it1->second->crossCovSet())
     throw std::runtime_error(
-        "[ConstVelTraj][getCovariance] Missing cross-covariance between knots. This exception "
+        "[ConstVelTraj][getCovariance] Missing cross-covariance between knots. "
+        "This exception "
         "should not trigger... report to a STEAM contributor.");
 
   auto active1 = it1->second->getActiveKeys();
   auto active2 = it2->second->getActiveKeys();
   if (active1.size() == 0 || active2.size() == 0)
     throw std::runtime_error(
-        "[ConstVelTraj][getCovariance] Interpolating between locked states not implemented.");
+        "[ConstVelTraj][getCovariance] Interpolating between locked states not "
+        "implemented.");
 
   // interpolate
   auto output = interpCovariance(time, it1->second, it2->second);
@@ -248,8 +250,8 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
   return output;
 }
 
-void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
-    std::map<Time, Variable::Ptr>::iterator it) {
+void Interface::queryKnotCovariance(
+    GaussNewtonSolverBase& solver, std::map<Time, Variable::Ptr>::iterator it) {
   // Since covariance querying in steam computes entire columns at a time,
   // we should also query the cross-covariance with the subsequent knot
 
@@ -286,20 +288,23 @@ void Interface::queryKnotCovariance(GaussNewtonSolverBase& solver,
   // query covariance blocks
   auto block_cov = solver.queryCovarianceBlock(rkeys, ckeys);
 
-  // covariance of requested knot (should always have either pose or velocity unlocked)
-  Eigen::MatrixXd cov = Eigen::MatrixXd(bidx_curr.size()*6, bidx_curr.size()*6);
-  for (unsigned int r = 0; r < bidx_curr.size(); ++r){
+  // covariance of requested knot (should always have either pose or velocity
+  // unlocked)
+  Eigen::MatrixXd cov =
+      Eigen::MatrixXd(bidx_curr.size() * 6, bidx_curr.size() * 6);
+  for (unsigned int r = 0; r < bidx_curr.size(); ++r) {
     for (unsigned int c = 0; c < bidx_curr.size(); ++c)
-      cov.block(6*r, 6*c, 6, 6) = block_cov.at(bidx_curr[r], c);
+      cov.block(6 * r, 6 * c, 6, 6) = block_cov.at(bidx_curr[r], c);
   }
   knot_curr->setCovariance(cov);
 
   // cross-covariance if it exists
   if (bidx_next.size() > 0) {
-    Eigen::MatrixXd cross_cov = Eigen::MatrixXd(bidx_next.size()*6, bidx_curr.size()*6);
-    for (unsigned int r = 0; r < bidx_next.size(); ++r){
+    Eigen::MatrixXd cross_cov =
+        Eigen::MatrixXd(bidx_next.size() * 6, bidx_curr.size() * 6);
+    for (unsigned int r = 0; r < bidx_next.size(); ++r) {
       for (unsigned int c = 0; c < bidx_curr.size(); ++c)
-        cross_cov.block(6*r, 6*c, 6, 6) = block_cov.at(bidx_next[r], c);
+        cross_cov.block(6 * r, 6 * c, 6, 6) = block_cov.at(bidx_next[r], c);
     }
     knot_curr->setCrossCov(cross_cov);
   }
@@ -316,17 +321,15 @@ void Interface::resetCovarianceQueries() {
 
 void Interface::setSaveCovariances(const bool& flag) {
   saveCovariances_ = flag;
-  if (!saveCovariances_)
-    resetCovarianceQueries();
+  if (!saveCovariances_) resetCovarianceQueries();
 }
 
 auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1,
-    const Variable::Ptr& knot2) const -> Eigen::MatrixXd {
+                                 const Variable::Ptr& knot2) const
+    -> Eigen::MatrixXd {
   // Construct a knot for the interpolated state
-  auto interp_pose =
-      PoseInterpolator::MakeShared(time, knot1, knot2);
-  auto interp_vel =
-      VelocityInterpolator::MakeShared(time, knot1, knot2);
+  auto interp_pose = PoseInterpolator::MakeShared(time, knot1, knot2);
+  auto interp_vel = VelocityInterpolator::MakeShared(time, knot1, knot2);
   auto interp_knot = std::make_shared<Variable>(time, interp_pose, interp_vel);
 
   // Compute Jacobians
@@ -353,27 +356,31 @@ auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1,
 
   // Helper matrices
   Eigen::Matrix<double, 24, 12> A;
-  A.block<12, 12>(0, 0) = F_t1.transpose()*Qt1_inv*E_t1;
-  A.block<12, 12>(12, 0) = E_2t.transpose()*Q2t_inv*F_2t;
+  A.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * E_t1;
+  A.block<12, 12>(12, 0) = E_2t.transpose() * Q2t_inv * F_2t;
 
   Eigen::Matrix<double, 24, 24> B = Eigen::Matrix<double, 24, 24>::Zero();
-  B.block<12, 12>(0, 0) = F_t1.transpose()*Qt1_inv*F_t1;
-  B.block<12, 12>(12, 12) = E_2t.transpose()*Q2t_inv*E_2t;
+  B.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
+  B.block<12, 12>(12, 12) = E_2t.transpose() * Q2t_inv * E_2t;
 
   // interpolated covariance
-  auto P_t_inv = E_t1.transpose()*Qt1_inv*E_t1 + F_2t.transpose()*Q2t_inv*F_2t
-      - A.transpose()*(P_1n2.inverse() + B).inverse()*A;
+  auto P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 +
+                 F_2t.transpose() * Q2t_inv * F_2t -
+                 A.transpose() * (P_1n2.inverse() + B).inverse() * A;
 
   return P_t_inv.inverse();
 }
 
 auto Interface::extrapCovariance(const Time& time,
-    const Variable::Ptr& endKnot) const -> Eigen::MatrixXd {
+                                 const Variable::Ptr& endKnot) const
+    -> Eigen::MatrixXd {
   // Construct a knot for the extrapolated state
   const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->getTime(),
                                                   endKnot->getVelocity());
-  const auto T_t_0 = se3::compose(T_t_k, endKnot->getPose()); // mean of extrapolation
-  const auto& extrap_knot = std::make_shared<Variable>(time, T_t_0, endKnot->getVelocity());
+  const auto T_t_0 =
+      se3::compose(T_t_k, endKnot->getPose());  // mean of extrapolation
+  const auto& extrap_knot =
+      std::make_shared<Variable>(time, T_t_0, endKnot->getVelocity());
 
   // Compute Jacobians
   // Note: jacKnot1 will return the negative of F as defined in
@@ -389,7 +396,8 @@ auto Interface::extrapCovariance(const Time& time,
   // end knot covariance
   Eigen::Matrix<double, 12, 12> P_end = endKnot->getCovariance();
 
-  return E_t1_inv*(F_t1*P_end*F_t1.transpose() + Qt1_inv.inverse())*E_t1_inv.transpose();
+  return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1_inv.inverse()) *
+         E_t1_inv.transpose();
 }
 
 void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
@@ -454,8 +462,9 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
   const auto loss_function = std::make_shared<L2LossFunc>();
 
   // Create cost term
-  velocity_prior_factors_.emplace_back(std::make_shared<WeightedLeastSqCostTerm<6>>(
-      error_function, noise_model, loss_function));
+  velocity_prior_factors_.emplace_back(
+      std::make_shared<WeightedLeastSqCostTerm<6>>(error_function, noise_model,
+                                                   loss_function));
 }
 
 void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
@@ -463,9 +472,8 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   if (knotMap_.empty()) return;
 
   // Check for pose or velocity priors
-  for (const auto &factor : pose_prior_factors_)
-    problem.addCostTerm(factor);
-  for (const auto &factor : velocity_prior_factors_)
+  for (const auto& factor : pose_prior_factors_) problem.addCostTerm(factor);
+  for (const auto& factor : velocity_prior_factors_)
     problem.addCostTerm(factor);
 
   // All prior factors will use an L2 loss function
@@ -486,8 +494,8 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
     if (knot1->getPose()->active() || knot1->getVelocity()->active() ||
         knot2->getPose()->active() || knot2->getVelocity()->active()) {
       // Generate 12 x 12 information matrix for GP prior factor
-      Eigen::Matrix<double, 12, 12> Qi_inv = computeQinv(
-          (knot2->getTime() - knot1->getTime()).seconds());
+      Eigen::Matrix<double, 12, 12> Qi_inv =
+          computeQinv((knot2->getTime() - knot1->getTime()).seconds());
       const auto noise_model = std::make_shared<StaticNoiseModel<12>>(
           Qi_inv, NoiseType::INFORMATION);
       //
@@ -501,7 +509,8 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   }
 }
 
-auto Interface::computeQinv(const double& deltatime) const -> Eigen::Matrix<double, 12, 12> {
+auto Interface::computeQinv(const double& deltatime) const
+    -> Eigen::Matrix<double, 12, 12> {
   Eigen::Matrix<double, 12, 12> Qi_inv;
   double one_over_dt = 1.0 / deltatime;
   double one_over_dt2 = one_over_dt * one_over_dt;
