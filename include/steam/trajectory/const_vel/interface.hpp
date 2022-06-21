@@ -56,14 +56,14 @@ class Interface : public traj::Interface {
       const Time& time) const;
 
   /** \brief Get state covariance using interpolation/extrapolation */
-  Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver, 
+  Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver,
       const Time& time);
 
   /**
    * \brief Queries Hessian for knot covariance and neighbouring (prev. & next)
    * cross-covariances (if they exist) and stores in the corresponding knots.
    */
-  void queryKnotCovariance(GaussNewtonSolverBase& solver, 
+  void queryKnotCovariance(GaussNewtonSolverBase& solver,
       std::map<Time, Variable::Ptr>::iterator it);
 
   /** \brief Reset covariance queries s.t. saved covariances are not re-used */
@@ -73,11 +73,11 @@ class Interface : public traj::Interface {
   void setSaveCovariances(const bool& flag);
 
   /** \brief Interpolate covariance between two knot times */
-  Eigen::MatrixXd interpCovariance(const Time& time, const Variable::Ptr& knot1, 
+  Eigen::MatrixXd interpCovariance(const Time& time, const Variable::Ptr& knot1,
       const Variable::Ptr& knot2) const;
 
   /** \brief Interpolate covariance between two knot times */
-  Eigen::MatrixXd extrapCovariance(const Time& time, 
+  Eigen::MatrixXd extrapCovariance(const Time& time,
     const Variable::Ptr& endKnot) const;
 
   /**
@@ -117,17 +117,17 @@ class Interface : public traj::Interface {
   /**
    * \brief Save queried knot covariances. Setting to true will make repeated
    * covariance interp./extrap. queries with the same knots more efficient. However,
-   * resetCovarianceQueries() must manually be called to reset the saved covariances 
+   * resetCovarianceQueries() must manually be called to reset the saved covariances
    * if the optimization problem is modified and the knot covariances need updating.
    * Default setting is false.
    */
   bool saveCovariances_ = false;
 
   /** \brief Pose prior */
-  WeightedLeastSqCostTerm<6>::Ptr posePriorFactor_;
+  std::vector<WeightedLeastSqCostTerm<6>::Ptr> pose_prior_factors_;
 
   /** \brief Velocity prior */
-  WeightedLeastSqCostTerm<6>::Ptr velocityPriorFactor_;
+  std::vector<WeightedLeastSqCostTerm<6>::Ptr> velocity_prior_factors_;
 
   /** \brief Ordered map of knots */
   std::map<Time, Variable::Ptr> knotMap_;

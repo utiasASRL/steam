@@ -33,6 +33,9 @@ Interface::Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
     : Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {}
 
 void Interface::add(const Variable::Ptr& knot) {
+  if (knotMap_.find(knot->getTime()) != knotMap_.end())
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] adding knot at duplicated time.");
   knotMap_.insert(knotMap_.end(),
                   std::pair<Time, Variable::Ptr>(knot->getTime(), knot));
 }
@@ -317,12 +320,12 @@ void Interface::setSaveCovariances(const bool& flag) {
     resetCovarianceQueries();
 }
 
-auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1, 
+auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1,
     const Variable::Ptr& knot2) const -> Eigen::MatrixXd {
   // Construct a knot for the interpolated state
-  auto interp_pose = 
+  auto interp_pose =
       PoseInterpolator::MakeShared(time, knot1, knot2);
-  auto interp_vel = 
+  auto interp_vel =
       VelocityInterpolator::MakeShared(time, knot1, knot2);
   auto interp_knot = std::make_shared<Variable>(time, interp_pose, interp_vel);
 
@@ -336,9 +339,9 @@ auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1,
   auto E_2t = PriorFactor::jacKnot2(interp_knot, knot2);
 
   // Prior inverse covariances
-  Eigen::Matrix<double, 12, 12> Qt1_inv = 
+  Eigen::Matrix<double, 12, 12> Qt1_inv =
       computeQinv((interp_knot->getTime() - knot1->getTime()).seconds());
-  Eigen::Matrix<double, 12, 12> Q2t_inv = 
+  Eigen::Matrix<double, 12, 12> Q2t_inv =
       computeQinv((knot2->getTime() - interp_knot->getTime()).seconds());
 
   // Covariance of knot1 and knot2
@@ -364,7 +367,7 @@ auto Interface::interpCovariance(const Time& time, const Variable::Ptr& knot1,
   return P_t_inv.inverse();
 }
 
-auto Interface::extrapCovariance(const Time& time, 
+auto Interface::extrapCovariance(const Time& time,
     const Variable::Ptr& endKnot) const -> Eigen::MatrixXd {
   // Construct a knot for the extrapolated state
   const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->getTime(),
@@ -380,7 +383,7 @@ auto Interface::extrapCovariance(const Time& time,
   auto E_t1_inv = PriorFactor::jacKnot2(endKnot, extrap_knot).inverse();
 
   // Prior covariance
-  Eigen::Matrix<double, 12, 12> Qt1_inv = 
+  Eigen::Matrix<double, 12, 12> Qt1_inv =
       computeQinv((extrap_knot->getTime() - endKnot->getTime()).seconds());
 
   // end knot covariance
@@ -418,8 +421,8 @@ void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
   const auto loss_function = std::make_shared<L2LossFunc>();
 
   // Create cost term
-  posePriorFactor_ = std::make_shared<WeightedLeastSqCostTerm<6>>(
-      error_function, noise_model, loss_function);
+  pose_prior_factors_.emplace_back(std::make_shared<WeightedLeastSqCostTerm<6>>(
+      error_function, noise_model, loss_function));
 }
 
 void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
@@ -451,8 +454,8 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
   const auto loss_function = std::make_shared<L2LossFunc>();
 
   // Create cost term
-  velocityPriorFactor_ = std::make_shared<WeightedLeastSqCostTerm<6>>(
-      error_function, noise_model, loss_function);
+  velocity_prior_factors_.emplace_back(std::make_shared<WeightedLeastSqCostTerm<6>>(
+      error_function, noise_model, loss_function));
 }
 
 void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
@@ -460,8 +463,10 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   if (knotMap_.empty()) return;
 
   // Check for pose or velocity priors
-  if (posePriorFactor_) problem.addCostTerm(posePriorFactor_);
-  if (velocityPriorFactor_) problem.addCostTerm(velocityPriorFactor_);
+  for (const auto &factor : pose_prior_factors_)
+    problem.addCostTerm(factor);
+  for (const auto &factor : velocity_prior_factors_)
+    problem.addCostTerm(factor);
 
   // All prior factors will use an L2 loss function
   const auto loss_function = std::make_shared<L2LossFunc>();
