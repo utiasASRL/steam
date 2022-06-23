@@ -402,6 +402,10 @@ auto Interface::extrapCovariance(const Time& time,
 
 void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
                              const Eigen::Matrix<double, 6, 6>& cov) {
+  if (pose_prior_factor_ != nullptr)
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] can only add one pose prior.");
+
   // Check that map is not empty
   if (knotMap_.empty())
     throw std::runtime_error("[ConstVelTraj][addPosePrior] map was empty.");
@@ -421,20 +425,25 @@ void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
         "[ConstVelTraj][addPosePrior] tried to add prior to locked pose.");
 
   // Set up loss function, noise model, and error function
-  const auto T_k0_meas = se3::SE3StateVar::MakeShared(T_k0);
-  T_k0_meas->locked() = true;
-  const auto error_function =
-      se3::tran2vec(se3::compose(T_k0_meas, se3::inverse(knot->getPose())));
-  const auto noise_model = std::make_shared<StaticNoiseModel<6>>(cov);
-  const auto loss_function = std::make_shared<L2LossFunc>();
+  // auto T_k0_meas = se3::SE3StateVar::MakeShared(T_k0);
+  // T_k0_meas->locked() = true;
+  // const auto error_func = se3::tran2vec(se3::compose(T_k0_meas, se3::inverse(knot->getPose())));
+  auto error_func = se3::se3_error(knot->getPose(), T_k0);
+  auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
+  auto loss_func = L2LossFunc::MakeShared();
 
   // Create cost term
-  pose_prior_factors_.emplace_back(std::make_shared<WeightedLeastSqCostTerm<6>>(
-      error_function, noise_model, loss_function));
+  pose_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
+      error_func, noise_model, loss_func);
 }
 
 void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
                                  const Eigen::Matrix<double, 6, 6>& cov) {
+  // Only allow adding 1 prior
+  if (vel_prior_factor_ != nullptr)
+    throw std::runtime_error(
+        "[ConstVelTraj][addVelocityPrior] can only add one velocity prior.");
+
   // Check that map is not empty
   if (knotMap_.empty())
     throw std::runtime_error("[ConstVelTraj][addVelocityPrior] map was empty.");
@@ -454,17 +463,16 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
         "[ConstVelTraj][addVelocityPrior] tried to add prior to locked pose.");
 
   // Set up loss function, noise model, and error function
-  const auto w_0k_ink_meas = vspace::VSpaceStateVar<6>::MakeShared(w_0k_ink);
-  w_0k_ink_meas->locked() = true;
-  const auto error_function =
-      vspace::add<6>(w_0k_ink_meas, vspace::neg<6>(knot->getVelocity()));
-  const auto noise_model = std::make_shared<StaticNoiseModel<6>>(cov);
-  const auto loss_function = std::make_shared<L2LossFunc>();
+  // const auto w_0k_ink_meas = vspace::VSpaceStateVar<6>::MakeShared(w_0k_ink);
+  // w_0k_ink_meas->locked() = true;
+  // auto error_func = vspace::add<6>(w_0k_ink_meas, vspace::neg<6>(knot->getVelocity()));
+  auto error_func = vspace::vspace_error<6>(knot->getVelocity(), w_0k_ink);
+  auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
+  auto loss_func = L2LossFunc::MakeShared();
 
   // Create cost term
-  velocity_prior_factors_.emplace_back(
-      std::make_shared<WeightedLeastSqCostTerm<6>>(error_function, noise_model,
-                                                   loss_function));
+  vel_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
+      error_func, noise_model, loss_func);
 }
 
 void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
@@ -472,9 +480,8 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   if (knotMap_.empty()) return;
 
   // Check for pose or velocity priors
-  for (const auto& factor : pose_prior_factors_) problem.addCostTerm(factor);
-  for (const auto& factor : velocity_prior_factors_)
-    problem.addCostTerm(factor);
+  if (pose_prior_factor_ != nullptr) problem.addCostTerm(pose_prior_factor_);
+  if (vel_prior_factor_ != nullptr) problem.addCostTerm(vel_prior_factor_);
 
   // All prior factors will use an L2 loss function
   const auto loss_function = std::make_shared<L2LossFunc>();

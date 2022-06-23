@@ -124,10 +124,10 @@ class Interface : public traj::Interface {
   bool saveCovariances_ = false;
 
   /** \brief Pose prior */
-  std::vector<WeightedLeastSqCostTerm<6>::Ptr> pose_prior_factors_;
+  WeightedLeastSqCostTerm<6>::Ptr pose_prior_factor_ = nullptr;
 
   /** \brief Velocity prior */
-  std::vector<WeightedLeastSqCostTerm<6>::Ptr> velocity_prior_factors_;
+  WeightedLeastSqCostTerm<6>::Ptr vel_prior_factor_ = nullptr;
 
   /** \brief Ordered map of knots */
   std::map<Time, Variable::Ptr> knotMap_;
