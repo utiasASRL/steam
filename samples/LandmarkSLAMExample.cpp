@@ -2,6 +2,7 @@
  * \file LandmarkSLAMExample.cpp
  * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
  */
+#include <iomanip>
 #include <iostream>
 
 #include "lgmath.hpp"
@@ -28,20 +29,21 @@ int main(int argc, char** argv) {
   std::vector<Eigen::Matrix<double, 4, 4>> T_ri_list;
   for (int i = 0; i < K; ++i) {
     // time (time along the trajectory from start to end)
-    t_list.emplace_back(i * L / (K - 1));
+    t_list.emplace_back((double)i * (double)L / static_cast<double>(K - 1));
 
     // ground truth trajectory
     if (i == 0) {
       Eigen::Matrix<double, 6, 1> w_ir_inr;
       w_ir_inr << -1., 0., 0., 0., 0., 0.;
-      gt_w_ir_inr_list.emplace_back(Eigen::Matrix<double, 6, 1>::Zero());
+      gt_w_ir_inr_list.emplace_back(w_ir_inr);
       gt_T_ri_list.emplace_back(Eigen::Matrix<double, 4, 4>::Identity());
     } else {
       Eigen::Matrix<double, 6, 1> w_ir_inr;
       w_ir_inr << -1., 0., 0., 0., .1, .3;
       gt_w_ir_inr_list.emplace_back(w_ir_inr);
       gt_T_ri_list.emplace_back(
-          lgmath::se3::vec2tran(L / (K - 1) * gt_w_ir_inr_list[i - 1]) *
+          lgmath::se3::vec2tran((double)L / static_cast<double>(K - 1) *
+                                gt_w_ir_inr_list[i - 1]) *
           gt_T_ri_list[i - 1]);
     }
 
@@ -107,7 +109,7 @@ int main(int argc, char** argv) {
   traj_state_var_list[0].w_ir_inr->locked() = true;
 
   //
-  OptimizationProblem problem;
+  OptimizationProblem problem(1);
   // add state variables
   for (const auto& state : traj_state_var_list) {
     problem.addStateVariable(state.T_ri);
@@ -125,6 +127,29 @@ int main(int argc, char** argv) {
   params.verbose = true;
   SolverType solver(&problem, params);
   solver.optimize();
+
+  Covariance covariance(problem);
+
+  // state covariances
+  for (int i = 1; i < K; ++i) {
+    const auto T_ri_cov = covariance.query(traj_state_var_list[i].T_ri);
+    const auto T_ir = traj_state_var_list[i].T_ri->value().matrix().inverse();
+    const auto C_ir = T_ir.block<3, 3>(0, 0);
+    const auto r_cov = C_ir * T_ri_cov.block<3, 3>(0, 0) * C_ir.transpose();
+    std::cout << "T_ir (trans.) " << i << " cov: " << std::setprecision(6)
+              << std::fixed << r_cov(0, 0) << " " << r_cov(0, 1) << " "
+              << r_cov(0, 2) << " " << r_cov(1, 1) << " " << r_cov(1, 2) << " "
+              << r_cov(2, 2) << std::endl;
+  }
+
+  // landmark covariances
+  for (int i = 0; i < Jland; ++i) {
+    const auto p_cov = covariance.query(p_var_list[i]);
+    std::cout << "Landmark " << i << " cov: " << std::setprecision(6)
+              << std::fixed << p_cov(0, 0) << " " << p_cov(0, 1) << " "
+              << p_cov(0, 2) << " " << p_cov(1, 1) << " " << p_cov(1, 2) << " "
+              << p_cov(2, 2) << std::endl;
+  }
 
   return 0;
 }
