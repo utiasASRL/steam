@@ -5,6 +5,7 @@
 #include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
 #include "steam/solver/GaussNewtonSolverBase.hpp"
+#include "steam/solver/covariance.hpp"
 #include "steam/trajectory/const_vel/evaluable/merge_evaluator.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
@@ -52,6 +53,7 @@ class Interface : public traj::Interface {
       const Time& time) const;
 
   /** \brief Get state covariance using interpolation/extrapolation */
+  CovType getCovariance(const Covariance& cov, const Time& time);
   Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver,
                                 const Time& time);
 
