@@ -74,12 +74,15 @@ Eigen::MatrixXd Covariance::query(
     blk_row_sizes.emplace_back(blk_row_indexing.blkSizeAt(blk_row_indices[i]));
 
   std::vector<unsigned int> blk_col_sizes;
-  blk_col_sizes.resize(num_col_vars);
+  blk_col_sizes.reserve(num_col_vars);
   for (size_t i = 0; i < num_col_vars; i++)
     blk_col_sizes.emplace_back(blk_col_indexing.blkSizeAt(blk_col_indices[i]));
 
   // Create result container
-  BlockMatrix blk_cov(blk_row_sizes, blk_col_sizes);
+  BlockMatrix cov_blk(blk_row_sizes, blk_col_sizes);
+  const auto& cov_blk_indexing = cov_blk.getIndexing();
+  const auto& cov_blk_row_indexing = cov_blk_indexing.rowIndexing();
+  const auto& cov_blk_col_indexing = cov_blk_indexing.colIndexing();
 
   // For each column key
   for (unsigned int c = 0; c < num_col_vars; c++) {
@@ -102,7 +105,7 @@ Eigen::MatrixXd Covariance::query(
         int scalarRowIndex = blk_row_indexing.cumSumAt(blk_row_indices[r]);
 
         // Do the backward pass, using the Cholesky factorization (fast)
-        blk_cov.at(r, c).block(0, j, blk_row_sizes[r], 1) =
+        cov_blk.at(r, c).block(0, j, blk_row_sizes[r], 1) =
             x.block(scalarRowIndex, 0, blk_row_sizes[r], 1);
       }
     }
@@ -113,9 +116,9 @@ Eigen::MatrixXd Covariance::query(
                                               blk_col_indexing.scalarSize());
   for (unsigned int r = 0; r < num_row_vars; r++) {
     for (unsigned int c = 0; c < num_col_vars; c++) {
-      cov.block(blk_row_indexing.cumSumAt(blk_row_indices[r]),
-                blk_col_indexing.cumSumAt(blk_col_indices[c]), blk_row_sizes[r],
-                blk_col_sizes[c]) = blk_cov.at(r, c);
+      cov.block(cov_blk_row_indexing.cumSumAt(r),
+                cov_blk_col_indexing.cumSumAt(c), blk_row_sizes[r],
+                blk_col_sizes[c]) = cov_blk.at(r, c);
     }
   }
 
