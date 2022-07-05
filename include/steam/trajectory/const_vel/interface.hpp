@@ -4,10 +4,11 @@
 
 #include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
+#include "steam/solver/GaussNewtonSolverBase.hpp"
+#include "steam/trajectory/const_vel/evaluable/merge_evaluator.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
-#include "steam/solver/GaussNewtonSolverBase.hpp"
 
 namespace steam {
 namespace traj {
@@ -57,14 +58,14 @@ class Interface : public traj::Interface {
 
   /** \brief Get state covariance using interpolation/extrapolation */
   Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver,
-      const Time& time);
+                                const Time& time);
 
   /**
    * \brief Queries Hessian for knot covariance and neighbouring (prev. & next)
    * cross-covariances (if they exist) and stores in the corresponding knots.
    */
   void queryKnotCovariance(GaussNewtonSolverBase& solver,
-      std::map<Time, Variable::Ptr>::iterator it);
+                           std::map<Time, Variable::Ptr>::iterator it);
 
   /** \brief Reset covariance queries s.t. saved covariances are not re-used */
   void resetCovarianceQueries();
@@ -74,27 +75,24 @@ class Interface : public traj::Interface {
 
   /** \brief Interpolate covariance between two knot times */
   Eigen::MatrixXd interpCovariance(const Time& time, const Variable::Ptr& knot1,
-      const Variable::Ptr& knot2) const;
+                                   const Variable::Ptr& knot2) const;
 
   /** \brief Interpolate covariance between two knot times */
   Eigen::MatrixXd extrapCovariance(const Time& time,
-    const Variable::Ptr& endKnot) const;
+                                   const Variable::Ptr& endKnot) const;
 
-  /**
-   * \brief Add a unary pose prior factor at a knot time. Note that only a
-   * single pose prior should exist on a trajectory, adding a second will
-   * overwrite the first.
-   */
+  /** \brief Add a unary pose prior factor at a knot time. */
   void addPosePrior(const Time& time, const PoseType& T_k0,
                     const Eigen::Matrix<double, 6, 6>& cov);
 
-  /**
-   * \brief Add a unary velocity prior factor at a knot time. Note that only a
-   * single velocity prior should exist on a trajectory, adding a second will
-   * overwrite the first.
-   */
+  /** \brief Add a unary velocity prior factor at a knot time. */
   void addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
                         const Eigen::Matrix<double, 6, 6>& cov);
+
+  /** \brief Add a unary state prior factor at a knot time. */
+  void addStatePrior(const Time& time, const PoseType& T_k0,
+                     const VelocityType& w_0k_ink,
+                     const Eigen::Matrix<double, 12, 12>& cov);
 
   /**
    * \brief Get binary cost terms associated with the prior for active parts of
@@ -116,18 +114,19 @@ class Interface : public traj::Interface {
 
   /**
    * \brief Save queried knot covariances. Setting to true will make repeated
-   * covariance interp./extrap. queries with the same knots more efficient. However,
-   * resetCovarianceQueries() must manually be called to reset the saved covariances
-   * if the optimization problem is modified and the knot covariances need updating.
-   * Default setting is false.
+   * covariance interp./extrap. queries with the same knots more efficient.
+   * However, resetCovarianceQueries() must manually be called to reset the
+   * saved covariances if the optimization problem is modified and the knot
+   * covariances need updating. Default setting is false.
    */
   bool saveCovariances_ = false;
 
   /** \brief Pose prior */
   WeightedLeastSqCostTerm<6>::Ptr pose_prior_factor_ = nullptr;
-
   /** \brief Velocity prior */
   WeightedLeastSqCostTerm<6>::Ptr vel_prior_factor_ = nullptr;
+  /** \brief State prior */
+  WeightedLeastSqCostTerm<12>::Ptr state_prior_factor_ = nullptr;
 
   /** \brief Ordered map of knots */
   std::map<Time, Variable::Ptr> knotMap_;

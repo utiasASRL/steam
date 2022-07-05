@@ -402,6 +402,10 @@ auto Interface::extrapCovariance(const Time& time,
 
 void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
                              const Eigen::Matrix<double, 6, 6>& cov) {
+  if (state_prior_factor_ != nullptr)
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] a state prior already exists.");
+
   if (pose_prior_factor_ != nullptr)
     throw std::runtime_error(
         "[ConstVelTraj][addPosePrior] can only add one pose prior.");
@@ -425,9 +429,6 @@ void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
         "[ConstVelTraj][addPosePrior] tried to add prior to locked pose.");
 
   // Set up loss function, noise model, and error function
-  // auto T_k0_meas = se3::SE3StateVar::MakeShared(T_k0);
-  // T_k0_meas->locked() = true;
-  // const auto error_func = se3::tran2vec(se3::compose(T_k0_meas, se3::inverse(knot->getPose())));
   auto error_func = se3::se3_error(knot->getPose(), T_k0);
   auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
   auto loss_func = L2LossFunc::MakeShared();
@@ -440,6 +441,10 @@ void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
 void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
                                  const Eigen::Matrix<double, 6, 6>& cov) {
   // Only allow adding 1 prior
+  if (state_prior_factor_ != nullptr)
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] a state prior already exists.");
+
   if (vel_prior_factor_ != nullptr)
     throw std::runtime_error(
         "[ConstVelTraj][addVelocityPrior] can only add one velocity prior.");
@@ -460,18 +465,58 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
   // Check that the velocity is not locked
   if (!knot->getVelocity()->active())
     throw std::runtime_error(
-        "[ConstVelTraj][addVelocityPrior] tried to add prior to locked pose.");
+        "[ConstVelTraj][addVelocityPrior] tried to add prior to locked "
+        "velocity.");
 
   // Set up loss function, noise model, and error function
-  // const auto w_0k_ink_meas = vspace::VSpaceStateVar<6>::MakeShared(w_0k_ink);
-  // w_0k_ink_meas->locked() = true;
-  // auto error_func = vspace::add<6>(w_0k_ink_meas, vspace::neg<6>(knot->getVelocity()));
   auto error_func = vspace::vspace_error<6>(knot->getVelocity(), w_0k_ink);
   auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
   auto loss_func = L2LossFunc::MakeShared();
 
   // Create cost term
   vel_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
+      error_func, noise_model, loss_func);
+}
+
+void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
+                              const VelocityType& w_0k_ink,
+                              const Eigen::Matrix<double, 12, 12>& cov) {
+  // Only allow adding 1 prior
+  if ((pose_prior_factor_ != nullptr) || (vel_prior_factor_ != nullptr))
+    throw std::runtime_error(
+        "[ConstVelTraj][addVelocityPrior] a pose/velocity prior already "
+        "exists.");
+
+  if (state_prior_factor_ != nullptr)
+    throw std::runtime_error(
+        "[ConstVelTraj][addVelocityPrior] can only add one state prior.");
+
+  // Check that map is not empty
+  if (knotMap_.empty())
+    throw std::runtime_error("[ConstVelTraj][addPosePrior] map was empty.");
+
+  // Try to find knot at unprovided time
+  auto it = knotMap_.find(time);
+  if (it == knotMap_.end())
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] no knot at provided time.");
+
+  // Get reference
+  const auto& knot = it->second;
+
+  // Check that the pose is not locked
+  if ((!knot->getPose()->active()) || (!knot->getVelocity()->active()))
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] tried to add prior to locked state.");
+
+  auto pose_error = se3::se3_error(knot->getPose(), T_k0);
+  auto velo_error = vspace::vspace_error<6>(knot->getVelocity(), w_0k_ink);
+  auto error_func = merge(pose_error, velo_error);
+  auto noise_model = StaticNoiseModel<12>::MakeShared(cov);
+  auto loss_func = L2LossFunc::MakeShared();
+
+  // Create cost term
+  state_prior_factor_ = WeightedLeastSqCostTerm<12>::MakeShared(
       error_func, noise_model, loss_func);
 }
 
@@ -482,6 +527,7 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   // Check for pose or velocity priors
   if (pose_prior_factor_ != nullptr) problem.addCostTerm(pose_prior_factor_);
   if (vel_prior_factor_ != nullptr) problem.addCostTerm(vel_prior_factor_);
+  if (state_prior_factor_ != nullptr) problem.addCostTerm(state_prior_factor_);
 
   // All prior factors will use an L2 loss function
   const auto loss_function = std::make_shared<L2LossFunc>();
