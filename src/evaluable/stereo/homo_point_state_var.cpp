@@ -3,14 +3,15 @@
 namespace steam {
 namespace stereo {
 
-auto HomoPointStateVar::MakeShared(const Eigen::Vector3d& value) -> Ptr {
-  return std::make_shared<HomoPointStateVar>(value);
+auto HomoPointStateVar::MakeShared(const Eigen::Vector3d& value, bool scale)
+    -> Ptr {
+  return std::make_shared<HomoPointStateVar>(value, scale);
 }
 
-HomoPointStateVar::HomoPointStateVar(const Eigen::Vector3d& value)
-    : Base(Eigen::Vector4d::Constant(1.0), 3) {
+HomoPointStateVar::HomoPointStateVar(const Eigen::Vector3d& value, bool scale)
+    : Base(Eigen::Vector4d::Constant(1.0), 3), scale_(scale) {
   this->value_.head<3>() = value;
-  this->refreshHomogeneousScaling();
+  this->refreshHomoScaling();
 }
 
 bool HomoPointStateVar::update(const Eigen::VectorXd& perturbation) {
@@ -19,7 +20,7 @@ bool HomoPointStateVar::update(const Eigen::VectorXd& perturbation) {
         "HomoPointStateVar::update: perturbation size mismatch");
 
   this->value_.head<3>() += perturbation;
-  this->refreshHomogeneousScaling();
+  this->refreshHomoScaling();
 
   return true;
 }
@@ -28,15 +29,13 @@ StateVarBase::Ptr HomoPointStateVar::clone() const {
   return std::make_shared<HomoPointStateVar>(*this);
 }
 
-void HomoPointStateVar::refreshHomogeneousScaling() {
-  // Get length of xyz-portion of landmark
-  const double invmag = 1.0 / this->value_.head<3>().norm();
-
-  // Update xyz-portion to be unit-length
-  this->value_.head<3>() *= invmag;
-
-  // Update scaling
-  this->value_[3] *= invmag;
+void HomoPointStateVar::refreshHomoScaling() {
+  if (!scale_) return;
+  const double mag = this->value_.head<3>().norm();
+  if (mag == 0.0)
+    this->value_(3) = 1.0;
+  else
+    this->value_ /= mag;
 }
 
 }  // namespace stereo

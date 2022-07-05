@@ -13,9 +13,9 @@ class HomoPointStateVar : public StateVar<Eigen::Matrix<double, 4, 1>> {
   using T = Eigen::Matrix<double, 4, 1>;
   using Base = StateVar<T>;
 
-  static Ptr MakeShared(const Eigen::Vector3d& value);
+  static Ptr MakeShared(const Eigen::Vector3d& value, bool scale = false);
   /** \brief Constructor from a global 3D point */
-  HomoPointStateVar(const Eigen::Vector3d& value);
+  HomoPointStateVar(const Eigen::Vector3d& value, bool scale = false);
 
   /** \brief Update the landmark state from the 3-dimensional perturbation */
   bool update(const Eigen::VectorXd& perturbation) override;
@@ -23,7 +23,9 @@ class HomoPointStateVar : public StateVar<Eigen::Matrix<double, 4, 1>> {
 
  private:
   /** \brief Refresh the homogeneous scaling */
-  void refreshHomogeneousScaling();
+  void refreshHomoScaling();
+
+  bool scale_ = false;
 };
 
 }  // namespace stereo

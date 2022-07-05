@@ -143,6 +143,7 @@ endif()
 
 # Executables
 link_libraries(${PROJECT_NAME})
+add_executable(LandmarkSLAMExample samples/LandmarkSLAMExample.cpp)
 add_executable(RadialVelocityMeasurement samples/RadialVelocityMeasurement.cpp)
 add_executable(RadialVelMeasWithConstVelTraj samples/RadialVelMeasWithConstVelTraj.cpp)
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
@@ -160,6 +161,7 @@ if (USE_AMENT)
 install(
   TARGETS
     # Executables
+    LandmarkSLAMExample
     RadialVelocityMeasurement
     RadialVelMeasWithConstVelTraj
     SimplePoseGraphRelax
