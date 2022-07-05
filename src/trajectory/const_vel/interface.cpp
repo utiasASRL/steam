@@ -15,41 +15,21 @@ namespace steam {
 namespace traj {
 namespace const_vel {
 
-auto Interface::MakeShared(const bool allowExtrapolation) -> Ptr {
-  return std::make_shared<Interface>(allowExtrapolation);
+auto Interface::MakeShared(const Eigen::Matrix<double, 6, 6>& Qc_inv) -> Ptr {
+  return std::make_shared<Interface>(Qc_inv);
 }
 
-auto Interface::MakeShared(const Eigen::Matrix<double, 6, 6>& Qc_inv,
-                           const bool allowExtrapolation) -> Ptr {
-  return std::make_shared<Interface>(Qc_inv, allowExtrapolation);
-}
-
-Interface::Interface(const bool allowExtrapolation)
-    : Qc_inv_(Eigen::Matrix<double, 6, 6>::Identity()),
-      allowExtrapolation_(allowExtrapolation) {}
-
-Interface::Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
-                     const bool allowExtrapolation)
-    : Qc_inv_(Qc_inv), allowExtrapolation_(allowExtrapolation) {}
-
-void Interface::add(const Variable::Ptr& knot) {
-  if (knotMap_.find(knot->getTime()) != knotMap_.end())
-    throw std::runtime_error(
-        "[ConstVelTraj][addPosePrior] adding knot at duplicated time.");
-  knotMap_.insert(knotMap_.end(),
-                  std::pair<Time, Variable::Ptr>(knot->getTime(), knot));
-}
+Interface::Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv)
+    : Qc_inv_(Qc_inv) {}
 
 void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
                     const Evaluable<VelocityType>::Ptr& w_0k_ink) {
-  add(std::make_shared<Variable>(time, T_k0, w_0k_ink));
+  if (knotMap_.find(time) != knotMap_.end())
+    throw std::runtime_error(
+        "[ConstVelTraj][addPosePrior] adding knot at duplicated time.");
+  const auto knot = std::make_shared<Variable>(time, T_k0, w_0k_ink);
+  knotMap_.insert(knotMap_.end(), std::pair<Time, Variable::Ptr>(time, knot));
 }
-
-// void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-//                     const Evaluable<VelocityType>::Ptr& w_0k_ink,
-//                     const CovType& cov) {
-//   add(std::make_shared<Variable>(time, T_k0, w_0k_ink, cov));
-// }
 
 auto Interface::getPoseInterpolator(const Time& time) const
     -> Evaluable<PoseType>::ConstPtr {
@@ -63,17 +43,11 @@ auto Interface::getPoseInterpolator(const Time& time) const
 
   // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
-    // If we allow extrapolation, return constant-velocity interpolated entry
-    if (allowExtrapolation_) {
-      --it1;  // should be safe, as we checked that the map was not empty..
-      const auto& endKnot = it1->second;
-      const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->getTime(),
-                                                      endKnot->getVelocity());
-      return se3::compose(T_t_k, endKnot->getPose());
-    } else {
-      throw std::runtime_error(
-          "Requested trajectory evaluator at an invalid time.");
-    }
+    --it1;  // should be safe, as we checked that the map was not empty..
+    const auto& endKnot = it1->second;
+    const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->getTime(),
+                                                    endKnot->getVelocity());
+    return se3::compose(T_t_k, endKnot->getPose());
   }
 
   // Check if we requested time exactly
@@ -84,16 +58,10 @@ auto Interface::getPoseInterpolator(const Time& time) const
 
   // Check if we requested before first time
   if (it1 == knotMap_.begin()) {
-    // If we allow extrapolation, return constant-velocity interpolated entry
-    if (allowExtrapolation_) {
-      const auto& startKnot = it1->second;
-      const auto T_t_k = PoseExtrapolator::MakeShared(
-          time - startKnot->getTime(), startKnot->getVelocity());
-      return se3::compose(T_t_k, startKnot->getPose());
-    } else {
-      throw std::runtime_error(
-          "Requested trajectory evaluator at an invalid time.");
-    }
+    const auto& startKnot = it1->second;
+    const auto T_t_k = PoseExtrapolator::MakeShared(time - startKnot->getTime(),
+                                                    startKnot->getVelocity());
+    return se3::compose(T_t_k, startKnot->getPose());
   }
 
   // Get iterators bounding the time interval
@@ -120,15 +88,9 @@ auto Interface::getVelocityInterpolator(const Time& time) const
 
   // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
-    // If we allow extrapolation, return constant-velocity interpolated entry
-    if (allowExtrapolation_) {
-      --it1;  // should be safe, as we checked that the map was not empty..
-      const auto& endKnot = it1->second;
-      return endKnot->getVelocity();
-    } else {
-      throw std::runtime_error(
-          "Requested trajectory evaluator at an invalid time.");
-    }
+    --it1;  // should be safe, as we checked that the map was not empty..
+    const auto& endKnot = it1->second;
+    return endKnot->getVelocity();
   }
 
   // Check if we requested time exactly
@@ -139,14 +101,8 @@ auto Interface::getVelocityInterpolator(const Time& time) const
 
   // Check if we requested before first time
   if (it1 == knotMap_.begin()) {
-    // If we allow extrapolation, return constant-velocity interpolated entry
-    if (allowExtrapolation_) {
-      const auto& startKnot = it1->second;
-      return startKnot->getVelocity();
-    } else {
-      throw std::runtime_error(
-          "Requested trajectory evaluator at an invalid time.");
-    }
+    const auto& startKnot = it1->second;
+    return startKnot->getVelocity();
   }
 
   // Get iterators bounding the time interval
@@ -173,24 +129,17 @@ auto Interface::getCovariance(GaussNewtonSolverBase& solver, const Time& time)
 
   // Check if time is passed the last entry
   if (it1 == knotMap_.end()) {
-    // If we allow extrapolation, return constant-velocity interpolated entry
-    if (allowExtrapolation_) {
-      --it1;  // should be safe, as we checked that the map was not empty..
-      const auto& endKnot = it1->second;
-      if (!endKnot->getPose()->active() && !endKnot->getVelocity()->active())
-        throw std::runtime_error(
-            "[ConstVelTraj][getCovariance] extrapolation from a locked knot "
-            "not implemented.");
-      if (!endKnot->covarianceSet())  // query covariance if we don't have it
-        queryKnotCovariance(solver, it1);
-      auto output = extrapCovariance(time, endKnot);
-      if (!saveCovariances_) endKnot->resetCovariances();
-      return output;
-    } else {
+    --it1;  // should be safe, as we checked that the map was not empty..
+    const auto& endKnot = it1->second;
+    if (!endKnot->getPose()->active() && !endKnot->getVelocity()->active())
       throw std::runtime_error(
-          "[ConstVelTraj][getCovariance] Requested covariance at an invalid "
-          "time (extrapolation).");
-    }
+          "[ConstVelTraj][getCovariance] extrapolation from a locked knot "
+          "not implemented.");
+    if (!endKnot->covarianceSet())  // query covariance if we don't have it
+      queryKnotCovariance(solver, it1);
+    auto output = extrapCovariance(time, endKnot);
+    if (!saveCovariances_) endKnot->resetCovariances();
+    return output;
   }
 
   // Check if we requested time exactly

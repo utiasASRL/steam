@@ -28,26 +28,21 @@ class Interface : public traj::Interface {
   using VelocityType = Eigen::Matrix<double, 6, 1>;
   using CovType = Eigen::Matrix<double, 12, 12>;
 
-  static Ptr MakeShared(const bool allowExtrapolation = false);
-  static Ptr MakeShared(const Eigen::Matrix<double, 6, 6>& Qc_inv,
-                        const bool allowExtrapolation = false);
+  static Ptr MakeShared(const Eigen::Matrix<double, 6, 6>& Qc_inv =
+                            Eigen::Matrix<double, 6, 6>::Identity());
 
   /**
    * \brief Constructor
-   *        Note that the weighting matrix, Qc, should be provided if prior
-   *        factors are needed for estimation. Without Qc the interpolation
-   *        methods can be used safely.
+   * \note The weighting matrix, Qc, should be provided if prior factors are
+   * needed for estimation. Without Qc the interpolation methods can be used
+   * safely.
    */
-  Interface(const bool allowExtrapolation = false);
-  Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv,
-            const bool allowExtrapolation = false);
+  Interface(const Eigen::Matrix<double, 6, 6>& Qc_inv =
+                Eigen::Matrix<double, 6, 6>::Identity());
 
   /** \brief Add a new knot */
-  void add(const Variable::Ptr& knot);
   void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
            const Evaluable<VelocityType>::Ptr& w_0k_ink);
-  // void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-  //          const Evaluable<VelocityType>::Ptr& w_0k_ink, const CovType& cov);
 
   /** \brief Get transform evaluator */
   Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
@@ -108,9 +103,6 @@ class Interface : public traj::Interface {
  protected:
   /** \brief Ordered map of knots */
   Eigen::Matrix<double, 6, 6> Qc_inv_;
-
-  /** \brief Allow for extrapolation */
-  const bool allowExtrapolation_;
 
   /**
    * \brief Save queried knot covariances. Setting to true will make repeated
