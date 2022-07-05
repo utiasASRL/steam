@@ -112,8 +112,8 @@ Eigen::MatrixXd Covariance::query(
   }
 
   // To Eigen format
-  Eigen::MatrixXd cov = Eigen::MatrixXd::Zero(blk_row_indexing.scalarSize(),
-                                              blk_col_indexing.scalarSize());
+  Eigen::MatrixXd cov = Eigen::MatrixXd::Zero(
+      cov_blk_row_indexing.scalarSize(), cov_blk_col_indexing.scalarSize());
   for (unsigned int r = 0; r < num_row_vars; r++) {
     for (unsigned int c = 0; c < num_col_vars; c++) {
       cov.block(cov_blk_row_indexing.cumSumAt(r),

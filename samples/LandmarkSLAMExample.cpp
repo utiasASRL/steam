@@ -151,5 +151,27 @@ int main(int argc, char** argv) {
               << p_cov(2, 2) << std::endl;
   }
 
+  double Kq = 4.44, Kqp1 = 5.556;
+  std::cout << "Interpolation from " << Kq << " to " << Kqp1 << std::endl;
+  for (double t = Kq; t <= Kqp1; t += (1. / 9.)) {
+    const auto state = traj.getCovariance(covariance, traj::Time(t));
+    const auto T_ir =
+        traj.getPoseInterpolator(traj::Time(t))->value().matrix().inverse();
+    const auto C_ir = T_ir.block<3, 3>(0, 0);
+    const auto r_cov = C_ir * state.block<3, 3>(0, 0) * C_ir.transpose();
+    std::cout << "(new) T_ir (trans.) at " << t
+              << " cov: " << std::setprecision(6) << std::fixed << r_cov(0, 0)
+              << " " << r_cov(0, 1) << " " << r_cov(0, 2) << " " << r_cov(1, 1)
+              << " " << r_cov(1, 2) << " " << r_cov(2, 2) << std::endl;
+
+    const auto state2 = traj.getCovariance(problem, traj::Time(t));
+    const auto r_cov2 = C_ir * state2.block<3, 3>(0, 0) * C_ir.transpose();
+    std::cout << "(old) T_ir (trans.) at " << t
+              << " cov: " << std::setprecision(6) << std::fixed << r_cov2(0, 0)
+              << " " << r_cov2(0, 1) << " " << r_cov2(0, 2) << " "
+              << r_cov2(1, 1) << " " << r_cov2(1, 2) << " " << r_cov2(2, 2)
+              << std::endl;
+  }
+
   return 0;
 }
