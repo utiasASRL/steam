@@ -611,7 +611,7 @@ void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
 
   auto pose_error = se3::se3_error(knot->getPose(), T_k0);
   auto velo_error = vspace::vspace_error<6>(knot->getVelocity(), w_0k_ink);
-  auto error_func = merge(pose_error, velo_error);
+  auto error_func = vspace::merge<6, 6>(pose_error, velo_error);
   auto noise_model = StaticNoiseModel<12>::MakeShared(cov);
   auto loss_func = L2LossFunc::MakeShared();
 

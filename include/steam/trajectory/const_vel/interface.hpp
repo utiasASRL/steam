@@ -6,7 +6,6 @@
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
 #include "steam/solver/GaussNewtonSolverBase.hpp"
 #include "steam/solver/covariance.hpp"
-#include "steam/trajectory/const_vel/evaluable/merge_evaluator.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
