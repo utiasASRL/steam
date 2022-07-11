@@ -143,6 +143,7 @@ endif()
 
 # Executables
 link_libraries(${PROJECT_NAME})
+add_executable(BSplineTrajectoryExample samples/BSplineTrajectoryExample.cpp)
 add_executable(LandmarkSLAMExample samples/LandmarkSLAMExample.cpp)
 add_executable(RadialVelocityMeasurement samples/RadialVelocityMeasurement.cpp)
 add_executable(RadialVelMeasWithConstVelTraj samples/RadialVelMeasWithConstVelTraj.cpp)
@@ -161,6 +162,7 @@ if (USE_AMENT)
 install(
   TARGETS
     # Executables
+    BSplineTrajectoryExample
     LandmarkSLAMExample
     RadialVelocityMeasurement
     RadialVelMeasWithConstVelTraj
