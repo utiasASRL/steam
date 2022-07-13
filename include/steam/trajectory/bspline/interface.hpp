@@ -29,11 +29,16 @@ class Interface : public traj::Interface {
   void addPriorCostTerms(OptimizationProblem& problem) const override {}
   void addStateVariables(OptimizationProblem& problem) const;
 
+  void setActiveWindow(
+      const Time& start,
+      const Time& end = Time(std::numeric_limits<int64_t>::max()));
+
  protected:
   /** \brief Ordered map of knots */
   const Time knot_spacing_;
   /** \brief Ordered map of knots */
   std::map<Time, Variable::Ptr> knot_map_;
+  std::map<Time, Variable::Ptr> active_knot_map_;
 };
 
 }  // namespace bspline
