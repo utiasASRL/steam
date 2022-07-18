@@ -94,7 +94,7 @@ class DivergenceErrorEval
 };
 
 /** \brief Setup a fresh problem with unsolve variables */
-steam::OptimizationProblem setupDivergenceProblem() {
+steam::OptimizationProblem2 setupDivergenceProblem() {
   // Create vector state variable
   Eigen::Matrix<double, 1, 1> initial(1);
   initial(0, 0) = 10;  // initial guess, solution is at zero...
@@ -113,7 +113,7 @@ steam::OptimizationProblem setupDivergenceProblem() {
       error_function, noise_model, loss_function);
 
   // Init problem
-  steam::OptimizationProblem problem;
+  steam::OptimizationProblem2 problem;
   problem.addStateVariable(state_var);
   problem.addCostTerm(cost_term);
 
@@ -124,50 +124,46 @@ steam::OptimizationProblem setupDivergenceProblem() {
 int main(int argc, char** argv) {
   // Solve using Vanilla Gauss-Newton Solver
   {
-    steam::OptimizationProblem problem = setupDivergenceProblem();
-    steam::VanillaGaussNewtonSolver::Params params;
-    params.maxIterations = 100;
-    steam::VanillaGaussNewtonSolver solver(&problem, params);
+    steam::OptimizationProblem2 problem = setupDivergenceProblem();
+    steam::GaussNewtonSolver::Params params;
+    steam::GaussNewtonSolver solver(problem, params);
     solver.optimize();
     std::cout << "Vanilla Gauss Newton Terminates from: "
-              << solver.getTerminationCause() << " after "
-              << solver.getCurrIteration() << " iterations." << std::endl;
+              << solver.termination_cause() << " after "
+              << solver.curr_iteration() << " iterations." << std::endl;
   }
 
   // Solve using Line Search Gauss-Newton Solver
   {
-    steam::OptimizationProblem problem = setupDivergenceProblem();
-    steam::LineSearchGaussNewtonSolver::Params params;
-    params.maxIterations = 100;
-    steam::LineSearchGaussNewtonSolver solver(&problem, params);
+    steam::OptimizationProblem2 problem = setupDivergenceProblem();
+    steam::LineSearchGaussNewtonSolver2::Params params;
+    steam::LineSearchGaussNewtonSolver2 solver(problem, params);
     solver.optimize();
     std::cout << "Line Search GN Terminates from: "
-              << solver.getTerminationCause() << " after "
-              << solver.getCurrIteration() << " iterations." << std::endl;
+              << solver.termination_cause() << " after "
+              << solver.curr_iteration() << " iterations." << std::endl;
   }
 
   // Solve using Levenberg–Marquardt Solver
   {
-    steam::OptimizationProblem problem = setupDivergenceProblem();
-    steam::LevMarqGaussNewtonSolver::Params params;
-    params.maxIterations = 100;
-    steam::LevMarqGaussNewtonSolver solver(&problem, params);
+    steam::OptimizationProblem2 problem = setupDivergenceProblem();
+    steam::LevMarqGaussNewtonSolver2::Params params;
+    steam::LevMarqGaussNewtonSolver2 solver(problem, params);
     solver.optimize();
     std::cout << "Levenberg–Marquardt Terminates from: "
-              << solver.getTerminationCause() << " after "
-              << solver.getCurrIteration() << " iterations." << std::endl;
+              << solver.termination_cause() << " after "
+              << solver.curr_iteration() << " iterations." << std::endl;
   }
 
   // Solve using Powell's Dogleg Solver
   {
-    steam::OptimizationProblem problem = setupDivergenceProblem();
-    steam::DoglegGaussNewtonSolver::Params params;
-    params.maxIterations = 100;
-    steam::DoglegGaussNewtonSolver solver(&problem, params);
+    steam::OptimizationProblem2 problem = setupDivergenceProblem();
+    steam::DoglegGaussNewtonSolver2::Params params;
+    steam::DoglegGaussNewtonSolver2 solver(problem, params);
     solver.optimize();
     std::cout << "Powell's Dogleg Terminates from: "
-              << solver.getTerminationCause() << " after "
-              << solver.getCurrIteration() << " iterations." << std::endl;
+              << solver.termination_cause() << " after "
+              << solver.curr_iteration() << " iterations." << std::endl;
   }
 
   return 0;

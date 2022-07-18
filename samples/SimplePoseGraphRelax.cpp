@@ -54,7 +54,7 @@ void runPoseGraphRelax() {
   }
 
   // Initialize problem
-  steam::OptimizationProblem problem;
+  steam::OptimizationProblem2 problem;
 
   ///
   /// Setup States
@@ -105,14 +105,9 @@ void runPoseGraphRelax() {
   ///
   /// Setup Solver and Optimize
   ///
-  using SolverType = steam::VanillaGaussNewtonSolver;
-
-  // Initialize parameters (enable verbose mode)
-  SolverType::Params params;
+  steam::GaussNewtonSolver::Params params;
   params.verbose = true;
-
-  // Make solver
-  SolverType solver(&problem, params);
+  steam::GaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();

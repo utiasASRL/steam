@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   }
 
   // Initialize problem
-  OptimizationProblem problem;
+  OptimizationProblem2 problem;
 
   /// state variables
   // sensor-vehicle transformation - this is fixed
@@ -117,14 +117,10 @@ int main(int argc, char **argv) {
   // add prior cost terms
   traj.addPriorCostTerms(problem);
 
-  using SolverType = VanillaGaussNewtonSolver;
-
-  // Initialize parameters (enable verbose mode)
-  SolverType::Params params;
-  params.verbose = true;
-
   // Make solver
-  SolverType solver(&problem, params);
+  GaussNewtonSolver::Params params;
+  params.verbose = true;
+  GaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();

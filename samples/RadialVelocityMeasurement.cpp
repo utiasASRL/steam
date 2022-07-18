@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
   }
 
   // Initialize problem
-  OptimizationProblem problem;
+  OptimizationProblem2 problem;
 
   /// state variables
   // sensor-vehicle transformation - this is fixed
@@ -88,14 +88,10 @@ int main(int argc, char **argv) {
   const auto prior_cost_term = WeightedLeastSqCostTerm<6>::MakeShared(w_iv_inv_var, prior_noise_model, loss_function);
   problem.addCostTerm(prior_cost_term);
 
-  using SolverType = VanillaGaussNewtonSolver;
-
-  // Initialize parameters (enable verbose mode)
-  SolverType::Params params;
-  params.verbose = true;
-
   // Make solver
-  SolverType solver(&problem, params);
+  GaussNewtonSolver::Params params;
+  params.verbose = true;
+  GaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();

@@ -39,8 +39,11 @@ int main(int argc, char** argv) {
   }
   // clang-format on
 
+  // unlock variables to be optimized
+  traj.setActiveWindow(traj::Time(-1.0), traj::Time(1.0));
+
   //
-  OptimizationProblem problem(1);
+  OptimizationProblem2 problem(1);
   // add state variables
   traj.addStateVariables(problem);
   // add trajectory cost terms
@@ -48,10 +51,9 @@ int main(int argc, char** argv) {
   // add meas cost terms
   for (const auto& cost : cost_terms) problem.addCostTerm(cost);
 
-  using SolverType = VanillaGaussNewtonSolver;
-  SolverType::Params params;
+  GaussNewtonSolver::Params params;
   params.verbose = true;
-  SolverType solver(&problem, params);
+  GaussNewtonSolver solver(problem, params);
   solver.optimize();
 
   return 0;

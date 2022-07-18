@@ -31,6 +31,7 @@ file(GLOB_RECURSE SOURCE
   src/evaluable/*.cpp
   src/problem/*.cpp
   src/solver/*.cpp
+  src/solver2/*.cpp
   src/trajectory/*.cpp
 )
 add_library(${PROJECT_NAME} SHARED ${SOURCE})
@@ -145,8 +146,8 @@ endif()
 link_libraries(${PROJECT_NAME})
 add_executable(BSplineTrajectoryExample samples/BSplineTrajectoryExample.cpp)
 add_executable(LandmarkSLAMExample samples/LandmarkSLAMExample.cpp)
-add_executable(RadialVelocityMeasurement samples/RadialVelocityMeasurement.cpp)
 add_executable(RadialVelMeasWithConstVelTraj samples/RadialVelMeasWithConstVelTraj.cpp)
+add_executable(RadialVelocityMeasurement samples/RadialVelocityMeasurement.cpp)
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
@@ -164,8 +165,8 @@ install(
     # Executables
     BSplineTrajectoryExample
     LandmarkSLAMExample
-    RadialVelocityMeasurement
     RadialVelMeasWithConstVelTraj
+    RadialVelocityMeasurement
     SimplePoseGraphRelax
     SpherePoseGraphRelax
     SimplePointCloudAlignment

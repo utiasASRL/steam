@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "steam/problem/OptimizationProblem.hpp"
+#include "steam/problem/optimization_problem.hpp"
 
 namespace steam {
 namespace traj {
@@ -20,6 +21,9 @@ class Interface {
    * the trajectory
    */
   virtual void addPriorCostTerms(OptimizationProblem& problem) const = 0;
+  virtual void addStateVariables(OptimizationProblem& problem) const = 0;
+  virtual void addPriorCostTerms(OptimizationProblem2& problem) const = 0;
+  virtual void addStateVariables(OptimizationProblem2& problem) const = 0;
 };
 
 }  // namespace traj

@@ -1,4 +1,4 @@
-#include "steam/solver/covariance.hpp"
+#include "steam/solver2/covariance.hpp"
 
 #include "steam/blockmat/BlockMatrix.hpp"
 #include "steam/blockmat/BlockSparseMatrix.hpp"
@@ -6,15 +6,32 @@
 
 namespace steam {
 
+Covariance::Covariance(Problem& problem)
+    : state_vector_(problem.getStateVector()) {
+  Eigen::SparseMatrix<double> approx_hessian;
+  Eigen::VectorXd gradient_vector;
+  problem.buildGaussNewtonTerms(approx_hessian, gradient_vector);
+  hessian_solver_.analyzePattern(approx_hessian);
+  hessian_solver_.factorize(approx_hessian);
+  if (hessian_solver_.info() != Eigen::Success) {
+    throw std::runtime_error(
+        "During steam solve, Eigen LLT decomposition failed. "
+        "It is possible that the matrix was ill-conditioned, in which case "
+        "adding a prior may help. On the other hand, it is also possible that "
+        "the problem you've constructed is not positive semi-definite.");
+  }
+}
+
 Covariance::Covariance(const OptimizationProblem& problem) {
   const auto& vars = problem.getStateVariables();
   for (const auto& var : vars) {
-    if (!var->locked()) state_vec_.addStateVariable(var);
+    if (!var->locked()) state_vector_.addStateVariable(var);
   }
 
   Eigen::SparseMatrix<double> approx_hessian;
   Eigen::VectorXd gradient_vector;
-  problem.buildGaussNewtonTerms(state_vec_, &approx_hessian, &gradient_vector);
+  problem.buildGaussNewtonTerms(state_vector_, &approx_hessian,
+                                &gradient_vector);
 
   hessian_solver_.analyzePattern(approx_hessian);
   hessian_solver_.factorize(approx_hessian);
@@ -46,7 +63,7 @@ Eigen::MatrixXd Covariance::query(
     const std::vector<StateVarBase::ConstPtr>& rvars,
     const std::vector<StateVarBase::ConstPtr>& cvars) const {
   // Creating indexing
-  BlockMatrixIndexing indexing(state_vec_.getStateBlockSizes());
+  BlockMatrixIndexing indexing(state_vector_.getStateBlockSizes());
   const auto& blk_row_indexing = indexing.rowIndexing();
   const auto& blk_col_indexing = indexing.colIndexing();
 
@@ -59,13 +76,13 @@ Eigen::MatrixXd Covariance::query(
   blk_row_indices.reserve(num_row_vars);
   for (size_t i = 0; i < num_row_vars; i++)
     blk_row_indices.emplace_back(
-        state_vec_.getStateBlockIndex(rvars[i]->key()));
+        state_vector_.getStateBlockIndex(rvars[i]->key()));
 
   std::vector<unsigned int> blk_col_indices;
   blk_col_indices.reserve(num_col_vars);
   for (size_t i = 0; i < num_col_vars; i++)
     blk_col_indices.emplace_back(
-        state_vec_.getStateBlockIndex(cvars[i]->key()));
+        state_vector_.getStateBlockIndex(cvars[i]->key()));
 
   // Look up block size of state variables
   std::vector<unsigned int> blk_row_sizes;

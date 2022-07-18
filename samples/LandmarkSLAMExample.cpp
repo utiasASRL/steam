@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   traj_state_var_list[0].w_ir_inr->locked() = true;
 
   //
-  OptimizationProblem problem(1);
+  OptimizationProblem2 problem(1);
   // add state variables
   for (const auto& state : traj_state_var_list) {
     problem.addStateVariable(state.T_ri);
@@ -122,10 +122,9 @@ int main(int argc, char** argv) {
   // add meas cost terms
   for (const auto& cost : cost_term_list) problem.addCostTerm(cost);
 
-  using SolverType = VanillaGaussNewtonSolver;
-  SolverType::Params params;
+  GaussNewtonSolver::Params params;
   params.verbose = true;
-  SolverType solver(&problem, params);
+  GaussNewtonSolver solver(problem, params);
   solver.optimize();
 
   Covariance covariance(problem);
@@ -159,18 +158,10 @@ int main(int argc, char** argv) {
         traj.getPoseInterpolator(traj::Time(t))->value().matrix().inverse();
     const auto C_ir = T_ir.block<3, 3>(0, 0);
     const auto r_cov = C_ir * state.block<3, 3>(0, 0) * C_ir.transpose();
-    std::cout << "(new) T_ir (trans.) at " << t
-              << " cov: " << std::setprecision(6) << std::fixed << r_cov(0, 0)
-              << " " << r_cov(0, 1) << " " << r_cov(0, 2) << " " << r_cov(1, 1)
-              << " " << r_cov(1, 2) << " " << r_cov(2, 2) << std::endl;
-
-    const auto state2 = traj.getCovariance(problem, traj::Time(t));
-    const auto r_cov2 = C_ir * state2.block<3, 3>(0, 0) * C_ir.transpose();
-    std::cout << "(old) T_ir (trans.) at " << t
-              << " cov: " << std::setprecision(6) << std::fixed << r_cov2(0, 0)
-              << " " << r_cov2(0, 1) << " " << r_cov2(0, 2) << " "
-              << r_cov2(1, 1) << " " << r_cov2(1, 2) << " " << r_cov2(2, 2)
-              << std::endl;
+    std::cout << "T_ir (trans.) at " << t << " cov: " << std::setprecision(6)
+              << std::fixed << r_cov(0, 0) << " " << r_cov(0, 1) << " "
+              << r_cov(0, 2) << " " << r_cov(1, 1) << " " << r_cov(1, 2) << " "
+              << r_cov(2, 2) << std::endl;
   }
 
   return 0;

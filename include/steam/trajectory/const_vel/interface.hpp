@@ -5,7 +5,7 @@
 #include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
 #include "steam/solver/GaussNewtonSolverBase.hpp"
-#include "steam/solver/covariance.hpp"
+#include "steam/solver2/covariance.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
@@ -90,11 +90,15 @@ class Interface : public traj::Interface {
                      const VelocityType& w_0k_ink,
                      const Eigen::Matrix<double, 12, 12>& cov);
 
+  void addStateVariables(OptimizationProblem& problem) const override {}
+  void addStateVariables(OptimizationProblem2& problem) const override {}
+
   /**
    * \brief Get binary cost terms associated with the prior for active parts of
    * the trajectory
    */
   void addPriorCostTerms(OptimizationProblem& problem) const override;
+  void addPriorCostTerms(OptimizationProblem2& problem) const override;
 
   /**
    * \brief Compute inverse covariance of prior factor

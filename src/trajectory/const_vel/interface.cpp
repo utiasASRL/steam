@@ -662,6 +662,48 @@ void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
   }
 }
 
+void Interface::addPriorCostTerms(OptimizationProblem2& problem) const {
+  // If empty, return none
+  if (knotMap_.empty()) return;
+
+  // Check for pose or velocity priors
+  if (pose_prior_factor_ != nullptr) problem.addCostTerm(pose_prior_factor_);
+  if (vel_prior_factor_ != nullptr) problem.addCostTerm(vel_prior_factor_);
+  if (state_prior_factor_ != nullptr) problem.addCostTerm(state_prior_factor_);
+
+  // All prior factors will use an L2 loss function
+  const auto loss_function = std::make_shared<L2LossFunc>();
+
+  // Initialize iterators
+  auto it1 = knotMap_.begin();
+  auto it2 = it1;
+  ++it2;
+
+  // Iterate through all states.. if any are unlocked, supply a prior term
+  for (; it2 != knotMap_.end(); ++it1, ++it2) {
+    // Get knots
+    const auto& knot1 = it1->second;
+    const auto& knot2 = it2->second;
+
+    // Check if any of the variables are unlocked
+    if (knot1->getPose()->active() || knot1->getVelocity()->active() ||
+        knot2->getPose()->active() || knot2->getVelocity()->active()) {
+      // Generate 12 x 12 information matrix for GP prior factor
+      Eigen::Matrix<double, 12, 12> Qi_inv =
+          computeQinv((knot2->getTime() - knot1->getTime()).seconds());
+      const auto noise_model = std::make_shared<StaticNoiseModel<12>>(
+          Qi_inv, NoiseType::INFORMATION);
+      //
+      const auto error_function = PriorFactor::MakeShared(knot1, knot2);
+      // Create cost term
+      const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<12>>(
+          error_function, noise_model, loss_function);
+      //
+      problem.addCostTerm(cost_term);
+    }
+  }
+}
+
 auto Interface::computeQinv(const double& deltatime) const
     -> Eigen::Matrix<double, 12, 12> {
   Eigen::Matrix<double, 12, 12> Qi_inv;
