@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   Eigen::Matrix<double, 4, 9> qry_pts = T_mq.inverse().matrix() * ref_pts;
 
   // Initialize problem
-  OptimizationProblem2 problem;
+  OptimizationProblem problem;
 
   // state and evaluator
   using SE3StateVar = se3::SE3StateVar;

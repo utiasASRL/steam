@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   traj.setActiveWindow(traj::Time(-1.0), traj::Time(1.0));
 
   //
-  OptimizationProblem2 problem(1);
+  OptimizationProblem problem(1);
   // add state variables
   traj.addStateVariables(problem);
   // add trajectory cost terms

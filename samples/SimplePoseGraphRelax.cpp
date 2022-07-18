@@ -54,7 +54,7 @@ void runPoseGraphRelax() {
   }
 
   // Initialize problem
-  steam::OptimizationProblem2 problem;
+  steam::OptimizationProblem problem;
 
   ///
   /// Setup States

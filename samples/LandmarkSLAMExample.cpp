@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   traj_state_var_list[0].w_ir_inr->locked() = true;
 
   //
-  OptimizationProblem2 problem(1);
+  OptimizationProblem problem(1);
   // add state variables
   for (const auto& state : traj_state_var_list) {
     problem.addStateVariable(state.T_ri);

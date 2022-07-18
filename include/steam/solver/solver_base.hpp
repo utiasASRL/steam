@@ -9,19 +9,19 @@
 namespace steam {
 
 /** \brief Reports solver failures (e.g. LLT decomposition fail). */
-class solver_failure2 : public std::runtime_error {
+class solver_failure : public std::runtime_error {
  public:
-  solver_failure2(const std::string& s) : std::runtime_error(s) {}
+  solver_failure(const std::string& s) : std::runtime_error(s) {}
 };
 
 /** \brief Reports unsuccessful steps (should be indicated to user) */
-class unsuccessful_step2 : public solver_failure2 {
+class unsuccessful_step : public solver_failure {
  public:
-  unsuccessful_step2(const std::string& s) : solver_failure2(s) {}
+  unsuccessful_step(const std::string& s) : solver_failure(s) {}
 };
 
 /** \brief Basic solver interface */
-class SolverBase2 {
+class SolverBase {
  public:
   struct Params {
     virtual ~Params() = default;
@@ -50,8 +50,8 @@ class SolverBase2 {
     TERMINATE_CONVERGED_ZERO_GRADIENT
   };
 
-  SolverBase2(Problem& problem, const Params& params);
-  virtual ~SolverBase2() = default;
+  SolverBase(Problem& problem, const Params& params);
+  virtual ~SolverBase() = default;
 
   Termination termination_cause() const { return term_; }
   unsigned int curr_iteration() const { return curr_iteration_; }
@@ -94,6 +94,6 @@ class SolverBase2 {
 };
 
 /** \brief Print termination cause */
-std::ostream& operator<<(std::ostream& out, const SolverBase2::Termination& T);
+std::ostream& operator<<(std::ostream& out, const SolverBase::Termination& T);
 
 }  // namespace steam

@@ -24,56 +24,28 @@ class Variable {
 
   using PoseType = lgmath::se3::Transformation;
   using VelocityType = Eigen::Matrix<double, 6, 1>;
-  // using CovType = Eigen::Matrix<double, 12, 12>;
-  using CovType = Eigen::MatrixXd;
 
   static Ptr MakeShared(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-                        const Evaluable<VelocityType>::Ptr& w_0k_ink);
-  // static Ptr MakeShared(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-  //                       const Evaluable<VelocityType>::Ptr& w_0k_ink,
-  //                       const CovType& cov);
+                        const Evaluable<VelocityType>::Ptr& w_0k_ink) {
+    return std::make_shared<Variable>(time, T_k0, w_0k_ink);
+  }
 
   /** \brief Constructor */
   Variable(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-           const Evaluable<VelocityType>::Ptr& w_0k_ink);
-  // Variable(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
-  //          const Evaluable<VelocityType>::Ptr& w_0k_ink, const CovType& cov);
+           const Evaluable<VelocityType>::Ptr& w_0k_ink)
+      : time_(time), T_k0_(T_k0), w_0k_ink_(w_0k_ink) {}
 
   /** \brief Constructor \todo should not be a base class */
   virtual ~Variable() = default;
 
   /** \brief Get timestamp */
-  const Time& getTime() const;
+  const Time& getTime() const { return time_; }
 
   /** \brief Get pose evaluator */
-  const Evaluable<PoseType>::Ptr& getPose() const;
+  const Evaluable<PoseType>::Ptr& getPose() const { return T_k0_; }
 
   /** \brief Get velocity state variable */
-  const Evaluable<VelocityType>::Ptr& getVelocity() const;
-
-  /** \brief Get keys for pose and velocity if they are active */
-  std::vector<StateKey> getActiveKeys() const;
-
-  /** \brief Get covariance matrix */
-  const CovType& getCovariance() const;
-
-  /** \brief Get cross-covariance with subsequent knot */
-  const CovType& getCrossCov() const;
-
-  /** \brief Returns true if covariance is set */
-  bool covarianceSet() const;
-
-  /** \brief Returns true if cross-covariance with subsequent knot is set */
-  bool crossCovSet() const;
-
-  /** \brief Set covariance matrix */
-  void setCovariance(const CovType& cov);
-
-  /** \brief Set cross-covariance with subsequent knot */
-  void setCrossCov(const CovType& cov);
-
-  /** \brief Set bool set variables for all covariances to be false */
-  void resetCovariances();
+  const Evaluable<VelocityType>::Ptr& getVelocity() const { return w_0k_ink_; }
 
  private:
   /** \brief Timestamp of trajectory variable */
@@ -84,14 +56,6 @@ class Variable {
 
   /** \brief Generalized 6D velocity state variable */
   const Evaluable<VelocityType>::Ptr w_0k_ink_;
-
-  /** \brief Covariance */
-  CovType cov_;
-  bool cov_set_ = false;
-
-  /** \brief Cross-covariance between this knot and the subsequent knot */
-  CovType cross_cov_;
-  bool cross_cov_set_ = false;
 };
 
 }  // namespace const_vel

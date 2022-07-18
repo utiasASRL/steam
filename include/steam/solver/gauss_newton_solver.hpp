@@ -6,7 +6,7 @@
 #include "steam/blockmat/BlockSparseMatrix.hpp"
 #include "steam/blockmat/BlockVector.hpp"
 
-#include "steam/solver2/solver_base.hpp"
+#include "steam/solver/solver_base.hpp"
 
 namespace steam {
 
@@ -14,12 +14,12 @@ namespace steam {
  * \brief Reports that the decomposition failed. This is due to poor
  * conditioning, or possibly that the matrix is not positive definite.
  */
-class decomp_failure2 : public solver_failure2 {
+class decomp_failure : public solver_failure {
  public:
-  decomp_failure2(const std::string& s) : solver_failure2(s) {}
+  decomp_failure(const std::string& s) : solver_failure(s) {}
 };
 
-class GaussNewtonSolver : public SolverBase2 {
+class GaussNewtonSolver : public SolverBase {
  public:
   GaussNewtonSolver(Problem& problem, const Params& params);
 

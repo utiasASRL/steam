@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
   ///
 
   // Initialize problem
-  steam::OptimizationProblem2 problem;
+  steam::OptimizationProblem problem;
 
   // Add state variables
   for (unsigned int i = 0; i < states.size(); i++) {
@@ -109,9 +109,9 @@ int main(int argc, char** argv) {
   ///
   /// Setup Solver and Optimize
   ///
-  steam::DoglegGaussNewtonSolver2::Params params;
+  steam::DoglegGaussNewtonSolver::Params params;
   params.verbose = true;
-  steam::DoglegGaussNewtonSolver2 solver(problem, params);
+  steam::DoglegGaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();

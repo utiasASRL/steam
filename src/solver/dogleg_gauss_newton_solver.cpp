@@ -1,4 +1,4 @@
-#include "steam/solver2/dogleg_gauss_newton_solver.hpp"
+#include "steam/solver/dogleg_gauss_newton_solver.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -7,12 +7,12 @@
 
 namespace steam {
 
-DoglegGaussNewtonSolver2::DoglegGaussNewtonSolver2(Problem& problem,
-                                                   const Params& params)
+DoglegGaussNewtonSolver::DoglegGaussNewtonSolver(Problem& problem,
+                                                 const Params& params)
     : GaussNewtonSolver(problem, params), params_(params) {}
 
-bool DoglegGaussNewtonSolver2::linearizeSolveAndUpdate(double& cost,
-                                                       double& grad_norm) {
+bool DoglegGaussNewtonSolver::linearizeSolveAndUpdate(double& cost,
+                                                      double& grad_norm) {
   steam::Timer iter_timer;
   steam::Timer timer;
   double build_time = 0;
@@ -171,7 +171,7 @@ bool DoglegGaussNewtonSolver2::linearizeSolveAndUpdate(double& cost,
   }
 }
 
-Eigen::VectorXd DoglegGaussNewtonSolver2::getCauchyPoint(
+Eigen::VectorXd DoglegGaussNewtonSolver::getCauchyPoint(
     const Eigen::SparseMatrix<double>& approximate_hessian,
     const Eigen::VectorXd& gradient_vector) {
   double num = gradient_vector.squaredNorm();
@@ -181,7 +181,7 @@ Eigen::VectorXd DoglegGaussNewtonSolver2::getCauchyPoint(
   return (num / den) * gradient_vector;
 }
 
-double DoglegGaussNewtonSolver2::predictedReduction(
+double DoglegGaussNewtonSolver::predictedReduction(
     const Eigen::SparseMatrix<double>& approximate_hessian,
     const Eigen::VectorXd& gradient_vector, const Eigen::VectorXd& step) {
   // grad^T * step - 0.5 * step^T * Hessian * step

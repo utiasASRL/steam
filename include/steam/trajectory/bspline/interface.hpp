@@ -2,7 +2,6 @@
 
 #include <Eigen/Core>
 
-#include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
 #include "steam/problem/optimization_problem.hpp"
 #include "steam/trajectory/bspline/variable.hpp"
@@ -28,11 +27,7 @@ class Interface : public traj::Interface {
   Evaluable<VeloType>::ConstPtr getVelocityInterpolator(const Time& time);
 
   void addStateVariables(OptimizationProblem& problem) const override;
-  void addStateVariables(OptimizationProblem2& problem) const override;
-
   void addPriorCostTerms(OptimizationProblem& problem) const override {}
-  void addPriorCostTerms(OptimizationProblem2& problem) const override {}
-
 
   void setActiveWindow(
       const Time& start,

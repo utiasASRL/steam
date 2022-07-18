@@ -1,4 +1,4 @@
-#include "steam/problem/StateVector.hpp"
+#include "steam/problem/state_vector.hpp"
 
 #include <iostream>
 

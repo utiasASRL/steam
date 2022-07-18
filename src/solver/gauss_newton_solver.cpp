@@ -1,4 +1,4 @@
-#include "steam/solver2/gauss_newton_solver.hpp"
+#include "steam/solver/gauss_newton_solver.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -10,7 +10,7 @@
 namespace steam {
 
 GaussNewtonSolver::GaussNewtonSolver(Problem& problem, const Params& params)
-    : SolverBase2(problem, params), params_(params) {}
+    : SolverBase(problem, params), params_(params) {}
 
 bool GaussNewtonSolver::linearizeSolveAndUpdate(double& cost,
                                                 double& grad_norm) {
@@ -93,7 +93,7 @@ Eigen::VectorXd GaussNewtonSolver::solveGaussNewton(
 
   // Check if the factorization succeeded
   if (hessian_solver_.info() != Eigen::Success) {
-    throw decomp_failure2(
+    throw decomp_failure(
         "During steam solve, Eigen LLT decomposition failed. "
         "It is possible that the matrix was ill-conditioned, in which case "
         "adding a prior may help. On the other hand, it is also possible that "

@@ -2,7 +2,8 @@
 
 #include "steam/blockmat/BlockSparseMatrix.hpp"
 #include "steam/blockmat/BlockVector.hpp"
-#include "steam/problem/StateVector.hpp"
+
+#include "steam/problem/state_vector.hpp"
 
 namespace steam {
 

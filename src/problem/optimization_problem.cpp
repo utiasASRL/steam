@@ -5,22 +5,22 @@
 
 namespace steam {
 
-OptimizationProblem2::OptimizationProblem2(unsigned int num_threads)
+OptimizationProblem::OptimizationProblem(unsigned int num_threads)
     : num_threads_(num_threads) {}
 
-void OptimizationProblem2::addStateVariable(const StateVarBase::Ptr &state) {
+void OptimizationProblem::addStateVariable(const StateVarBase::Ptr &state) {
   state_vars_.push_back(state);
 }
 
-void OptimizationProblem2::addCostTerm(const BaseCostTerm::ConstPtr &costTerm) {
+void OptimizationProblem::addCostTerm(const BaseCostTerm::ConstPtr &costTerm) {
   cost_terms_.push_back(costTerm);
 }
 
-unsigned int OptimizationProblem2::getNumberOfCostTerms() const {
+unsigned int OptimizationProblem::getNumberOfCostTerms() const {
   return cost_terms_.size();
 }
 
-double OptimizationProblem2::cost() const {
+double OptimizationProblem::cost() const {
   // Init
   double cost = 0;
 
@@ -44,7 +44,7 @@ double OptimizationProblem2::cost() const {
   return cost;
 }
 
-StateVector &OptimizationProblem2::getStateVector() {
+StateVector &OptimizationProblem::getStateVector() {
   state_vector_ = StateVector();
   for (const auto &state_var : state_vars_) {
     if (!state_var->locked()) state_vector_.addStateVariable(state_var);
@@ -52,7 +52,7 @@ StateVector &OptimizationProblem2::getStateVector() {
   return state_vector_;
 }
 
-void OptimizationProblem2::buildGaussNewtonTerms(
+void OptimizationProblem::buildGaussNewtonTerms(
     Eigen::SparseMatrix<double> &approximate_hessian,
     Eigen::VectorXd &gradient_vector) {
   // Setup Matrices

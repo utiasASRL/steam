@@ -2,10 +2,9 @@
 
 #include <Eigen/Core>
 
-#include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
-#include "steam/solver/GaussNewtonSolverBase.hpp"
-#include "steam/solver2/covariance.hpp"
+#include "steam/problem/optimization_problem.hpp"
+#include "steam/solver/covariance.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
@@ -53,29 +52,6 @@ class Interface : public traj::Interface {
 
   /** \brief Get state covariance using interpolation/extrapolation */
   CovType getCovariance(const Covariance& cov, const Time& time);
-  Eigen::MatrixXd getCovariance(GaussNewtonSolverBase& solver,
-                                const Time& time);
-
-  /**
-   * \brief Queries Hessian for knot covariance and neighbouring (prev. & next)
-   * cross-covariances (if they exist) and stores in the corresponding knots.
-   */
-  void queryKnotCovariance(GaussNewtonSolverBase& solver,
-                           std::map<Time, Variable::Ptr>::iterator it);
-
-  /** \brief Reset covariance queries s.t. saved covariances are not re-used */
-  void resetCovarianceQueries();
-
-  /** \brief Set to save queried knot covariances */
-  void setSaveCovariances(const bool& flag);
-
-  /** \brief Interpolate covariance between two knot times */
-  Eigen::MatrixXd interpCovariance(const Time& time, const Variable::Ptr& knot1,
-                                   const Variable::Ptr& knot2) const;
-
-  /** \brief Interpolate covariance between two knot times */
-  Eigen::MatrixXd extrapCovariance(const Time& time,
-                                   const Variable::Ptr& endKnot) const;
 
   /** \brief Add a unary pose prior factor at a knot time. */
   void addPosePrior(const Time& time, const PoseType& T_k0,
@@ -91,14 +67,12 @@ class Interface : public traj::Interface {
                      const Eigen::Matrix<double, 12, 12>& cov);
 
   void addStateVariables(OptimizationProblem& problem) const override {}
-  void addStateVariables(OptimizationProblem2& problem) const override {}
 
   /**
    * \brief Get binary cost terms associated with the prior for active parts of
    * the trajectory
    */
   void addPriorCostTerms(OptimizationProblem& problem) const override;
-  void addPriorCostTerms(OptimizationProblem2& problem) const override;
 
   /**
    * \brief Compute inverse covariance of prior factor

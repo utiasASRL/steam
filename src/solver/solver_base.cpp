@@ -1,4 +1,4 @@
-#include "steam/solver2/solver_base.hpp"
+#include "steam/solver/solver_base.hpp"
 
 #include <iostream>
 
@@ -6,7 +6,7 @@
 
 namespace steam {
 
-SolverBase2::SolverBase2(Problem& problem, const Params& params)
+SolverBase::SolverBase(Problem& problem, const Params& params)
     : problem_(problem),
       state_vector_(problem.getStateVector()),
       params_(params) {
@@ -16,7 +16,7 @@ SolverBase2::SolverBase2(Problem& problem, const Params& params)
   curr_cost_ = prev_cost_ = problem_.cost();
 }
 
-void SolverBase2::optimize() {
+void SolverBase::optimize() {
   // Timer
   steam::Timer timer;
   // Optimization loop
@@ -27,7 +27,7 @@ void SolverBase2::optimize() {
               << std::endl;
 }
 
-void SolverBase2::iterate() {
+void SolverBase::iterate() {
   // Check is solver has already converged
   if (solver_converged_) {
     std::cout << "[STEAM WARN] Requested an iteration when solver has already "
@@ -63,7 +63,7 @@ void SolverBase2::iterate() {
   } else if (!step_success) {
     term_ = TERMINATE_STEP_UNSUCCESSFUL;
     solver_converged_ = true;
-    throw unsuccessful_step2(
+    throw unsuccessful_step(
         "The steam solver terminated due to being unable to produce a "
         "'successful' step. If this occurs, it is likely that your problem "
         "is very nonlinear and poorly initialized, or is using incorrect "
@@ -89,7 +89,7 @@ void SolverBase2::iterate() {
     std::cout << "Termination Cause: " << term_ << std::endl;
 }
 
-double SolverBase2::proposeUpdate(const Eigen::VectorXd& perturbation) {
+double SolverBase::proposeUpdate(const Eigen::VectorXd& perturbation) {
   // Check that an update is not already pending
   if (pending_proposed_state_) {
     throw std::runtime_error(
@@ -105,7 +105,7 @@ double SolverBase2::proposeUpdate(const Eigen::VectorXd& perturbation) {
   return problem_.cost();
 }
 
-void SolverBase2::acceptProposedState() {
+void SolverBase::acceptProposedState() {
   // Check that an update has been proposed
   if (!pending_proposed_state_)
     throw std::runtime_error("You must call proposeUpdate before accept.");
@@ -113,7 +113,7 @@ void SolverBase2::acceptProposedState() {
   pending_proposed_state_ = false;
 }
 
-void SolverBase2::rejectProposedState() {
+void SolverBase::rejectProposedState() {
   // Check that an update has been proposed
   if (!pending_proposed_state_)
     throw std::runtime_error("You must call proposeUpdate before rejecting.");
@@ -123,27 +123,27 @@ void SolverBase2::rejectProposedState() {
   pending_proposed_state_ = false;
 }
 
-std::ostream& operator<<(std::ostream& out, const SolverBase2::Termination& T) {
+std::ostream& operator<<(std::ostream& out, const SolverBase::Termination& T) {
   switch (T) {
-    case SolverBase2::TERMINATE_NOT_YET_TERMINATED:
+    case SolverBase::TERMINATE_NOT_YET_TERMINATED:
       out << "NOT YET TERMINATED";
       break;
-    case SolverBase2::TERMINATE_STEP_UNSUCCESSFUL:
+    case SolverBase::TERMINATE_STEP_UNSUCCESSFUL:
       out << "STEP UNSUCCESSFUL";
       break;
-    case SolverBase2::TERMINATE_MAX_ITERATIONS:
+    case SolverBase::TERMINATE_MAX_ITERATIONS:
       out << "MAX ITERATIONS";
       break;
-    case SolverBase2::TERMINATE_CONVERGED_ABSOLUTE_ERROR:
+    case SolverBase::TERMINATE_CONVERGED_ABSOLUTE_ERROR:
       out << "CONVERGED ABSOLUTE ERROR";
       break;
-    case SolverBase2::TERMINATE_CONVERGED_ABSOLUTE_CHANGE:
+    case SolverBase::TERMINATE_CONVERGED_ABSOLUTE_CHANGE:
       out << "CONVERGED ABSOLUTE CHANGE";
       break;
-    case SolverBase2::TERMINATE_CONVERGED_RELATIVE_CHANGE:
+    case SolverBase::TERMINATE_CONVERGED_RELATIVE_CHANGE:
       out << "CONVERGED RELATIVE CHANGE";
       break;
-    case SolverBase2::TERMINATE_CONVERGED_ZERO_GRADIENT:
+    case SolverBase::TERMINATE_CONVERGED_ZERO_GRADIENT:
       out << "CONVERGED GRADIENT IS ZERO";
       break;
   }

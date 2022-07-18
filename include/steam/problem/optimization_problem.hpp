@@ -7,15 +7,15 @@
 namespace steam {
 
 /** \brief A standard optimization problem */
-class OptimizationProblem2 : public Problem {
+class OptimizationProblem : public Problem {
  public:
-  OptimizationProblem2(unsigned int num_threads = 1);
+  OptimizationProblem(unsigned int num_threads = 1);
 
   /** \brief Adds a state variable */
-  void addStateVariable(const StateVarBase::Ptr& statevar);
+  void addStateVariable(const StateVarBase::Ptr& state_var);
 
   /** \brief Add a cost term */
-  void addCostTerm(const BaseCostTerm::ConstPtr& costTerm);
+  void addCostTerm(const BaseCostTerm::ConstPtr& cost_term);
 
   /** \brief Get the total number of cost terms */
   unsigned int getNumberOfCostTerms() const override;

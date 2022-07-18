@@ -1,10 +1,10 @@
 #pragma once
 
-#include "steam/solver2/gauss_newton_solver.hpp"
+#include "steam/solver/gauss_newton_solver.hpp"
 
 namespace steam {
 
-class LevMarqGaussNewtonSolver2 : public GaussNewtonSolver {
+class LevMarqGaussNewtonSolver : public GaussNewtonSolver {
  public:
   struct Params : public GaussNewtonSolver::Params {
     /// Minimum ratio of actual to predicted reduction, shrink trust region if
@@ -18,7 +18,7 @@ class LevMarqGaussNewtonSolver2 : public GaussNewtonSolver {
     unsigned int max_shrink_steps = 50;
   };
 
-  LevMarqGaussNewtonSolver2(Problem& problem, const Params& params);
+  LevMarqGaussNewtonSolver(Problem& problem, const Params& params);
 
  private:
   bool linearizeSolveAndUpdate(double& cost, double& grad_norm) override;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "steam/problem/OptimizationProblem.hpp"
 #include "steam/problem/problem.hpp"
 
 namespace steam {
@@ -11,7 +10,6 @@ class Covariance {
   using ConstPtr = std::shared_ptr<const Covariance>;
 
   Covariance(Problem& problem);
-  Covariance(const OptimizationProblem& problem);
 
   virtual ~Covariance() = default;
 

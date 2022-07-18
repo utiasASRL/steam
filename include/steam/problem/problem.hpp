@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "steam/problem/StateVector.hpp"
+#include "steam/problem/state_vector.hpp"
 
 namespace steam {
 

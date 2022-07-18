@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
       steam::data::parseSphereDataset(filename);
 
   // Initialize problem
-  steam::OptimizationProblem2 problem;
+  steam::OptimizationProblem problem;
 
   ///
   /// Setup and Initialize States
@@ -113,9 +113,9 @@ int main(int argc, char** argv) {
   ///
   /// Setup Solver and Optimize
   ///
-  steam::DoglegGaussNewtonSolver2::Params params;
+  steam::DoglegGaussNewtonSolver::Params params;
   params.verbose = true;
-  steam::DoglegGaussNewtonSolver2 solver(problem, params);
+  steam::DoglegGaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();

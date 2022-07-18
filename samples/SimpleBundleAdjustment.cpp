@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   /// Make Optimization Problem
   ///
 
-  OptimizationProblem2 problem;
+  OptimizationProblem problem;
 
   ///
   /// Setup and Initialize States
@@ -133,9 +133,9 @@ int main(int argc, char** argv) {
   ///
   /// Setup Solver and Optimize
   ///
-  DoglegGaussNewtonSolver2::Params params;
+  DoglegGaussNewtonSolver::Params params;
   params.verbose = true;
-  DoglegGaussNewtonSolver2 solver(problem, params);
+  DoglegGaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();

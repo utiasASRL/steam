@@ -31,7 +31,6 @@ file(GLOB_RECURSE SOURCE
   src/evaluable/*.cpp
   src/problem/*.cpp
   src/solver/*.cpp
-  src/solver2/*.cpp
   src/trajectory/*.cpp
 )
 add_library(${PROJECT_NAME} SHARED ${SOURCE})

@@ -1,4 +1,4 @@
-#include "steam/solver2/line_search_gauss_newton_solver.hpp"
+#include "steam/solver/line_search_gauss_newton_solver.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -7,12 +7,12 @@
 
 namespace steam {
 
-LineSearchGaussNewtonSolver2::LineSearchGaussNewtonSolver2(Problem& problem,
-                                                           const Params& params)
+LineSearchGaussNewtonSolver::LineSearchGaussNewtonSolver(Problem& problem,
+                                                         const Params& params)
     : GaussNewtonSolver(problem, params), params_(params) {}
 
-bool LineSearchGaussNewtonSolver2::linearizeSolveAndUpdate(double& cost,
-                                                           double& grad_norm) {
+bool LineSearchGaussNewtonSolver::linearizeSolveAndUpdate(double& cost,
+                                                          double& grad_norm) {
   steam::Timer iter_timer;
   steam::Timer timer;
   double build_time = 0;

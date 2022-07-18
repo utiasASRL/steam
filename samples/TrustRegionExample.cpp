@@ -94,7 +94,7 @@ class DivergenceErrorEval
 };
 
 /** \brief Setup a fresh problem with unsolve variables */
-steam::OptimizationProblem2 setupDivergenceProblem() {
+steam::OptimizationProblem setupDivergenceProblem() {
   // Create vector state variable
   Eigen::Matrix<double, 1, 1> initial(1);
   initial(0, 0) = 10;  // initial guess, solution is at zero...
@@ -113,7 +113,7 @@ steam::OptimizationProblem2 setupDivergenceProblem() {
       error_function, noise_model, loss_function);
 
   // Init problem
-  steam::OptimizationProblem2 problem;
+  steam::OptimizationProblem problem;
   problem.addStateVariable(state_var);
   problem.addCostTerm(cost_term);
 
@@ -124,7 +124,7 @@ steam::OptimizationProblem2 setupDivergenceProblem() {
 int main(int argc, char** argv) {
   // Solve using Vanilla Gauss-Newton Solver
   {
-    steam::OptimizationProblem2 problem = setupDivergenceProblem();
+    steam::OptimizationProblem problem = setupDivergenceProblem();
     steam::GaussNewtonSolver::Params params;
     steam::GaussNewtonSolver solver(problem, params);
     solver.optimize();
@@ -135,9 +135,9 @@ int main(int argc, char** argv) {
 
   // Solve using Line Search Gauss-Newton Solver
   {
-    steam::OptimizationProblem2 problem = setupDivergenceProblem();
-    steam::LineSearchGaussNewtonSolver2::Params params;
-    steam::LineSearchGaussNewtonSolver2 solver(problem, params);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
+    steam::LineSearchGaussNewtonSolver::Params params;
+    steam::LineSearchGaussNewtonSolver solver(problem, params);
     solver.optimize();
     std::cout << "Line Search GN Terminates from: "
               << solver.termination_cause() << " after "
@@ -146,9 +146,9 @@ int main(int argc, char** argv) {
 
   // Solve using Levenberg–Marquardt Solver
   {
-    steam::OptimizationProblem2 problem = setupDivergenceProblem();
-    steam::LevMarqGaussNewtonSolver2::Params params;
-    steam::LevMarqGaussNewtonSolver2 solver(problem, params);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
+    steam::LevMarqGaussNewtonSolver::Params params;
+    steam::LevMarqGaussNewtonSolver solver(problem, params);
     solver.optimize();
     std::cout << "Levenberg–Marquardt Terminates from: "
               << solver.termination_cause() << " after "
@@ -157,9 +157,9 @@ int main(int argc, char** argv) {
 
   // Solve using Powell's Dogleg Solver
   {
-    steam::OptimizationProblem2 problem = setupDivergenceProblem();
-    steam::DoglegGaussNewtonSolver2::Params params;
-    steam::DoglegGaussNewtonSolver2 solver(problem, params);
+    steam::OptimizationProblem problem = setupDivergenceProblem();
+    steam::DoglegGaussNewtonSolver::Params params;
+    steam::DoglegGaussNewtonSolver solver(problem, params);
     solver.optimize();
     std::cout << "Powell's Dogleg Terminates from: "
               << solver.termination_cause() << " after "

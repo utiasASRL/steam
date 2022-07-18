@@ -1,4 +1,4 @@
-#include "steam/solver2/covariance.hpp"
+#include "steam/solver/covariance.hpp"
 
 #include "steam/blockmat/BlockMatrix.hpp"
 #include "steam/blockmat/BlockSparseMatrix.hpp"
@@ -11,28 +11,6 @@ Covariance::Covariance(Problem& problem)
   Eigen::SparseMatrix<double> approx_hessian;
   Eigen::VectorXd gradient_vector;
   problem.buildGaussNewtonTerms(approx_hessian, gradient_vector);
-  hessian_solver_.analyzePattern(approx_hessian);
-  hessian_solver_.factorize(approx_hessian);
-  if (hessian_solver_.info() != Eigen::Success) {
-    throw std::runtime_error(
-        "During steam solve, Eigen LLT decomposition failed. "
-        "It is possible that the matrix was ill-conditioned, in which case "
-        "adding a prior may help. On the other hand, it is also possible that "
-        "the problem you've constructed is not positive semi-definite.");
-  }
-}
-
-Covariance::Covariance(const OptimizationProblem& problem) {
-  const auto& vars = problem.getStateVariables();
-  for (const auto& var : vars) {
-    if (!var->locked()) state_vector_.addStateVariable(var);
-  }
-
-  Eigen::SparseMatrix<double> approx_hessian;
-  Eigen::VectorXd gradient_vector;
-  problem.buildGaussNewtonTerms(state_vector_, &approx_hessian,
-                                &gradient_vector);
-
   hessian_solver_.analyzePattern(approx_hessian);
   hessian_solver_.factorize(approx_hessian);
   if (hessian_solver_.info() != Eigen::Success) {

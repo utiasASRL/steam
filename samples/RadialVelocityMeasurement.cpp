@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
   }
 
   // Initialize problem
-  OptimizationProblem2 problem;
+  OptimizationProblem problem;
 
   /// state variables
   // sensor-vehicle transformation - this is fixed

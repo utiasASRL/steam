@@ -21,11 +21,6 @@ void Interface::addStateVariables(OptimizationProblem& problem) const {
     problem.addStateVariable(pair.second->getC());
 }
 
-void Interface::addStateVariables(OptimizationProblem2& problem) const {
-  for (const auto& pair : active_knot_map_)
-    problem.addStateVariable(pair.second->getC());
-}
-
 auto Interface::getVelocityInterpolator(const Time& time)
     -> Evaluable<VeloType>::ConstPtr {
   int64_t t2_nano = knot_spacing_.nanosecs() *

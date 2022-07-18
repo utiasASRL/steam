@@ -1,10 +1,10 @@
 #pragma once
 
-#include "steam/solver2/gauss_newton_solver.hpp"
+#include "steam/solver/gauss_newton_solver.hpp"
 
 namespace steam {
 
-class LineSearchGaussNewtonSolver2 : public GaussNewtonSolver {
+class LineSearchGaussNewtonSolver : public GaussNewtonSolver {
  public:
   struct Params : public GaussNewtonSolver::Params {
     /// Amount to decrease step after each backtrack
@@ -13,7 +13,7 @@ class LineSearchGaussNewtonSolver2 : public GaussNewtonSolver {
     unsigned int max_backtrack_steps = 10;
   };
 
-  LineSearchGaussNewtonSolver2(Problem& problem, const Params& params);
+  LineSearchGaussNewtonSolver(Problem& problem, const Params& params);
 
  private:
   bool linearizeSolveAndUpdate(double& cost, double& grad_norm) override;

@@ -1,4 +1,4 @@
-#include "steam/solver2/lev_marq_gauss_newton_solver.hpp"
+#include "steam/solver/lev_marq_gauss_newton_solver.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -7,12 +7,12 @@
 
 namespace steam {
 
-LevMarqGaussNewtonSolver2::LevMarqGaussNewtonSolver2(Problem& problem,
-                                                     const Params& params)
+LevMarqGaussNewtonSolver::LevMarqGaussNewtonSolver(Problem& problem,
+                                                   const Params& params)
     : GaussNewtonSolver(problem, params), params_(params) {}
 
-bool LevMarqGaussNewtonSolver2::linearizeSolveAndUpdate(double& cost,
-                                                        double& grad_norm) {
+bool LevMarqGaussNewtonSolver::linearizeSolveAndUpdate(double& cost,
+                                                       double& grad_norm) {
   steam::Timer iter_timer;
   steam::Timer timer;
   double build_time = 0;
@@ -48,7 +48,7 @@ bool LevMarqGaussNewtonSolver2::linearizeSolveAndUpdate(double& cost,
     try {
       lev_marq_step =
           solveLevMarq(approximate_hessian, gradient_vector, diag_coeff_);
-    } catch (const decomp_failure2& e) {
+    } catch (const decomp_failure& e) {
       decomp_success = false;
     }
     solve_time += timer.milliseconds();
@@ -131,7 +131,7 @@ bool LevMarqGaussNewtonSolver2::linearizeSolveAndUpdate(double& cost,
   }
 }
 
-Eigen::VectorXd LevMarqGaussNewtonSolver2::solveLevMarq(
+Eigen::VectorXd LevMarqGaussNewtonSolver::solveLevMarq(
     Eigen::SparseMatrix<double>& approximate_hessian,
     const Eigen::VectorXd& gradient_vector, double diagonal_coeff) {
   // Augment diagonal of the 'hessian' matrix
@@ -144,7 +144,7 @@ Eigen::VectorXd LevMarqGaussNewtonSolver2::solveLevMarq(
   try {
     // Solve for the LM step using the Cholesky factorization (fast)
     lev_marq_step = solveGaussNewton(approximate_hessian, gradient_vector);
-  } catch (const decomp_failure2& ex) {
+  } catch (const decomp_failure& ex) {
     // Revert diagonal of the 'hessian' matrix
     for (int i = 0; i < approximate_hessian.outerSize(); i++) {
       approximate_hessian.coeffRef(i, i) /= (1.0 + diagonal_coeff);
@@ -161,7 +161,7 @@ Eigen::VectorXd LevMarqGaussNewtonSolver2::solveLevMarq(
   return lev_marq_step;
 }
 
-double LevMarqGaussNewtonSolver2::predictedReduction(
+double LevMarqGaussNewtonSolver::predictedReduction(
     const Eigen::SparseMatrix<double>& approximate_hessian,
     const Eigen::VectorXd& gradient_vector, const Eigen::VectorXd& step) {
   // grad^T * step - 0.5 * step^T * Hessian * step
