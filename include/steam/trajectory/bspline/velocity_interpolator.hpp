@@ -29,6 +29,7 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
                        const Variable::ConstPtr& k4);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

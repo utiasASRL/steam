@@ -20,6 +20,10 @@ P2PErrorEvaluator::P2PErrorEvaluator(const Evaluable<InType>::ConstPtr &T_rq,
 
 bool P2PErrorEvaluator::active() const { return T_rq_->active(); }
 
+void P2PErrorEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  T_rq_->getRelatedVarKeys(keys);
+}
+
 auto P2PErrorEvaluator::value() const -> OutType {
   return D_ * (reference_ - T_rq_->value() * query_);
 }

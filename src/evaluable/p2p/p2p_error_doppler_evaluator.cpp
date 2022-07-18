@@ -27,6 +27,11 @@ bool P2PErrorDopplerEvaluator::active() const {
   return T_rq_->active() || w_r_q_in_q_->active();
 }
 
+void P2PErrorDopplerEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  T_rq_->getRelatedVarKeys(keys);
+  w_r_q_in_q_->getRelatedVarKeys(keys);
+}
+
 auto P2PErrorDopplerEvaluator::value() const -> OutType {
   // clang-format off
   const auto abar = D_ * query_ / std::sqrt(query_.transpose() * D_.transpose() * D_ * query_);

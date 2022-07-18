@@ -21,6 +21,10 @@ StereoErrorEvaluator::StereoErrorEvaluator(
 
 bool StereoErrorEvaluator::active() const { return eval_->active(); }
 
+void StereoErrorEvaluator::getRelatedVarKeys(KeySet& keys) const {
+  eval_->getRelatedVarKeys(keys);
+}
+
 auto StereoErrorEvaluator::value() const -> OutType {
   return meas_ - cameraModel(eval_->value());
 }

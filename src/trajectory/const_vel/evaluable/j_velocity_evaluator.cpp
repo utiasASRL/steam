@@ -19,6 +19,11 @@ bool JVelocityEvaluator::active() const {
   return xi_->active() || velocity_->active();
 }
 
+void JVelocityEvaluator::getRelatedVarKeys(KeySet& keys) const {
+  xi_->getRelatedVarKeys(keys);
+  velocity_->getRelatedVarKeys(keys);
+}
+
 auto JVelocityEvaluator::value() const -> OutType {
   return lgmath::se3::vec2jac(xi_->value()) * velocity_->value();
 }

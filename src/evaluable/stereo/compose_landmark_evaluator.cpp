@@ -18,6 +18,11 @@ bool ComposeLandmarkEvaluator::active() const {
   return transform_->active() || landmark_->active();
 }
 
+void ComposeLandmarkEvaluator::getRelatedVarKeys(KeySet& keys) const {
+  transform_->getRelatedVarKeys(keys);
+  landmark_->getRelatedVarKeys(keys);
+}
+
 auto ComposeLandmarkEvaluator::value() const -> OutType {
   return transform_->value() * landmark_->value();
 }

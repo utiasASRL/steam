@@ -21,6 +21,7 @@ class InverseEvaluator : public Evaluable<lgmath::se3::Transformation> {
   InverseEvaluator(const Evaluable<InType>::ConstPtr& transform);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet &keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

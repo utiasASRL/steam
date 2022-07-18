@@ -14,6 +14,10 @@ SE3ErrorEvaluator::SE3ErrorEvaluator(const Evaluable<InType>::ConstPtr &T_ab,
 
 bool SE3ErrorEvaluator::active() const { return T_ab_->active(); }
 
+void SE3ErrorEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  T_ab_->getRelatedVarKeys(keys);
+}
+
 auto SE3ErrorEvaluator::value() const -> OutType {
   return (T_ab_meas_ * T_ab_->value().inverse()).vec();
 }

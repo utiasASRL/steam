@@ -17,6 +17,10 @@ auto LogMapEvaluator::value() const -> OutType {
   return transform_->value().vec();
 }
 
+void LogMapEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  transform_->getRelatedVarKeys(keys);
+}
+
 auto LogMapEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child = transform_->forward();
   const auto value = child->value().vec();

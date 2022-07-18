@@ -12,6 +12,10 @@ ExpMapEvaluator::ExpMapEvaluator(const Evaluable<InType>::ConstPtr &xi)
 
 bool ExpMapEvaluator::active() const { return xi_->active(); }
 
+void ExpMapEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  xi_->getRelatedVarKeys(keys);
+}
+
 auto ExpMapEvaluator::value() const -> OutType { return OutType(xi_->value()); }
 
 auto ExpMapEvaluator::forward() const -> Node<OutType>::Ptr {

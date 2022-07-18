@@ -25,6 +25,7 @@ class P2PErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
                     const Eigen::Vector3d &query);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet &keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

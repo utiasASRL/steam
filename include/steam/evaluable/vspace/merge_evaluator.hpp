@@ -23,6 +23,8 @@ class MergeEvaluator : public Evaluable<Eigen::Matrix<double, DIM1 + DIM2, 1>> {
                  const typename Evaluable<In2Type>::ConstPtr& v2);
 
   bool active() const override;
+  using KeySet = typename Evaluable<OutType>::KeySet;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
@@ -64,6 +66,12 @@ MergeEvaluator<DIM1, DIM2>::MergeEvaluator(
 template <int DIM1, int DIM2>
 bool MergeEvaluator<DIM1, DIM2>::active() const {
   return v1_->active() || v2_->active();
+}
+
+template <int DIM1, int DIM2>
+void MergeEvaluator<DIM1, DIM2>::getRelatedVarKeys(KeySet& keys) const {
+  v1_->getRelatedVarKeys(keys);
+  v2_->getRelatedVarKeys(keys);
 }
 
 template <int DIM1, int DIM2>

@@ -22,6 +22,8 @@ class ScalarMultEvaluator : public Evaluable<Eigen::Matrix<double, DIM, 1>> {
                       const double& s);
 
   bool active() const override;
+  using KeySet = typename Evaluable<OutType>::KeySet;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
@@ -61,6 +63,11 @@ ScalarMultEvaluator<DIM>::ScalarMultEvaluator(
 template <int DIM>
 bool ScalarMultEvaluator<DIM>::active() const {
   return v_->active();
+}
+
+template <int DIM>
+void ScalarMultEvaluator<DIM>::getRelatedVarKeys(KeySet& keys) const {
+  v_->getRelatedVarKeys(keys);
 }
 
 template <int DIM>

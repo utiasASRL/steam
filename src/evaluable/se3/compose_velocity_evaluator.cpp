@@ -18,6 +18,11 @@ bool ComposeVelocityEvaluator::active() const {
   return transform_->active() || velocity_->active();
 }
 
+void ComposeVelocityEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  transform_->getRelatedVarKeys(keys);
+  velocity_->getRelatedVarKeys(keys);
+}
+
 auto ComposeVelocityEvaluator::value() const -> OutType {
   return lgmath::se3::tranAd(transform_->value().matrix()) * velocity_->value();
 }

@@ -16,6 +16,10 @@ HomoPointErrorEvaluator::HomoPointErrorEvaluator(
 
 bool HomoPointErrorEvaluator::active() const { return pt_->active(); }
 
+void HomoPointErrorEvaluator::getRelatedVarKeys(KeySet& keys) const {
+  pt_->getRelatedVarKeys(keys);
+}
+
 auto HomoPointErrorEvaluator::value() const -> OutType {
   return D_ * (meas_pt_ - pt_->value());
 }

@@ -43,6 +43,7 @@ class StereoErrorEvaluator : public Evaluable<Eigen::Vector4d> {
                        const Evaluable<LmInType>::ConstPtr& landmark);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

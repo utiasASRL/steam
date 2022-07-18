@@ -20,6 +20,8 @@ class NegationEvaluator : public Evaluable<Eigen::Matrix<double, DIM, 1>> {
   NegationEvaluator(const typename Evaluable<InType>::ConstPtr& v);
 
   bool active() const override;
+  using KeySet = typename Evaluable<OutType>::KeySet;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
@@ -55,6 +57,11 @@ NegationEvaluator<DIM>::NegationEvaluator(
 template <int DIM>
 bool NegationEvaluator<DIM>::active() const {
   return v_->active();
+}
+
+template <int DIM>
+void NegationEvaluator<DIM>::getRelatedVarKeys(KeySet& keys) const {
+  v_->getRelatedVarKeys(keys);
 }
 
 template <int DIM>

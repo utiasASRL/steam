@@ -18,6 +18,11 @@ bool ComposeEvaluator::active() const {
   return transform1_->active() || transform2_->active();
 }
 
+void ComposeEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  transform1_->getRelatedVarKeys(keys);
+  transform2_->getRelatedVarKeys(keys);
+}
+
 auto ComposeEvaluator::value() const -> OutType {
   return transform1_->value() * transform2_->value();
 }

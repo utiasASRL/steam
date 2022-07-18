@@ -65,6 +65,13 @@ bool PoseInterpolator::active() const {
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
+void PoseInterpolator::getRelatedVarKeys(KeySet& keys) const {
+  knot1_->getPose()->getRelatedVarKeys(keys);
+  knot1_->getVelocity()->getRelatedVarKeys(keys);
+  knot2_->getPose()->getRelatedVarKeys(keys);
+  knot2_->getVelocity()->getRelatedVarKeys(keys);
+}
+
 auto PoseInterpolator::value() const -> OutType { return T_i0_->value(); }
 
 auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {

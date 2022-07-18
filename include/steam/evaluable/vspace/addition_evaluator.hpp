@@ -22,6 +22,8 @@ class AdditionEvaluator : public Evaluable<Eigen::Matrix<double, DIM, 1>> {
                     const typename Evaluable<InType>::ConstPtr& v2);
 
   bool active() const override;
+  using KeySet = typename Evaluable<OutType>::KeySet;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   typename Node<OutType>::Ptr forward() const override;
@@ -63,6 +65,12 @@ AdditionEvaluator<DIM>::AdditionEvaluator(
 template <int DIM>
 bool AdditionEvaluator<DIM>::active() const {
   return v1_->active() || v2_->active();
+}
+
+template <int DIM>
+void AdditionEvaluator<DIM>::getRelatedVarKeys(KeySet& keys) const {
+  v1_->getRelatedVarKeys(keys);
+  v2_->getRelatedVarKeys(keys);
 }
 
 template <int DIM>

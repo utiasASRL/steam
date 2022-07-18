@@ -38,6 +38,10 @@ class DivergenceErrorEval
   /** \brief Returns whether or not an evaluator contains unlocked states */
   bool active() const override { return input_->active(); }
 
+  void getRelatedVarKeys(KeySet& keys) const override {
+    input_->getRelatedVarKeys(keys);
+  }
+
   OutType value() const override {
     double x = input_->value().value();
     OutType v;

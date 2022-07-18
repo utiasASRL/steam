@@ -28,6 +28,7 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
                    const Variable::ConstPtr& knot2);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

@@ -23,6 +23,7 @@ class RadialVelErrorEvaluator : public Evaluable<Eigen::Matrix<double, 1, 1>> {
                           const Eigen::Vector3d &pv, const double &r);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet &keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

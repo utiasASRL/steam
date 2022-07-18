@@ -26,6 +26,7 @@ class PoseExtrapolator : public Evaluable<lgmath::se3::Transformation> {
                    const Evaluable<InType>::ConstPtr& velocity);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet& keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

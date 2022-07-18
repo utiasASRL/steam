@@ -18,6 +18,10 @@ RadialVelErrorEvaluator::RadialVelErrorEvaluator(
 
 bool RadialVelErrorEvaluator::active() const { return w_iv_inv_->active(); }
 
+void RadialVelErrorEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  w_iv_inv_->getRelatedVarKeys(keys);
+}
+
 auto RadialVelErrorEvaluator::value() const -> OutType {
   const Eigen::Matrix<double, 1, 1> numerator =
       (pv_.transpose() * D_ * lgmath::se3::point2fs(pv_, 1.0) *

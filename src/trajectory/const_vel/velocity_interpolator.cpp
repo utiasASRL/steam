@@ -68,6 +68,13 @@ bool VelocityInterpolator::active() const {
          knot2_->getPose()->active() || knot2_->getVelocity()->active();
 }
 
+void VelocityInterpolator::getRelatedVarKeys(KeySet& keys) const {
+  knot1_->getPose()->getRelatedVarKeys(keys);
+  knot1_->getVelocity()->getRelatedVarKeys(keys);
+  knot2_->getPose()->getRelatedVarKeys(keys);
+  knot2_->getVelocity()->getRelatedVarKeys(keys);
+}
+
 auto VelocityInterpolator::value() const -> OutType { return xi_it_->value(); }
 
 auto VelocityInterpolator::forward() const -> Node<OutType>::Ptr {

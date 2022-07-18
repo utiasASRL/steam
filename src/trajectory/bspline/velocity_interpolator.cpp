@@ -45,6 +45,13 @@ bool VelocityInterpolator::active() const {
          k3_->getC()->active() || k4_->getC()->active();
 }
 
+void VelocityInterpolator::getRelatedVarKeys(KeySet& keys) const {
+  k1_->getC()->getRelatedVarKeys(keys);
+  k2_->getC()->getRelatedVarKeys(keys);
+  k3_->getC()->getRelatedVarKeys(keys);
+  k4_->getC()->getRelatedVarKeys(keys);
+}
+
 auto VelocityInterpolator::value() const -> OutType {
   return w_(0) * k1_->getC()->value() + w_(1) * k2_->getC()->value() +
          w_(2) * k3_->getC()->value() + w_(3) * k4_->getC()->value();

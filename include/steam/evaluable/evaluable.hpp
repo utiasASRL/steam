@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include <Eigen/Core>
 
 #include "steam/evaluable/jacobians.hpp"
@@ -23,6 +25,8 @@ class Evaluable {
   }
 
   virtual bool active() const = 0;
+  using KeySet = std::unordered_set<StateKey, StateKeyHash>;
+  virtual void getRelatedVarKeys(KeySet& keys) const = 0;
   virtual T value() const = 0;
   virtual typename Node<T>::Ptr forward() const = 0;
   virtual void backward(const Eigen::MatrixXd& lhs,

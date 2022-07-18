@@ -23,6 +23,7 @@ class SE3ErrorEvaluator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
                     const InType& T_ab_meas);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet &keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;

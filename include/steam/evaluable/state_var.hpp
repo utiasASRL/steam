@@ -50,6 +50,10 @@ class StateVar : public StateVarBase, public Evaluable<T> {
   }
 
   bool active() const override { return !locked(); }
+  using KeySet = typename Evaluable<T>::KeySet;
+  void getRelatedVarKeys(KeySet& keys) const override {
+    if (!locked()) keys.insert(key());
+  }
   T value() const override { return value_; }
   typename Node<T>::Ptr forward() const override {
     return Node<T>::MakeShared(value_);

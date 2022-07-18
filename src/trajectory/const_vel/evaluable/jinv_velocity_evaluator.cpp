@@ -19,6 +19,11 @@ bool JinvVelocityEvaluator::active() const {
   return xi_->active() || velocity_->active();
 }
 
+void JinvVelocityEvaluator::getRelatedVarKeys(KeySet& keys) const {
+  xi_->getRelatedVarKeys(keys);
+  velocity_->getRelatedVarKeys(keys);
+}
+
 auto JinvVelocityEvaluator::value() const -> OutType {
   return lgmath::se3::vec2jacinv(xi_->value()) * velocity_->value();
 }

@@ -13,6 +13,10 @@ InverseEvaluator::InverseEvaluator(const Evaluable<InType>::ConstPtr &transform)
 
 bool InverseEvaluator::active() const { return transform_->active(); }
 
+void InverseEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  transform_->getRelatedVarKeys(keys);
+}
+
 auto InverseEvaluator::value() const -> OutType {
   return transform_->value().inverse();
 }

@@ -18,6 +18,11 @@ bool ComposeInverseEvaluator::active() const {
   return transform1_->active() || transform2_->active();
 }
 
+void ComposeInverseEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  transform1_->getRelatedVarKeys(keys);
+  transform2_->getRelatedVarKeys(keys);
+}
+
 auto ComposeInverseEvaluator::value() const -> OutType {
   return transform1_->value() * transform2_->value().inverse();
 }

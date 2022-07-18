@@ -18,6 +18,11 @@ bool P2PRVErrorEvaluator::active() const {
   return p2p_->active() || rv_->active();
 }
 
+void P2PRVErrorEvaluator::getRelatedVarKeys(KeySet &keys) const {
+  p2p_->getRelatedVarKeys(keys);
+  rv_->getRelatedVarKeys(keys);
+}
+
 auto P2PRVErrorEvaluator::value() const -> OutType {
   OutType error = OutType::Zero();
   error.block<3, 1>(0, 0) = p2p_->value();

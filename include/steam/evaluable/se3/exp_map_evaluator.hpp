@@ -21,6 +21,7 @@ class ExpMapEvaluator : public Evaluable<lgmath::se3::Transformation> {
   ExpMapEvaluator(const Evaluable<InType>::ConstPtr& xi);
 
   bool active() const override;
+  void getRelatedVarKeys(KeySet &keys) const override;
 
   OutType value() const override;
   Node<OutType>::Ptr forward() const override;
