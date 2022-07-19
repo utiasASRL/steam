@@ -28,6 +28,7 @@
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/noise_model/static_noise_model.hpp"
 #include "steam/problem/optimization_problem.hpp"
+#include "steam/problem/sliding_window_filter.hpp"
 
 // solver
 #include "steam/solver/covariance.hpp"

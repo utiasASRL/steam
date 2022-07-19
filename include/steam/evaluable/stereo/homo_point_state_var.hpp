@@ -13,9 +13,11 @@ class HomoPointStateVar : public StateVar<Eigen::Matrix<double, 4, 1>> {
   using T = Eigen::Matrix<double, 4, 1>;
   using Base = StateVar<T>;
 
-  static Ptr MakeShared(const Eigen::Vector3d& value, bool scale = false);
+  static Ptr MakeShared(const Eigen::Vector3d& value, bool scale = false,
+                        const std::string& name = "");
   /** \brief Constructor from a global 3D point */
-  HomoPointStateVar(const Eigen::Vector3d& value, bool scale = false);
+  HomoPointStateVar(const Eigen::Vector3d& value, bool scale = false,
+                    const std::string& name = "");
 
   /** \brief Update the landmark state from the 3-dimensional perturbation */
   bool update(const Eigen::VectorXd& perturbation) override;

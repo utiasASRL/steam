@@ -15,8 +15,8 @@ class SE3StateVar : public StateVar<lgmath::se3::Transformation> {
   using T = lgmath::se3::Transformation;
   using Base = StateVar<T>;
 
-  static Ptr MakeShared(const T& value);
-  SE3StateVar(const T& value);
+  static Ptr MakeShared(const T& value, const std::string& name = "");
+  SE3StateVar(const T& value, const std::string& name = "");
 
   bool update(const Eigen::VectorXd& perturbation) override;
   StateVarBase::Ptr clone() const override;

@@ -34,6 +34,9 @@ class WeightedLeastSqCostTerm : public BaseCostTerm {
    */
   double cost() const override;
 
+  /** \brief Get keys of variables related to this cost term */
+  void getRelatedVarKeys(KeySet &keys) const override;
+
   /**
    * \brief Add the contribution of this cost term to the left-hand (Hessian)
    * and right-hand (gradient vector) sides of the Gauss-Newton system of
@@ -83,6 +86,11 @@ template <int DIM>
 double WeightedLeastSqCostTerm<DIM>::cost() const {
   return loss_function_->cost(
       noise_model_->getWhitenedErrorNorm(error_function_->evaluate()));
+}
+
+template <int DIM>
+void WeightedLeastSqCostTerm<DIM>::getRelatedVarKeys(KeySet &keys) const {
+  error_function_->getRelatedVarKeys(keys);
 }
 
 template <int DIM>

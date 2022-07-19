@@ -1,6 +1,7 @@
 #include "steam/problem/state_vector.hpp"
 
 #include <iostream>
+#include <numeric>
 
 #include "steam/blockmat/BlockVector.hpp"
 
@@ -127,6 +128,11 @@ std::vector<unsigned int> StateVector::getStateBlockSizes() const {
   }
 
   return result;
+}
+
+unsigned int StateVector::getStateSize() const {
+  const auto sizes = getStateBlockSizes();
+  return std::accumulate(sizes.begin(), sizes.end(), (unsigned int)0);
 }
 
 void StateVector::update(const Eigen::VectorXd &perturbation) {

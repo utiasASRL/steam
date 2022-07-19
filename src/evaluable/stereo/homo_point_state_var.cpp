@@ -3,13 +3,14 @@
 namespace steam {
 namespace stereo {
 
-auto HomoPointStateVar::MakeShared(const Eigen::Vector3d& value, bool scale)
-    -> Ptr {
-  return std::make_shared<HomoPointStateVar>(value, scale);
+auto HomoPointStateVar::MakeShared(const Eigen::Vector3d& value, bool scale,
+                                   const std::string& name) -> Ptr {
+  return std::make_shared<HomoPointStateVar>(value, scale, name);
 }
 
-HomoPointStateVar::HomoPointStateVar(const Eigen::Vector3d& value, bool scale)
-    : Base(Eigen::Vector4d::Constant(1.0), 3), scale_(scale) {
+HomoPointStateVar::HomoPointStateVar(const Eigen::Vector3d& value, bool scale,
+                                     const std::string& name)
+    : Base(Eigen::Vector4d::Constant(1.0), 3, name), scale_(scale) {
   this->value_.head<3>() = value;
   this->refreshHomoScaling();
 }

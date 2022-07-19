@@ -38,6 +38,9 @@ class StateVector {
   /** \brief Get an ordered list of the sizes of the 'block' state variables */
   std::vector<unsigned int> getStateBlockSizes() const;
 
+  /** \brief Total size of the state vector */
+  unsigned int getStateSize() const;
+
   /** \brief Update the state vector */
   void update(const Eigen::VectorXd &perturbation);
 

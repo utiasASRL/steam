@@ -12,9 +12,11 @@ class StateVarBase {
   using Ptr = std::shared_ptr<StateVarBase>;
   using ConstPtr = std::shared_ptr<const StateVarBase>;
 
-  StateVarBase(const unsigned int& perturb_dim) : perturb_dim_(perturb_dim) {}
-
+  StateVarBase(const unsigned int& perturb_dim, const std::string& name = "")
+      : perturb_dim_(perturb_dim), name_(name) {}
   virtual ~StateVarBase() = default;
+
+  std::string name() const { return name_; }
 
   /** \brief Updates this state from a perturbation */
   virtual bool update(const Eigen::VectorXd& perturbation) = 0;
@@ -30,6 +32,7 @@ class StateVarBase {
 
  private:
   const unsigned int perturb_dim_;
+  const std::string name_;
   const StateKey key_ = NewStateKey();
   bool locked_ = false;
 };
@@ -40,8 +43,9 @@ class StateVar : public StateVarBase, public Evaluable<T> {
   using Ptr = std::shared_ptr<StateVar<T>>;
   using ConstPtr = std::shared_ptr<const StateVar<T>>;
 
-  StateVar(const T& value, const unsigned int& perturb_dim)
-      : StateVarBase(perturb_dim), value_(value) {}
+  StateVar(const T& value, const unsigned int& perturb_dim,
+           const std::string& name = "")
+      : StateVarBase(perturb_dim, name), value_(value) {}
 
   void setFromCopy(const StateVarBase::ConstPtr& other) override {
     if (key() != other->key())

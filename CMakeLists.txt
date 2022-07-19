@@ -156,6 +156,7 @@ add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
 add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
 add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
 add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
+add_executable(SlidingWindowFilterExample samples/SlidingWindowFilterExample.cpp)
 
 if (USE_AMENT)
 
@@ -175,6 +176,7 @@ install(
     SimpleBundleAdjustmentRelLand
     SimpleBundleAdjustmentFullRel
     SimpleBAandConstVelTrajPrior
+    SlidingWindowFilterExample
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

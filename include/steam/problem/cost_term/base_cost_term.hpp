@@ -23,6 +23,9 @@ class BaseCostTerm {
   /** \brief Compute the cost to the objective function */
   virtual double cost() const = 0;
 
+  using KeySet = std::unordered_set<StateKey, StateKeyHash>;
+  virtual void getRelatedVarKeys(KeySet &keys) const = 0;
+
   /**
    * \brief Add the contribution of this cost term to the left-hand (Hessian)
    * and right-hand (gradient vector) sides of the Gauss-Newton system of

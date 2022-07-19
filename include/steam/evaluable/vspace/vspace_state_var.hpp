@@ -16,20 +16,22 @@ class VSpaceStateVar : public StateVar<Eigen::Matrix<double, DIM, 1>> {
   using T = Eigen::Matrix<double, DIM, 1>;
   using Base = StateVar<T>;
 
-  static Ptr MakeShared(const T& value);
-  VSpaceStateVar(const T& value);
+  static Ptr MakeShared(const T& value, const std::string& name = "");
+  VSpaceStateVar(const T& value, const std::string& name = "");
 
   bool update(const Eigen::VectorXd& perturbation) override;
   StateVarBase::Ptr clone() const override;
 };
 
 template <int DIM>
-auto VSpaceStateVar<DIM>::MakeShared(const T& value) -> Ptr {
-  return std::make_shared<VSpaceStateVar<DIM>>(value);
+auto VSpaceStateVar<DIM>::MakeShared(const T& value, const std::string& name)
+    -> Ptr {
+  return std::make_shared<VSpaceStateVar<DIM>>(value, name);
 }
 
 template <int DIM>
-VSpaceStateVar<DIM>::VSpaceStateVar(const T& value) : Base(value, DIM) {}
+VSpaceStateVar<DIM>::VSpaceStateVar(const T& value, const std::string& name)
+    : Base(value, DIM, name) {}
 
 template <int DIM>
 bool VSpaceStateVar<DIM>::update(const Eigen::VectorXd& perturbation) {

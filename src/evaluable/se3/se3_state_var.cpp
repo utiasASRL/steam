@@ -3,11 +3,12 @@
 namespace steam {
 namespace se3 {
 
-auto SE3StateVar::MakeShared(const T &value) -> Ptr {
-  return std::make_shared<SE3StateVar>(value);
+auto SE3StateVar::MakeShared(const T &value, const std::string &name) -> Ptr {
+  return std::make_shared<SE3StateVar>(value, name);
 }
 
-SE3StateVar::SE3StateVar(const T &value) : Base(value, 6) {}
+SE3StateVar::SE3StateVar(const T &value, const std::string &name)
+    : Base(value, 6, name) {}
 
 bool SE3StateVar::update(const Eigen::VectorXd &perturbation) {
   if (perturbation.size() != this->perturb_dim())
