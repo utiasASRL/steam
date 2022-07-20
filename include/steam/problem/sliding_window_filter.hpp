@@ -36,7 +36,7 @@ class SlidingWindowFilter : public Problem {
   unsigned int getNumberOfCostTerms() const override;
 
   /** \brief Get reference to state variables */
-  StateVector& getStateVector() override;
+  StateVector::Ptr getStateVector() override;
 
   /** \brief Fill in the supplied block matrices */
   void buildGaussNewtonTerms(Eigen::SparseMatrix<double>& approximate_hessian,
@@ -58,9 +58,9 @@ class SlidingWindowFilter : public Problem {
   Eigen::VectorXd fixed_b_;
 
   //
-  StateVector marginalize_state_vector_;
-  StateVector active_state_vector_;
-  StateVector state_vector_;
+  const StateVector::Ptr marginalize_state_vector_ = StateVector::MakeShared();
+  const StateVector::Ptr active_state_vector_ = StateVector::MakeShared();
+  const StateVector::Ptr state_vector_ = StateVector::MakeShared();
 };
 
 }  // namespace steam

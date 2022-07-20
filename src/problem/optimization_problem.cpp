@@ -44,10 +44,10 @@ double OptimizationProblem::cost() const {
   return cost;
 }
 
-StateVector &OptimizationProblem::getStateVector() {
-  state_vector_ = StateVector();
+StateVector::Ptr OptimizationProblem::getStateVector() {
+  *state_vector_ = StateVector();
   for (const auto &state_var : state_vars_) {
-    if (!state_var->locked()) state_vector_.addStateVariable(state_var);
+    if (!state_var->locked()) state_vector_->addStateVariable(state_var);
   }
   return state_vector_;
 }
@@ -56,7 +56,7 @@ void OptimizationProblem::buildGaussNewtonTerms(
     Eigen::SparseMatrix<double> &approximate_hessian,
     Eigen::VectorXd &gradient_vector) {
   // Setup Matrices
-  std::vector<unsigned int> sqSizes = state_vector_.getStateBlockSizes();
+  std::vector<unsigned int> sqSizes = state_vector_->getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
 
@@ -64,7 +64,7 @@ void OptimizationProblem::buildGaussNewtonTerms(
 #pragma omp parallel for num_threads(num_threads_)
   for (unsigned int c = 0; c < cost_terms_.size(); c++) {
     try {
-      cost_terms_.at(c)->buildGaussNewtonTerms(state_vector_, &A_, &b_);
+      cost_terms_.at(c)->buildGaussNewtonTerms(*state_vector_, &A_, &b_);
     } catch (const std::exception &e) {
       std::cout << "STEAM exception in parallel cost term:\n"
                 << e.what() << std::endl;

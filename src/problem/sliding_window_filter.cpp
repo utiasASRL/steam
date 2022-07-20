@@ -143,10 +143,10 @@ unsigned int SlidingWindowFilter::getNumberOfCostTerms() const {
   return cost_terms_.size();
 }
 
-StateVector &SlidingWindowFilter::getStateVector() {
-  marginalize_state_vector_ = StateVector();
-  active_state_vector_ = StateVector();
-  state_vector_ = StateVector();
+StateVector::Ptr SlidingWindowFilter::getStateVector() {
+  *marginalize_state_vector_ = StateVector();
+  *active_state_vector_ = StateVector();
+  *state_vector_ = StateVector();
 
   bool marginalize = true;
   for (const auto &key : variable_queue_) {
@@ -154,12 +154,12 @@ StateVector &SlidingWindowFilter::getStateVector() {
     if (var.marginalize) {
       if (!marginalize)
         throw std::runtime_error("marginalized variables must be at the first");
-      marginalize_state_vector_.addStateVariable(var.variable);
+      marginalize_state_vector_->addStateVariable(var.variable);
     } else {
       marginalize = false;
-      active_state_vector_.addStateVariable(var.variable);
+      active_state_vector_->addStateVariable(var.variable);
     }
-    state_vector_.addStateVariable(var.variable);
+    state_vector_->addStateVariable(var.variable);
   }
 
   return active_state_vector_;
@@ -169,12 +169,12 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
     Eigen::SparseMatrix<double> &approximate_hessian,
     Eigen::VectorXd &gradient_vector) {
   //
-  std::vector<unsigned int> sqSizes = state_vector_.getStateBlockSizes();
+  std::vector<unsigned int> sqSizes = state_vector_->getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
 #pragma omp parallel for num_threads(num_threads_)
   for (unsigned int c = 0; c < cost_terms_.size(); c++) {
-    cost_terms_.at(c)->buildGaussNewtonTerms(state_vector_, &A_, &b_);
+    cost_terms_.at(c)->buildGaussNewtonTerms(*state_vector_, &A_, &b_);
   }
 
   // Convert to Eigen Types
@@ -188,7 +188,7 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
   }
 
   // marginalize the fixed variables
-  const auto marginalize_state_size = marginalize_state_vector_.getStateSize();
+  const auto marginalize_state_size = marginalize_state_vector_->getStateSize();
   if (marginalize_state_size > 0) {
     // clang-format off
     Eigen::MatrixXd A00(A.topLeftCorner(marginalize_state_size, marginalize_state_size));

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "steam/problem/problem.hpp"
+#include "steam/solver/gauss_newton_solver.hpp"
 
 namespace steam {
 
@@ -10,6 +11,7 @@ class Covariance {
   using ConstPtr = std::shared_ptr<const Covariance>;
 
   Covariance(Problem& problem);
+  Covariance(GaussNewtonSolver& solver);
 
   virtual ~Covariance() = default;
 
@@ -21,9 +23,10 @@ class Covariance {
                         const std::vector<StateVarBase::ConstPtr>& cvars) const;
 
  private:
-  StateVector state_vector_;  /// \todo this should be a reference
-  Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper>
-      hessian_solver_;
+  const StateVector::ConstWeakPtr state_vector_;
+  using SolverType =
+      Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper>;
+  const std::shared_ptr<SolverType> hessian_solver_;
 };
 
 }  // namespace steam

@@ -7,13 +7,14 @@
 namespace steam {
 
 Covariance::Covariance(Problem& problem)
-    : state_vector_(problem.getStateVector()) {
+    : state_vector_(problem.getStateVector()),
+      hessian_solver_(std::make_shared<SolverType>()) {
   Eigen::SparseMatrix<double> approx_hessian;
   Eigen::VectorXd gradient_vector;
   problem.buildGaussNewtonTerms(approx_hessian, gradient_vector);
-  hessian_solver_.analyzePattern(approx_hessian);
-  hessian_solver_.factorize(approx_hessian);
-  if (hessian_solver_.info() != Eigen::Success) {
+  hessian_solver_->analyzePattern(approx_hessian);
+  hessian_solver_->factorize(approx_hessian);
+  if (hessian_solver_->info() != Eigen::Success) {
     throw std::runtime_error(
         "During steam solve, Eigen LLT decomposition failed. "
         "It is possible that the matrix was ill-conditioned, in which case "
@@ -21,6 +22,9 @@ Covariance::Covariance(Problem& problem)
         "the problem you've constructed is not positive semi-definite.");
   }
 }
+
+Covariance::Covariance(GaussNewtonSolver& solver)
+    : state_vector_(solver.state_vector()), hessian_solver_(solver.solver()) {}
 
 Eigen::MatrixXd Covariance::query(const StateVarBase::ConstPtr& var) const {
   return query(std::vector<StateVarBase::ConstPtr>{var});
@@ -40,8 +44,11 @@ Eigen::MatrixXd Covariance::query(
 Eigen::MatrixXd Covariance::query(
     const std::vector<StateVarBase::ConstPtr>& rvars,
     const std::vector<StateVarBase::ConstPtr>& cvars) const {
+  const auto state_vector = state_vector_.lock();
+  if (!state_vector) throw std::runtime_error{"state vector expired."};
+
   // Creating indexing
-  BlockMatrixIndexing indexing(state_vector_.getStateBlockSizes());
+  BlockMatrixIndexing indexing(state_vector->getStateBlockSizes());
   const auto& blk_row_indexing = indexing.rowIndexing();
   const auto& blk_col_indexing = indexing.colIndexing();
 
@@ -54,13 +61,13 @@ Eigen::MatrixXd Covariance::query(
   blk_row_indices.reserve(num_row_vars);
   for (size_t i = 0; i < num_row_vars; i++)
     blk_row_indices.emplace_back(
-        state_vector_.getStateBlockIndex(rvars[i]->key()));
+        state_vector->getStateBlockIndex(rvars[i]->key()));
 
   std::vector<unsigned int> blk_col_indices;
   blk_col_indices.reserve(num_col_vars);
   for (size_t i = 0; i < num_col_vars; i++)
     blk_col_indices.emplace_back(
-        state_vector_.getStateBlockIndex(cvars[i]->key()));
+        state_vector->getStateBlockIndex(cvars[i]->key()));
 
   // Look up block size of state variables
   std::vector<unsigned int> blk_row_sizes;
@@ -91,7 +98,7 @@ Eigen::MatrixXd Covariance::query(
 
       // Solve for scalar column of covariance matrix
       projection(scalar_col_index) = 1.0;
-      Eigen::VectorXd x = hessian_solver_.solve(projection);
+      Eigen::VectorXd x = hessian_solver_->solve(projection);
       projection(scalar_col_index) = 0.0;
 
       // For each block row

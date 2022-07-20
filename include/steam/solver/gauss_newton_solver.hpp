@@ -30,15 +30,21 @@ class GaussNewtonSolver : public SolverBase {
       const Eigen::VectorXd& gradient_vector);
 
  private:
+  using SolverType =
+      Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper>;
+  std::shared_ptr<SolverType> solver() { return hessian_solver_; }
+
   bool linearizeSolveAndUpdate(double& cost, double& grad_norm) override;
 
   /** \brief The solver stored over iterations to reuse the same pattern */
-  Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper>
-      hessian_solver_;
+  std::shared_ptr<SolverType> hessian_solver_ = std::make_shared<SolverType>();
+
   /** \brief Whether the pattern of the approx. Hessian has been analyzed */
   bool pattern_initialized_ = false;
 
   const Params params_;
+
+  friend class Covariance;  // access the internal solver object
 };
 
 }  // namespace steam

@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
   GaussNewtonSolver solver(problem, params);
   solver.optimize();
 
-  Covariance covariance(problem);
+  Covariance covariance(solver);
 
   // state covariances
   for (int i = 1; i < K; ++i) {

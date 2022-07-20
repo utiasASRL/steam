@@ -19,7 +19,7 @@ class Problem {
   virtual double cost() const = 0;
 
   /** \brief Get reference to state variables */
-  virtual StateVector& getStateVector() = 0;
+  virtual StateVector::Ptr getStateVector() = 0;
 
   /** \brief Fill in the supplied block matrices */
   virtual void buildGaussNewtonTerms(

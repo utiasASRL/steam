@@ -84,15 +84,15 @@ Eigen::VectorXd GaussNewtonSolver::solveGaussNewton(
     // ** Note we use approximate-minimal-degree (AMD) reordering.
     //    Also, this step does not actually use the numerical values in
     //    gaussNewtonLHS
-    hessian_solver_.analyzePattern(approximate_hessian);
+    hessian_solver_->analyzePattern(approximate_hessian);
     pattern_initialized_ = true;
   }
 
   // Perform a Cholesky factorization of the approximate Hessian matrix
-  hessian_solver_.factorize(approximate_hessian);
+  hessian_solver_->factorize(approximate_hessian);
 
   // Check if the factorization succeeded
-  if (hessian_solver_.info() != Eigen::Success) {
+  if (hessian_solver_->info() != Eigen::Success) {
     throw decomp_failure(
         "During steam solve, Eigen LLT decomposition failed. "
         "It is possible that the matrix was ill-conditioned, in which case "
@@ -104,7 +104,7 @@ Eigen::VectorXd GaussNewtonSolver::solveGaussNewton(
   // determinant) of the solved system... need to find a fast way to do this
 
   // Do the backward pass, using the Cholesky factorization (fast)
-  return hessian_solver_.solve(gradient_vector);
+  return hessian_solver_->solve(gradient_vector);
 }
 
 }  // namespace steam

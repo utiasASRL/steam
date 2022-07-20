@@ -72,10 +72,12 @@ class SolverBase {
   /** \brief Reject the proposed update and revert to the previous values */
   void rejectProposedState();
 
+  StateVector::ConstWeakPtr state_vector() { return state_vector_; }
+
   /** \brief Reference to optimization problem */
   Problem& problem_;
   /** \brief Collection of state variables */
-  StateVector& state_vector_;
+  const StateVector::WeakPtr state_vector_;
   /** \brief backup state vector for reverting to previous state values */
   StateVector state_vector_backup_;
 

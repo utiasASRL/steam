@@ -11,7 +11,7 @@ SolverBase::SolverBase(Problem& problem, const Params& params)
       state_vector_(problem.getStateVector()),
       params_(params) {
   //
-  state_vector_backup_ = state_vector_.clone();
+  state_vector_backup_ = state_vector_.lock()->clone();
   // Set current cost from initial problem
   curr_cost_ = prev_cost_ = problem_.cost();
 }
@@ -40,7 +40,7 @@ void SolverBase::iterate() {
     // clang-format off
     std::cout << "Begin Optimization" << std::endl;
     std::cout << "------------------" << std::endl;
-    std::cout << "Number of States: " << state_vector_.getNumberOfStates() << std::endl;
+    std::cout << "Number of States: " << state_vector_.lock()->getNumberOfStates() << std::endl;
     std::cout << "Number of Cost Terms: " << problem_.getNumberOfCostTerms() << std::endl;
     std::cout << "Initial Cost: " << curr_cost_ << std::endl;
     // clang-format on
@@ -96,10 +96,12 @@ double SolverBase::proposeUpdate(const Eigen::VectorXd& perturbation) {
         "There is already a pending update, accept "
         "or reject before proposing a new one.");
   }
+  const auto state_vector = state_vector_.lock();
+  if (!state_vector) throw std::runtime_error{"state vector expired"};
   // Make copy of state vector
-  state_vector_backup_.copyValues(state_vector_);
+  state_vector_backup_.copyValues(*(state_vector));
   // Update copy with perturbation
-  state_vector_.update(perturbation);
+  state_vector->update(perturbation);
   pending_proposed_state_ = true;
   // Test new cost
   return problem_.cost();
@@ -118,7 +120,7 @@ void SolverBase::rejectProposedState() {
   if (!pending_proposed_state_)
     throw std::runtime_error("You must call proposeUpdate before rejecting.");
   // Revert to previous state
-  state_vector_.copyValues(state_vector_backup_);
+  state_vector_.lock()->copyValues(state_vector_backup_);
   // Switch flag, ready for new proposal
   pending_proposed_state_ = false;
 }

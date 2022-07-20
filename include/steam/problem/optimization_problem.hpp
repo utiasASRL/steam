@@ -24,7 +24,7 @@ class OptimizationProblem : public Problem {
   double cost() const override;
 
   /** \brief Get reference to state variables */
-  StateVector& getStateVector() override;
+  StateVector::Ptr getStateVector() override;
 
   /** \brief Fill in the supplied block matrices */
   void buildGaussNewtonTerms(Eigen::SparseMatrix<double>& approximate_hessian,
@@ -39,7 +39,7 @@ class OptimizationProblem : public Problem {
   std::vector<StateVarBase::Ptr> state_vars_;
 
   /** \brief State vector, created when calling get state vector */
-  StateVector state_vector_;
+  StateVector::Ptr state_vector_ = StateVector::MakeShared();
 };
 
 }  // namespace steam

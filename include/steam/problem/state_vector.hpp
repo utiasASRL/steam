@@ -10,6 +10,13 @@ namespace steam {
 
 class StateVector {
  public:
+  using Ptr = std::shared_ptr<StateVector>;
+  using ConstPtr = std::shared_ptr<const StateVector>;
+  using WeakPtr = std::weak_ptr<StateVector>;
+  using ConstWeakPtr = std::weak_ptr<const StateVector>;
+
+  static Ptr MakeShared() { return std::make_shared<StateVector>(); }
+
   /** \brief Performs a deep copy of the state vector */
   StateVector clone() const;
 
