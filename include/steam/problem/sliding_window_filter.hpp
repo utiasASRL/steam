@@ -24,8 +24,10 @@ class SlidingWindowFilter : public Problem {
   const VariableMap& variables() const { return variables_; }
 
   void addVariable(const StateVarBase::Ptr& variable);
+  void addVariable(const std::vector<StateVarBase::Ptr>& variables);
 
   void marginalizeVariable(const StateVarBase::Ptr& variable);
+  void marginalizeVariable(const std::vector<StateVarBase::Ptr>& variables);
 
   void addCostTerm(const BaseCostTerm::ConstPtr& cost_term);
 

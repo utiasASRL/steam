@@ -9,17 +9,30 @@ SlidingWindowFilter::SlidingWindowFilter(unsigned int num_threads)
     : num_threads_(num_threads) {}
 
 void SlidingWindowFilter::addVariable(const StateVarBase::Ptr &variable) {
-  /// \todo check duplicate keys
-  const auto res = variables_.try_emplace(variable->key(), variable, false);
-  if (!res.second) throw std::runtime_error("duplicated variable key");
-  variable_queue_.emplace_back(variable->key());
-  related_var_keys_.try_emplace(variable->key(), KeySet{variable->key()});
+  addVariable(std::vector<StateVarBase::Ptr>{variable});
+}
+
+void SlidingWindowFilter::addVariable(
+    const std::vector<StateVarBase::Ptr> &variables) {
+  for (const auto &variable : variables) {
+    const auto res = variables_.try_emplace(variable->key(), variable, false);
+    if (!res.second) throw std::runtime_error("duplicated variable key");
+    variable_queue_.emplace_back(variable->key());
+    related_var_keys_.try_emplace(variable->key(), KeySet{variable->key()});
+  }
 }
 
 void SlidingWindowFilter::marginalizeVariable(
     const StateVarBase::Ptr &variable) {
+  marginalizeVariable(std::vector<StateVarBase::Ptr>{variable});
+}
+
+void SlidingWindowFilter::marginalizeVariable(
+    const std::vector<StateVarBase::Ptr> &variables) {
   ///
-  variables_.at(variable->key()).marginalize = true;
+  for (const auto &variable : variables) {
+    variables_.at(variable->key()).marginalize = true;
+  }
 
   /// remove fixed variables from the queue
 
