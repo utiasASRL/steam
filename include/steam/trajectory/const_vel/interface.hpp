@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
-#include "steam/problem/optimization_problem.hpp"
+#include "steam/problem/problem.hpp"
 #include "steam/solver/covariance.hpp"
 #include "steam/trajectory/const_vel/variable.hpp"
 #include "steam/trajectory/interface.hpp"
@@ -66,17 +66,13 @@ class Interface : public traj::Interface {
                      const VelocityType& w_0k_ink,
                      const Eigen::Matrix<double, 12, 12>& cov);
 
-  void addStateVariables(OptimizationProblem& problem) const override {}
-
   /**
    * \brief Get binary cost terms associated with the prior for active parts of
    * the trajectory
    */
-  void addPriorCostTerms(OptimizationProblem& problem) const override;
+  void addPriorCostTerms(Problem& problem) const;
 
-  /**
-   * \brief Compute inverse covariance of prior factor
-   */
+  /** \brief Compute inverse covariance of prior factor */
   Eigen::Matrix<double, 12, 12> computeQinv(const double& deltatime) const;
 
  protected:

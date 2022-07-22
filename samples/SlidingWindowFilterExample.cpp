@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
   x_var.emplace_back(vspace::VSpaceStateVar<1>::MakeShared(State{0.0}, "x0"));
 
   // add initial state variable
-  swf.addVariable(x_var[0]);
+  swf.addStateVariable(x_var[0]);
 
   // add initial prior
   const auto loss_func = L2LossFunc::MakeShared();
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
   for (int k = 1; k < (int)v.size(); ++k) {
     // add a new variable
     x_var.emplace_back(vspace::VSpaceStateVar<1>::MakeShared(State{0.0}, "x"+std::to_string(k)));
-    swf.addVariable(x_var[k]);
+    swf.addStateVariable(x_var[k]);
 
     const auto xkm1_var = x_var[k - 1];
     const auto xk_var = x_var[k];

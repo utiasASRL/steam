@@ -46,8 +46,6 @@ int main(int argc, char** argv) {
   OptimizationProblem problem(1);
   // add state variables
   traj.addStateVariables(problem);
-  // add trajectory cost terms
-  traj.addPriorCostTerms(problem);
   // add meas cost terms
   for (const auto& cost : cost_terms) problem.addCostTerm(cost);
 

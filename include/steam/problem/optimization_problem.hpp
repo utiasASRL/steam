@@ -2,8 +2,6 @@
 
 #include "steam/problem/problem.hpp"
 
-#include "steam/problem/cost_term/base_cost_term.hpp"
-
 namespace steam {
 
 /** \brief A standard optimization problem */
@@ -12,10 +10,10 @@ class OptimizationProblem : public Problem {
   OptimizationProblem(unsigned int num_threads = 1);
 
   /** \brief Adds a state variable */
-  void addStateVariable(const StateVarBase::Ptr& state_var);
+  void addStateVariable(const StateVarBase::Ptr& state_var) override;
 
   /** \brief Add a cost term */
-  void addCostTerm(const BaseCostTerm::ConstPtr& cost_term);
+  void addCostTerm(const BaseCostTerm::ConstPtr& cost_term) override;
 
   /** \brief Get the total number of cost terms */
   unsigned int getNumberOfCostTerms() const override;

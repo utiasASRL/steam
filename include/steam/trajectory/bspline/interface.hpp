@@ -26,8 +26,7 @@ class Interface : public traj::Interface {
   /** \brief Get velocity evaluator */
   Evaluable<VeloType>::ConstPtr getVelocityInterpolator(const Time& time);
 
-  void addStateVariables(OptimizationProblem& problem) const override;
-  void addPriorCostTerms(OptimizationProblem& problem) const override {}
+  void addStateVariables(Problem& problem) const;
 
   void setActiveWindow(
       const Time& start,

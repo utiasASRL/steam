@@ -14,13 +14,6 @@ class Interface {
   using ConstPtr = std::shared_ptr<const Interface>;
 
   virtual ~Interface() = default;
-
-  /**
-   * \brief Get binary cost terms associated with the prior for active parts of
-   * the trajectory
-   */
-  virtual void addPriorCostTerms(OptimizationProblem& problem) const = 0;
-  virtual void addStateVariables(OptimizationProblem& problem) const = 0;
 };
 
 }  // namespace traj

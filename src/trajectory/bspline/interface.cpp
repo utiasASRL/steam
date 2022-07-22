@@ -16,7 +16,7 @@ auto Interface::MakeShared(const Time& knot_spacing) -> Ptr {
 
 Interface::Interface(const Time& knot_spacing) : knot_spacing_(knot_spacing) {}
 
-void Interface::addStateVariables(OptimizationProblem& problem) const {
+void Interface::addStateVariables(Problem& problem) const {
   for (const auto& pair : active_knot_map_)
     problem.addStateVariable(pair.second->getC());
 }

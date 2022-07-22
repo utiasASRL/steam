@@ -2,7 +2,6 @@
 
 #include <deque>
 
-#include "steam/problem/cost_term/base_cost_term.hpp"
 #include "steam/problem/problem.hpp"
 
 namespace steam {
@@ -23,19 +22,20 @@ class SlidingWindowFilter : public Problem {
   // for debugging
   const VariableMap& variables() const { return variables_; }
 
-  void addVariable(const StateVarBase::Ptr& variable);
-  void addVariable(const std::vector<StateVarBase::Ptr>& variables);
+  void addStateVariable(const StateVarBase::Ptr& variable) override;
+  void addStateVariable(const std::vector<StateVarBase::Ptr>& variables);
 
   void marginalizeVariable(const StateVarBase::Ptr& variable);
   void marginalizeVariable(const std::vector<StateVarBase::Ptr>& variables);
 
-  void addCostTerm(const BaseCostTerm::ConstPtr& cost_term);
+  void addCostTerm(const BaseCostTerm::ConstPtr& cost_term) override;
 
   /** \brief Compute the cost from the collection of cost terms */
   double cost() const override;
 
   /** \brief Get the total number of cost terms */
   unsigned int getNumberOfCostTerms() const override;
+  unsigned int getNumberOfVariables() const;
 
   /** \brief Get reference to state variables */
   StateVector::Ptr getStateVector() override;

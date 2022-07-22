@@ -8,11 +8,11 @@ namespace steam {
 SlidingWindowFilter::SlidingWindowFilter(unsigned int num_threads)
     : num_threads_(num_threads) {}
 
-void SlidingWindowFilter::addVariable(const StateVarBase::Ptr &variable) {
-  addVariable(std::vector<StateVarBase::Ptr>{variable});
+void SlidingWindowFilter::addStateVariable(const StateVarBase::Ptr &variable) {
+  addStateVariable(std::vector<StateVarBase::Ptr>{variable});
 }
 
-void SlidingWindowFilter::addVariable(
+void SlidingWindowFilter::addStateVariable(
     const std::vector<StateVarBase::Ptr> &variables) {
   for (const auto &variable : variables) {
     const auto res = variables_.try_emplace(variable->key(), variable, false);
@@ -154,6 +154,10 @@ double SlidingWindowFilter::cost() const {
 
 unsigned int SlidingWindowFilter::getNumberOfCostTerms() const {
   return cost_terms_.size();
+}
+
+unsigned int SlidingWindowFilter::getNumberOfVariables() const {
+  return variable_queue_.size();
 }
 
 StateVector::Ptr SlidingWindowFilter::getStateVector() {

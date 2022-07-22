@@ -376,7 +376,7 @@ void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
       error_func, noise_model, loss_func);
 }
 
-void Interface::addPriorCostTerms(OptimizationProblem& problem) const {
+void Interface::addPriorCostTerms(Problem& problem) const {
   // If empty, return none
   if (knotMap_.empty()) return;
 
