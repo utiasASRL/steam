@@ -17,6 +17,9 @@ class SlidingWindowFilter : public Problem {
   using KeySet = BaseCostTerm::KeySet;
 
  public:
+  using Ptr = std::shared_ptr<SlidingWindowFilter>;
+
+  static Ptr MakeShared(unsigned int num_threads = 1);
   SlidingWindowFilter(unsigned int num_threads = 1);
 
   // for debugging

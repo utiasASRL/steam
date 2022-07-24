@@ -5,6 +5,11 @@
 
 namespace steam {
 
+auto SlidingWindowFilter::MakeShared(unsigned int num_threads)
+    -> SlidingWindowFilter::Ptr {
+  return std::make_shared<SlidingWindowFilter>(num_threads);
+}
+
 SlidingWindowFilter::SlidingWindowFilter(unsigned int num_threads)
     : num_threads_(num_threads) {}
 
