@@ -39,9 +39,6 @@ int main(int argc, char** argv) {
   }
   // clang-format on
 
-  // unlock variables to be optimized
-  traj.setActiveWindow(traj::Time(-1.0), traj::Time(1.0));
-
   //
   OptimizationProblem problem(1);
   // add state variables
