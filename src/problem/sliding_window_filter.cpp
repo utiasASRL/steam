@@ -165,7 +165,7 @@ unsigned int SlidingWindowFilter::getNumberOfVariables() const {
   return variable_queue_.size();
 }
 
-StateVector::Ptr SlidingWindowFilter::getStateVector() {
+StateVector::Ptr SlidingWindowFilter::getStateVector() const {
   *marginalize_state_vector_ = StateVector();
   *active_state_vector_ = StateVector();
   *state_vector_ = StateVector();
@@ -189,7 +189,7 @@ StateVector::Ptr SlidingWindowFilter::getStateVector() {
 
 void SlidingWindowFilter::buildGaussNewtonTerms(
     Eigen::SparseMatrix<double> &approximate_hessian,
-    Eigen::VectorXd &gradient_vector) {
+    Eigen::VectorXd &gradient_vector) const {
   //
   std::vector<unsigned int> sqSizes = state_vector_->getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);

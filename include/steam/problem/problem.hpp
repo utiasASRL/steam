@@ -24,12 +24,12 @@ class Problem {
   virtual double cost() const = 0;
 
   /** \brief Get reference to state variables */
-  virtual StateVector::Ptr getStateVector() = 0;
+  virtual StateVector::Ptr getStateVector() const = 0;
 
   /** \brief Fill in the supplied block matrices */
   virtual void buildGaussNewtonTerms(
       Eigen::SparseMatrix<double>& approximate_hessian,
-      Eigen::VectorXd& gradient_vector) = 0;
+      Eigen::VectorXd& gradient_vector) const = 0;
 };
 
 }  // namespace steam

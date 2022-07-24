@@ -41,11 +41,11 @@ class SlidingWindowFilter : public Problem {
   unsigned int getNumberOfVariables() const;
 
   /** \brief Get reference to state variables */
-  StateVector::Ptr getStateVector() override;
+  StateVector::Ptr getStateVector() const override;
 
   /** \brief Fill in the supplied block matrices */
   void buildGaussNewtonTerms(Eigen::SparseMatrix<double>& approximate_hessian,
-                             Eigen::VectorXd& gradient_vector) override;
+                             Eigen::VectorXd& gradient_vector) const override;
 
  private:
   /** \brief Cumber of threads to evaluate cost terms */

@@ -44,7 +44,7 @@ double OptimizationProblem::cost() const {
   return cost;
 }
 
-StateVector::Ptr OptimizationProblem::getStateVector() {
+StateVector::Ptr OptimizationProblem::getStateVector() const {
   *state_vector_ = StateVector();
   for (const auto &state_var : state_vars_) {
     if (!state_var->locked()) state_vector_->addStateVariable(state_var);
@@ -54,7 +54,7 @@ StateVector::Ptr OptimizationProblem::getStateVector() {
 
 void OptimizationProblem::buildGaussNewtonTerms(
     Eigen::SparseMatrix<double> &approximate_hessian,
-    Eigen::VectorXd &gradient_vector) {
+    Eigen::VectorXd &gradient_vector) const {
   // Setup Matrices
   std::vector<unsigned int> sqSizes = state_vector_->getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);
