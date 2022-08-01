@@ -21,6 +21,11 @@ class decomp_failure : public solver_failure {
 
 class GaussNewtonSolver : public SolverBase {
  public:
+  struct Params : public SolverBase::Params {
+    ///
+    bool reuse_previous_pattern = true;
+  };
+
   GaussNewtonSolver(Problem& problem, const Params& params);
 
  protected:

@@ -1,13 +1,14 @@
-#include "steam/trajectory/const_vel/pose_interpolator.hpp"
+#include "steam/trajectory/const_acc/pose_interpolator.hpp"
 
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
+#include "steam/trajectory/const_acc/evaluable/compose_curlyhat_evaluator.hpp"
+#include "steam/trajectory/const_acc/helper.hpp"
 #include "steam/trajectory/const_vel/evaluable/jinv_velocity_evaluator.hpp"
-#include "steam/trajectory/const_vel/helper.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel {
+namespace const_acc {
 
 PoseInterpolator::Ptr PoseInterpolator::MakeShared(
     const Time& time, const Variable::ConstPtr& knot1,
@@ -32,17 +33,21 @@ PoseInterpolator::PoseInterpolator(const Time& time,
   const auto Tran_T = getTran(T);
 
   // Calculate interpolation values
-  Eigen::Matrix<double, 2, 2> Omega(Q_tau * Tran_kappa.transpose() * Qinv_T);
-  Eigen::Matrix<double, 2, 2> Lambda(Tran_tau - Omega * Tran_T);
+  Eigen::Matrix<double, 3, 3> Omega(Q_tau * Tran_kappa.transpose() * Qinv_T);
+  Eigen::Matrix<double, 3, 3> Lambda(Tran_tau - Omega * Tran_T);
 
   // construct computation graph
   const auto T1 = knot1_->pose();
   const auto w1 = knot1_->velocity();
+  const auto dw1 = knot1_->acceleration();
   const auto T2 = knot2_->pose();
   const auto w2 = knot2_->velocity();
+  const auto dw2 = knot2_->acceleration();
 
   using namespace steam::se3;
   using namespace steam::vspace;
+
+  // clang-format off
 
   // Get relative matrix info
   const auto T_21 = compose_rinv(T2, T1);
@@ -50,31 +55,40 @@ PoseInterpolator::PoseInterpolator(const Time& time,
   const auto xi_21 = tran2vec(T_21);
   //
   const auto gamma11 = w1;
+  const auto gamma12 = dw1;
   const auto gamma20 = xi_21;
-  const auto gamma21 = jinv_velocity(xi_21, w2);
+  const auto gamma21 = const_vel::jinv_velocity(xi_21, w2);
+  const auto gamma22 = add<6>(smult<6>(compose_curlyhat(const_vel::jinv_velocity(xi_21, w2), w2), -0.5), const_vel::jinv_velocity(xi_21, dw2));
 
   // pose
   const auto _t1 = smult<6>(gamma11, Lambda(0, 1));
-  const auto _t2 = smult<6>(gamma20, Omega(0, 0));
-  const auto _t3 = smult<6>(gamma21, Omega(0, 1));
-  const auto xi_i1 = add<6>(_t1, add<6>(_t2, _t3));
+  const auto _t2 = smult<6>(gamma12, Lambda(0, 2));
+  const auto _t3 = smult<6>(gamma20, Omega(0, 0));
+  const auto _t4 = smult<6>(gamma21, Omega(0, 1));
+  const auto _t5 = smult<6>(gamma22, Omega(0, 2));
+  const auto xi_i1 = add<6>(_t1, add<6>(_t2, add<6>(_t3, add<6>(_t4, _t5))));
 
   // calculate interpolated relative transformation matrix
   const auto T_i1 = vec2tran(xi_i1);
   // compose to get global transform
   T_i0_ = compose(T_i1, T1);
+
+  // clang-format on
 }
 
 bool PoseInterpolator::active() const {
   return knot1_->pose()->active() || knot1_->velocity()->active() ||
-         knot2_->pose()->active() || knot2_->velocity()->active();
+         knot1_->acceleration()->active() || knot2_->pose()->active() ||
+         knot2_->velocity()->active() || knot2_->acceleration()->active();
 }
 
 void PoseInterpolator::getRelatedVarKeys(KeySet& keys) const {
   knot1_->pose()->getRelatedVarKeys(keys);
   knot1_->velocity()->getRelatedVarKeys(keys);
+  knot1_->acceleration()->getRelatedVarKeys(keys);
   knot2_->pose()->getRelatedVarKeys(keys);
   knot2_->velocity()->getRelatedVarKeys(keys);
+  knot2_->acceleration()->getRelatedVarKeys(keys);
 }
 
 auto PoseInterpolator::value() const -> OutType { return T_i0_->value(); }
@@ -89,6 +103,6 @@ void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
   return T_i0_->backward(lhs, node, jacs);
 }
 
-}  // namespace const_vel
+}  // namespace const_acc
 }  // namespace traj
 }  // namespace steam

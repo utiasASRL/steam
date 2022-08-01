@@ -5,12 +5,12 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/const_vel/variable.hpp"
+#include "steam/trajectory/singer/variable.hpp"
 #include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel {
+namespace singer {
 
 class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
  public:
@@ -19,12 +19,15 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
 
   using InPoseType = lgmath::se3::Transformation;
   using InVelType = Eigen::Matrix<double, 6, 1>;
+  using InAccType = Eigen::Matrix<double, 6, 1>;
   using OutType = lgmath::se3::Transformation;
 
   static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
-                        const Variable::ConstPtr& knot2);
+                        const Variable::ConstPtr& knot2,
+                        const Eigen::Matrix<double, 6, 1>& ad);
   PoseInterpolator(const Time& time, const Variable::ConstPtr& knot1,
-                   const Variable::ConstPtr& knot2);
+                   const Variable::ConstPtr& knot2,
+                   const Eigen::Matrix<double, 6, 1>& ad);
 
   bool active() const override;
   void getRelatedVarKeys(KeySet& keys) const override;
@@ -43,6 +46,6 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
   Evaluable<OutType>::ConstPtr T_i0_;
 };
 
-}  // namespace const_vel
+}  // namespace singer
 }  // namespace traj
 }  // namespace steam

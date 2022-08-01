@@ -44,11 +44,6 @@ int main(int argc, char** argv) {
   Eigen::Array<double, 1, 6> Qc_diag;
   Qc_diag << 1.0, 0.001, 0.001, 0.001, 0.001, 1.0;
 
-  // Make Qc_inv
-  Eigen::Matrix<double, 6, 6> Qc_inv;
-  Qc_inv.setZero();
-  Qc_inv.diagonal() = 1.0 / Qc_diag;
-
   //
   // Setup initial conditions
   //
@@ -79,7 +74,7 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  const_vel::Interface traj(Qc_inv);
+  const_vel::Interface traj(Qc_diag);
   for (const auto& state : states)
     traj.add(state.time, state.pose, state.velocity);
 

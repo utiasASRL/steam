@@ -85,7 +85,7 @@ Eigen::VectorXd GaussNewtonSolver::solveGaussNewton(
     //    Also, this step does not actually use the numerical values in
     //    gaussNewtonLHS
     hessian_solver_->analyzePattern(approximate_hessian);
-    pattern_initialized_ = true;
+    if (params_.reuse_previous_pattern) pattern_initialized_ = true;
   }
 
   // Perform a Cholesky factorization of the approximate Hessian matrix

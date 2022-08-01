@@ -14,7 +14,6 @@ namespace const_vel {
 
 class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
  public:
-  /// Shared pointer typedefs for readability
   using Ptr = std::shared_ptr<VelocityInterpolator>;
   using ConstPtr = std::shared_ptr<const VelocityInterpolator>;
 
@@ -40,17 +39,6 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
-
-  /** \brief Interpolation coefficients */
-  double psi11_;
-  double psi12_;
-  double psi21_;
-  double psi22_;
-  double lambda11_;
-  double lambda12_;
-  double lambda21_;
-  double lambda22_;
-
   /** \brief internal auto-diff evaluator */
   Evaluable<OutType>::ConstPtr xi_it_;
 };

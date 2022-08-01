@@ -5,26 +5,25 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/const_vel/variable.hpp"
-#include "steam/trajectory/time.hpp"
+#include "steam/trajectory/const_acc/variable.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel {
+namespace const_acc {
 
-class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
+class PriorFactor : public Evaluable<Eigen::Matrix<double, 18, 1>> {
  public:
-  using Ptr = std::shared_ptr<PoseInterpolator>;
-  using ConstPtr = std::shared_ptr<const PoseInterpolator>;
+  using Ptr = std::shared_ptr<PriorFactor>;
+  using ConstPtr = std::shared_ptr<const PriorFactor>;
 
   using InPoseType = lgmath::se3::Transformation;
   using InVelType = Eigen::Matrix<double, 6, 1>;
-  using OutType = lgmath::se3::Transformation;
+  using InAccType = Eigen::Matrix<double, 6, 1>;
+  using OutType = Eigen::Matrix<double, 18, 1>;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
+  static Ptr MakeShared(const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2);
-  PoseInterpolator(const Time& time, const Variable::ConstPtr& knot1,
-                   const Variable::ConstPtr& knot2);
+  PriorFactor(const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2);
 
   bool active() const override;
   void getRelatedVarKeys(KeySet& keys) const override;
@@ -39,10 +38,13 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
   const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
-  /** \brief internal auto-diff evaluator */
-  Evaluable<OutType>::ConstPtr T_i0_;
+
+  //
+  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ep_ = nullptr;
+  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ev_ = nullptr;
+  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ea_ = nullptr;
 };
 
-}  // namespace const_vel
+}  // namespace const_acc
 }  // namespace traj
 }  // namespace steam

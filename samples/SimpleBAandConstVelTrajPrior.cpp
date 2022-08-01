@@ -34,14 +34,9 @@ int main(int argc, char** argv) {
   double ang_acc_stddev_x = 0.01;  // ~roll
   double ang_acc_stddev_y = 0.01;  // ~pitch
   double ang_acc_stddev_z = 1.00;  // ~yaw
-  Eigen::Array<double, 1, 6> Qc_diag;
+  Eigen::Matrix<double, 6, 1> Qc_diag;
   Qc_diag << lin_acc_stddev_x, lin_acc_stddev_y, lin_acc_stddev_z,
       ang_acc_stddev_x, ang_acc_stddev_y, ang_acc_stddev_z;
-
-  // Make Qc_inv
-  Eigen::Matrix<double, 6, 6> Qc_inv;
-  Qc_inv.setZero();
-  Qc_inv.diagonal() = 1.0 / Qc_diag;
 
   ///
   /// Parse Dataset
@@ -134,7 +129,7 @@ int main(int argc, char** argv) {
   traj_state_vars.at(0).pose->locked() = true;
 
   // Setup Trajectory
-  traj::const_vel::Interface traj(Qc_inv);
+  traj::const_vel::Interface traj(Qc_diag);
   for (const auto& state : traj_state_vars)
     traj.add(state.time, state.pose, state.velocity);
 

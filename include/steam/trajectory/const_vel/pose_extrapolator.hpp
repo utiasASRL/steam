@@ -13,7 +13,6 @@ namespace const_vel {
 /** \brief Simple transform evaluator for a transformation state variable */
 class PoseExtrapolator : public Evaluable<lgmath::se3::Transformation> {
  public:
-  /// Shared pointer typedefs for readability
   using Ptr = std::shared_ptr<PoseExtrapolator>;
   using ConstPtr = std::shared_ptr<const PoseExtrapolator>;
 

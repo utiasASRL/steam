@@ -84,9 +84,9 @@ int main(int argc, char** argv) {
         stereo::HomoPointStateVar::MakeShared(p_list[i].block<3, 1>(0, 0)));
 
   // create a trajectory
-  Eigen::Matrix<double, 6, 6> Qc = Eigen::Matrix<double, 6, 6>::Identity();
-  Qc.diagonal() << 0.001, 0.00001, 0.00001, 0.0001, 0.0001, 0.0001;
-  traj::const_vel::Interface traj(Qc.inverse());
+  Eigen::Matrix<double, 6, 1> Qc_diag = Eigen::Matrix<double, 6, 1>::Ones();
+  Qc_diag << 0.001, 0.00001, 0.00001, 0.0001, 0.0001, 0.0001;
+  traj::const_vel::Interface traj(Qc_diag);
   for (const auto& state : traj_state_var_list)
     traj.add(state.t, state.T_ri, state.w_ir_inr);
 

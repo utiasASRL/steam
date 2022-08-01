@@ -5,24 +5,27 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/const_vel/variable.hpp"
+#include "steam/trajectory/singer/variable.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel {
+namespace singer {
 
-class PriorFactor : public Evaluable<Eigen::Matrix<double, 12, 1>> {
+class PriorFactor : public Evaluable<Eigen::Matrix<double, 18, 1>> {
  public:
   using Ptr = std::shared_ptr<PriorFactor>;
   using ConstPtr = std::shared_ptr<const PriorFactor>;
 
   using InPoseType = lgmath::se3::Transformation;
   using InVelType = Eigen::Matrix<double, 6, 1>;
-  using OutType = Eigen::Matrix<double, 12, 1>;
+  using InAccType = Eigen::Matrix<double, 6, 1>;
+  using OutType = Eigen::Matrix<double, 18, 1>;
 
   static Ptr MakeShared(const Variable::ConstPtr& knot1,
-                        const Variable::ConstPtr& knot2);
-  PriorFactor(const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2);
+                        const Variable::ConstPtr& knot2,
+                        const Eigen::Matrix<double, 6, 1>& ad);
+  PriorFactor(const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2,
+              const Eigen::Matrix<double, 6, 1>& ad);
 
   bool active() const override;
   void getRelatedVarKeys(KeySet& keys) const override;
@@ -41,8 +44,9 @@ class PriorFactor : public Evaluable<Eigen::Matrix<double, 12, 1>> {
   //
   Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ep_ = nullptr;
   Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ev_ = nullptr;
+  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ea_ = nullptr;
 };
 
-}  // namespace const_vel
+}  // namespace singer
 }  // namespace traj
 }  // namespace steam

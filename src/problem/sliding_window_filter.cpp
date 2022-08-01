@@ -34,6 +34,8 @@ void SlidingWindowFilter::marginalizeVariable(
 
 void SlidingWindowFilter::marginalizeVariable(
     const std::vector<StateVarBase::Ptr> &variables) {
+  if (variables.empty()) return;
+
   ///
   for (const auto &variable : variables) {
     variables_.at(variable->key()).marginalize = true;
