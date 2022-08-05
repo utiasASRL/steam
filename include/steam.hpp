@@ -39,4 +39,6 @@
 
 // trajectory
 #include "steam/trajectory/bspline/interface.hpp"
+#include "steam/trajectory/const_acc/interface.hpp"
 #include "steam/trajectory/const_vel/interface.hpp"
+#include "steam/trajectory/singer/interface.hpp"

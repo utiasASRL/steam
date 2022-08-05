@@ -35,7 +35,7 @@ VelocityInterpolator::VelocityInterpolator(
 
   // Calculate interpolation values
   Eigen::Matrix<double, 18, 18> Omega(Q_tau * Tran_kappa.transpose() *
-                                    Q_T.inverse());
+                                      Q_T.inverse());
   Eigen::Matrix<double, 18, 18> Lambda(Tran_tau - Omega * Tran_T);
 
   // construct computation graph
@@ -70,11 +70,11 @@ VelocityInterpolator::VelocityInterpolator(
   const auto xi_i1 = add<6>(_t1, add<6>(_t2, add<6>(_t3, add<6>(_t4, _t5))));
 
   // velocity
-  const auto _s1 = mmult<6>(gamma11, Lambda.block<6, 6>(1, 6));
-  const auto _s2 = mmult<6>(gamma12, Lambda.block<6, 6>(1, 12));
-  const auto _s3 = mmult<6>(gamma20, Omega.block<6, 6>(1, 0));
-  const auto _s4 = mmult<6>(gamma21, Omega.block<6, 6>(1, 6));
-  const auto _s5 = mmult<6>(gamma22, Omega.block<6, 6>(1, 12));
+  const auto _s1 = mmult<6>(gamma11, Lambda.block<6, 6>(6, 6));
+  const auto _s2 = mmult<6>(gamma12, Lambda.block<6, 6>(6, 12));
+  const auto _s3 = mmult<6>(gamma20, Omega.block<6, 6>(6, 0));
+  const auto _s4 = mmult<6>(gamma21, Omega.block<6, 6>(6, 6));
+  const auto _s5 = mmult<6>(gamma22, Omega.block<6, 6>(6, 12));
   const auto xi_it_linear = add<6>(_s1, add<6>(_s2, add<6>(_s3, add<6>(_s4, _s5))));
   xi_it_ = const_vel::j_velocity(xi_i1, xi_it_linear);
 
