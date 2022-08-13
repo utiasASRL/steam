@@ -50,11 +50,11 @@ void P2PRVErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
                                    Jacobians &jacs) const {
   if (p2p_->active()) {
     const auto child = std::static_pointer_cast<Node<InP2PType>>(node->at(0));
-    p2p_->backward(lhs.block<3, 1>(0, 0), child, jacs);
+    p2p_->backward(lhs.leftCols(3), child, jacs);
   }
   if (rv_->active()) {
     const auto child = std::static_pointer_cast<Node<InRVType>>(node->at(1));
-    rv_->backward(lhs.block<1, 1>(3, 0), child, jacs);
+    rv_->backward(lhs.rightCols(1), child, jacs);
   }
 }
 
