@@ -1,139 +1,16 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \file SimpleBundleAdjustment.cpp
-/// \brief A sample usage of the STEAM Engine library for a bundle adjustment problem
-///
-/// \author Sean Anderson, ASRL
-//////////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * \file SimpleBundleAdjustment.cpp
+ * \author Sean Anderson, Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ * \brief A sample usage of the STEAM Engine library for a bundle adjustment
+ * problem
+ */
 #include <iostream>
-#include <thread>
 
-#include <lgmath.hpp>
-#include <steam.hpp>
-#include <steam/data/ParseBA.hpp>
+#include "lgmath.hpp"
+#include "steam.hpp"
+#include "steam/data/ParseBA.hpp"
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Example that loads and solves simple bundle adjustment problems
-//////////////////////////////////////////////////////////////////////////////////////////////
-void runBundleAdjustment(steam::data::SimpleBaDataset dataset) {
-  ///
-  /// Setup and Initialize States
-  ///
-
-  // Ground truth
-  std::vector<steam::se3::TransformStateVar::Ptr> poses_gt_k_0;
-  std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_gt;
-
-  // State variable containers (and related data)
-  std::vector<steam::se3::TransformStateVar::Ptr> poses_ic_k_0;
-  std::vector<steam::se3::LandmarkStateVar::Ptr> landmarks_ic;
-
-  // Setup ground-truth poses
-  for (unsigned int i = 0; i < dataset.frames_gt.size(); i++) {
-    steam::se3::TransformStateVar::Ptr temp(new steam::se3::TransformStateVar(dataset.frames_gt[i].T_k0));
-    poses_gt_k_0.push_back(temp);
-  }
-
-  // Setup ground-truth landmarks
-  for (unsigned int i = 0; i < dataset.land_gt.size(); i++) {
-    steam::se3::LandmarkStateVar::Ptr temp(new steam::se3::LandmarkStateVar(dataset.land_gt[i].point));
-    landmarks_gt.push_back(temp);
-  }
-
-  // Setup poses with initial condition
-  for (unsigned int i = 0; i < dataset.frames_ic.size(); i++) {
-    steam::se3::TransformStateVar::Ptr temp(new steam::se3::TransformStateVar(dataset.frames_ic[i].T_k0));
-    poses_ic_k_0.push_back(temp);
-  }
-
-  // Lock first pose (otherwise entire solution is 'floating')
-  //  **Note: alternatively we could add a prior (UnaryTransformError) to the first pose.
-  poses_ic_k_0[0]->setLock(true);
-
-  // Setup landmarks with initial condition
-  for (unsigned int i = 0; i < dataset.land_ic.size(); i++) {
-    steam::se3::LandmarkStateVar::Ptr temp(new steam::se3::LandmarkStateVar(dataset.land_ic[i].point));
-    landmarks_ic.push_back(temp);
-  }
-
-  ///
-  /// Setup Cost Terms
-  ///
-
-  // steam cost terms
-  steam::ParallelizedCostTermCollection::Ptr stereoCostTerms(new steam::ParallelizedCostTermCollection());
-
-  // Setup shared noise and loss function
-  steam::BaseNoiseModel<4>::Ptr sharedCameraNoiseModel(new steam::StaticNoiseModel<4>(dataset.noise));
-  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
-
-  // Setup camera intrinsics
-  steam::stereo::CameraIntrinsics::Ptr sharedIntrinsics(
-        new steam::stereo::CameraIntrinsics());
-  sharedIntrinsics->b  = dataset.camParams.b;
-  sharedIntrinsics->fu = dataset.camParams.fu;
-  sharedIntrinsics->fv = dataset.camParams.fv;
-  sharedIntrinsics->cu = dataset.camParams.cu;
-  sharedIntrinsics->cv = dataset.camParams.cv;
-
-  // Generate cost terms for camera measurements
-  for (unsigned int i = 0; i < dataset.meas.size(); i++) {
-
-    // Get pose reference
-    steam::se3::TransformStateVar::Ptr& poseVar = poses_ic_k_0[dataset.meas[i].frameID];
-
-    // Get landmark reference
-    steam::se3::LandmarkStateVar::Ptr& landVar = landmarks_ic[dataset.meas[i].landID];
-
-    // Construct transform evaluator between landmark frame (inertial) and camera frame
-    steam::se3::TransformEvaluator::Ptr pose_c_v = steam::se3::FixedTransformEvaluator::MakeShared(dataset.T_cv);
-    steam::se3::TransformEvaluator::Ptr pose_v_0 = steam::se3::TransformStateEvaluator::MakeShared(poseVar);
-    steam::se3::TransformEvaluator::Ptr pose_c_0 = steam::se3::compose(pose_c_v, pose_v_0);
-
-    // Construct error function
-    steam::StereoCameraErrorEval::Ptr errorfunc(new steam::StereoCameraErrorEval(
-            dataset.meas[i].data, sharedIntrinsics, pose_c_0, landVar));
-
-    // Construct cost term
-    steam::WeightedLeastSqCostTerm<4,6>::Ptr cost(new steam::WeightedLeastSqCostTerm<4,6>(errorfunc, sharedCameraNoiseModel, sharedLossFunc));
-    stereoCostTerms->add(cost);
-  }
-
-  ///
-  /// Make Optimization Problem
-  ///
-
-  // Initialize problem
-  steam::OptimizationProblem problem;
-
-  // Add pose variables
-  for (unsigned int i = 1; i < poses_ic_k_0.size(); i++) {
-    problem.addStateVariable(poses_ic_k_0[i]);
-  }
-
-  // Add landmark variables
-  for (unsigned int i = 0; i < landmarks_ic.size(); i++) {
-    problem.addStateVariable(landmarks_ic[i]);
-  }
-
-  // Add cost terms
-  problem.addCostTerm(stereoCostTerms);
-
-  ///
-  /// Setup Solver and Optimize
-  ///
-  typedef steam::DoglegGaussNewtonSolver SolverType;
-
-  // Initialize parameters (enable verbose mode)
-  SolverType::Params params;
-  params.verbose = true;
-
-  // Make solver
-  SolverType solver(&problem, params);
-
-  // Optimize
-  solver.optimize();
-}
+using namespace steam;
 
 int main(int argc, char** argv) {
   ///
@@ -144,8 +21,8 @@ int main(int argc, char** argv) {
   std::string filename;
   if (argc < 2) {
     filename = "../include/steam/data/stereo_simulated.txt";
-    //filename = "../include/steam/data/stereo_simulated_window1.txt";
-    //filename = "../include/steam/data/stereo_simulated_window2.txt";
+    // filename = "../include/steam/data/stereo_simulated_window1.txt";
+    // filename = "../include/steam/data/stereo_simulated_window2.txt";
     std::cout << "Parsing default file: " << filename << std::endl << std::endl;
   } else {
     filename = argv[1];
@@ -153,22 +30,115 @@ int main(int argc, char** argv) {
   }
 
   // Load dataset
-  steam::data::SimpleBaDataset dataset = steam::data::parseSimpleBaDataset(filename);
+  // clang-format off
+  data::SimpleBaDataset dataset = data::parseSimpleBaDataset(filename);
   std::cout << "Problem has: " << dataset.frames_gt.size() << " poses" << std::endl;
   std::cout << "             " << dataset.land_gt.size() << " landmarks" << std::endl;
-  std::cout << "            ~" << double(dataset.meas.size())/dataset.frames_gt.size() << " meas per pose" << std::endl << std::endl;
+  std::cout << "            ~" << double(dataset.meas.size()) / dataset.frames_gt.size()
+            << " meas per pose" << std::endl << std::endl;
+  // clang-format on
 
-  /// Test single thread execution
-  std::cout << "Test single thread execution." << std::endl;
-  runBundleAdjustment(dataset);
+  ///
+  /// Make Optimization Problem
+  ///
 
-#ifndef STEAM_USE_OBJECT_POOL
-  /// Test multi thread execution
-  std::cout << "Test multi thread execution (C++11)." << std::endl;
-  std::vector<std::thread> threads;
-  for (int i = 1; i <= 10; ++i)
-    threads.push_back(std::thread(runBundleAdjustment, dataset));
-  for (auto &th : threads)
-    th.join();
-#endif
+  OptimizationProblem problem;
+
+  ///
+  /// Setup and Initialize States
+  ///
+
+  // Setup T_cv as a locked se3 state variable
+  const auto pose_c_v = se3::SE3StateVar::MakeShared(dataset.T_cv);
+  pose_c_v->locked() = true;
+
+  // Ground truth
+  std::vector<se3::SE3StateVar::Ptr> poses_gt_k_0;
+  std::vector<stereo::HomoPointStateVar::Ptr> landmarks_gt;
+
+  // State variable containers (and related data)
+  std::vector<se3::SE3StateVar::Ptr> poses_ic_k_0;
+  std::vector<stereo::HomoPointStateVar::Ptr> landmarks_ic;
+
+  // Setup ground-truth poses
+  for (unsigned int i = 0; i < dataset.frames_gt.size(); i++)
+    poses_gt_k_0.emplace_back(
+        se3::SE3StateVar::MakeShared(dataset.frames_gt[i].T_k0));
+
+  // Setup ground-truth landmarks
+  for (unsigned int i = 0; i < dataset.land_gt.size(); i++)
+    landmarks_gt.emplace_back(
+        stereo::HomoPointStateVar::MakeShared(dataset.land_gt[i].point));
+
+  // Setup poses with initial condition
+  for (unsigned int i = 0; i < dataset.frames_ic.size(); i++)
+    poses_ic_k_0.emplace_back(
+        se3::SE3StateVar::MakeShared(dataset.frames_ic[i].T_k0));
+
+  // Lock first pose (otherwise entire solution is 'floating')
+  //  **Note: alternatively we could add a prior to the first pose
+  poses_ic_k_0[0]->locked() = true;
+
+  // Setup landmarks with initial condition
+  for (unsigned int i = 0; i < dataset.land_ic.size(); i++)
+    landmarks_ic.emplace_back(
+        stereo::HomoPointStateVar::MakeShared(dataset.land_ic[i].point));
+
+  // Add pose variables
+  for (unsigned int i = 1; i < poses_ic_k_0.size(); i++)
+    problem.addStateVariable(poses_ic_k_0[i]);
+  // Add landmark variables
+  for (unsigned int i = 0; i < landmarks_ic.size(); i++)
+    problem.addStateVariable(landmarks_ic[i]);
+
+  ///
+  /// Setup Cost Terms
+  ///
+
+  // Setup shared noise and loss function
+  const auto sharedCameraNoiseModel =
+      StaticNoiseModel<4>::MakeShared(dataset.noise);
+  const auto sharedLossFunc = L2LossFunc::MakeShared();
+
+  // Setup camera intrinsics
+  const auto sharedIntrinsics = std::make_shared<stereo::CameraIntrinsics>();
+  sharedIntrinsics->b = dataset.camParams.b;
+  sharedIntrinsics->fu = dataset.camParams.fu;
+  sharedIntrinsics->fv = dataset.camParams.fv;
+  sharedIntrinsics->cu = dataset.camParams.cu;
+  sharedIntrinsics->cv = dataset.camParams.cv;
+
+  // Generate cost terms for camera measurements
+  for (unsigned int i = 0; i < dataset.meas.size(); i++) {
+    // Get pose reference
+    auto& pose_v_0 = poses_ic_k_0[dataset.meas[i].frameID];
+    // Get landmark reference
+    auto& landmark = landmarks_ic[dataset.meas[i].landID];
+    // Construct transform evaluator between landmark frame (inertial) and
+    // camera frame
+    const auto pose_c_0 = se3::compose(pose_c_v, pose_v_0);
+
+    // Construct error function
+    const auto errorfunc = stereo::StereoErrorEvaluator::MakeShared(
+        dataset.meas[i].data, sharedIntrinsics, pose_c_0, landmark);
+
+    // Construct cost term
+    const auto cost = WeightedLeastSqCostTerm<4>::MakeShared(
+        errorfunc, sharedCameraNoiseModel, sharedLossFunc);
+
+    // Add cost term
+    problem.addCostTerm(cost);
+  }
+
+  ///
+  /// Setup Solver and Optimize
+  ///
+  DoglegGaussNewtonSolver::Params params;
+  params.verbose = true;
+  DoglegGaussNewtonSolver solver(problem, params);
+
+  // Optimize
+  solver.optimize();
+
+  return 0;
 }

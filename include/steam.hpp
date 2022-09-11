@@ -4,66 +4,41 @@
 ///
 /// \author Sean Anderson
 //////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifndef STEAM_ESTIMATION_LIBRARY_HPP
-#define STEAM_ESTIMATION_LIBRARY_HPP
+#pragma once
 
 // blkmat
-#include <steam/blockmat/BlockMatrix.hpp>
-#include <steam/blockmat/BlockVector.hpp>
-#include <steam/blockmat/BlockSparseMatrix.hpp>
+#include "steam/blockmat/BlockMatrix.hpp"
+#include "steam/blockmat/BlockSparseMatrix.hpp"
+#include "steam/blockmat/BlockVector.hpp"
 
 // common
-#include <steam/common/Time.hpp>
-#include <steam/common/Timer.hpp>
+#include "steam/common/Timer.hpp"
 
-// evaluator
-#include <steam/evaluator/ErrorEvaluator.hpp>
+// evaluables (including variable)
+#include "steam/evaluable/evaluable.hpp"
+#include "steam/evaluable/state_var.hpp"
 
-// evaluator - block automatic
-#include <steam/evaluator/blockauto/BlockAutomaticEvaluator.hpp>
-#include <steam/evaluator/blockauto/transform/TransformEvaluator.hpp>
-#include <steam/evaluator/blockauto/transform/PositionEvaluator.hpp>
-#include <steam/evaluator/blockauto/transform/TransformStateEvaluator.hpp>
-#include <steam/evaluator/blockauto/transform/InverseTransformEvaluator.hpp>
-#include <steam/evaluator/blockauto/transform/FixedTransformEvaluator.hpp>
-#include <steam/evaluator/blockauto/transform/TransformEvalOperations.hpp>
-
-// evaluator - samples (sample functions)
-#include <steam/evaluator/samples/StereoCameraErrorEval.hpp>
-#include <steam/evaluator/samples/StereoCameraErrorEvalX.hpp>
-#include <steam/evaluator/samples/TransformErrorEval.hpp>
-#include <steam/evaluator/samples/PositionErrorEval.hpp>
-#include <steam/evaluator/samples/VectorSpaceErrorEval.hpp>
-#include <steam/evaluator/samples/LinearFuncErrorEval.hpp>
-#include <steam/evaluator/samples/ImuErrorEval.hpp>
-#include <steam/evaluator/samples/PointToPointErrorEval.hpp>
-#include <steam/evaluator/samples/PointToPointErrorEval2.hpp>
-
-// evaluator - block auto diff
-#include <steam/evaluator/blockauto/EvalTreeNode.hpp>
+#include "steam/evaluable/p2p/evaluables.hpp"
+#include "steam/evaluable/se3/evaluables.hpp"
+#include "steam/evaluable/stereo/evaluables.hpp"
+#include "steam/evaluable/vspace/evaluables.hpp"
 
 // problem
-#include <steam/problem/WeightedLeastSqCostTerm.hpp>
-#include <steam/problem/ParallelizedCostTermCollection.hpp>
-#include <steam/problem/NoiseModel.hpp>
-#include <steam/problem/LossFunctions.hpp>
-#include <steam/problem/OptimizationProblem.hpp>
+#include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
+#include "steam/problem/loss_func/loss_funcs.hpp"
+#include "steam/problem/noise_model/static_noise_model.hpp"
+#include "steam/problem/optimization_problem.hpp"
+#include "steam/problem/sliding_window_filter.hpp"
 
 // solver
-#include <steam/solver/VanillaGaussNewtonSolver.hpp>
-#include <steam/solver/LineSearchGaussNewtonSolver.hpp>
-#include <steam/solver/LevMarqGaussNewtonSolver.hpp>
-#include <steam/solver/DoglegGaussNewtonSolver.hpp>
-
-// state
-#include <steam/state/StateVariable.hpp>
-#include <steam/state/VectorSpaceStateVar.hpp>
-#include <steam/state/LieGroupStateVar.hpp>
-#include <steam/state/LandmarkStateVar.hpp>
+#include "steam/solver/covariance.hpp"
+#include "steam/solver/dogleg_gauss_newton_solver.hpp"
+#include "steam/solver/gauss_newton_solver.hpp"
+#include "steam/solver/lev_marq_gauss_newton_solver.hpp"
+#include "steam/solver/line_search_gauss_newton_solver.hpp"
 
 // trajectory
-#include <steam/trajectory/SteamTrajInterface.hpp>
-#include <steam/trajectory/SteamCATrajInterface.hpp>
-
-#endif // STEAM_ESTIMATION_LIBRARY_HPP
+#include "steam/trajectory/bspline/interface.hpp"
+#include "steam/trajectory/const_acc/interface.hpp"
+#include "steam/trajectory/const_vel/interface.hpp"
+#include "steam/trajectory/singer/interface.hpp"

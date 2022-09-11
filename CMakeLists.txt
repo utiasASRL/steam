@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(steam)
 
-option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." OFF)
+option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." ON)
 
 # Compiler setup (assumed to be GNU)
 set(CMAKE_CXX_STANDARD 17)
@@ -10,9 +10,6 @@ add_compile_options(-march=native -O3 -Wall -pedantic -Wno-unused-function)
 
 # define number of threads to be used by OpenMP in steam
 add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
-# Use a object pool to improve performance but no longer thread safe as the object pool
-# is a singleton and is based on openmp. There is about ~10 gain in speed.
-# add_definitions(-DSTEAM_USE_OBJECT_POOL)
 
 ## cmake flow (default)
 if (NOT USE_AMENT)
@@ -20,6 +17,7 @@ if (NOT USE_AMENT)
 set(PROJECT_VERSION 1.1.0)
 
 # Find dependencies
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -27,8 +25,15 @@ find_package(Eigen3 3.3.7 REQUIRED)
 find_package(lgmath 1.1.0 REQUIRED)
 
 # Build library
-file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
-add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+file(GLOB_RECURSE SOURCE
+  src/data/*.cpp
+  src/blockmat/*.cpp
+  src/evaluable/*.cpp
+  src/problem/*.cpp
+  src/solver/*.cpp
+  src/trajectory/*.cpp
+)
+add_library(${PROJECT_NAME} SHARED ${SOURCE})
 target_link_libraries(${PROJECT_NAME}
   PUBLIC lgmath
 )
@@ -92,6 +97,7 @@ else()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -100,9 +106,16 @@ find_package(Eigen3 REQUIRED)
 find_package(lgmath REQUIRED)
 
 # Libraries
-file(GLOB_RECURSE SOURCE src/*.cpp)
+file(GLOB_RECURSE SOURCE
+  src/data/*.cpp
+  src/blockmat/*.cpp
+  src/evaluable/*.cpp
+  src/problem/*.cpp
+  src/solver/*.cpp
+  src/trajectory/*.cpp
+)
 add_library(${PROJECT_NAME} ${SOURCE})
-ament_target_dependencies(${PROJECT_NAME} Eigen3 OpenMP lgmath)
+ament_target_dependencies(${PROJECT_NAME} Boost OpenMP Eigen3 lgmath)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -110,7 +123,7 @@ target_include_directories(${PROJECT_NAME}
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(eigen3_cmake_module)
-ament_export_dependencies(OpenMP Eigen3 lgmath)
+ament_export_dependencies(Boost OpenMP Eigen3 lgmath)
 
 install(
   DIRECTORY include/
@@ -130,38 +143,42 @@ endif()
 
 # Executables
 link_libraries(${PROJECT_NAME})
-add_executable(SimpleBAandTrajPrior samples/SimpleBAandTrajPrior.cpp)
-add_executable(SimpleBAandCATrajPrior samples/SimpleBAandCATrajPrior.cpp)
-add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
-add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
-add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
-add_executable(SimpleBundleAdjustmentRelLandX samples/SimpleBundleAdjustmentRelLandX.cpp)
+add_executable(BSplineTrajectoryExample samples/BSplineTrajectoryExample.cpp)
+add_executable(LandmarkSLAMExample samples/LandmarkSLAMExample.cpp)
+add_executable(RadialVelMeasWithConstVelTraj samples/RadialVelMeasWithConstVelTraj.cpp)
+add_executable(RadialVelocityMeasurement samples/RadialVelocityMeasurement.cpp)
 add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
-add_executable(SimpleTrajectoryPrior samples/SimpleTrajectoryPrior.cpp)
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
-add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
-add_executable(MotionDistortedP2PandCATrajPrior samples/MotionDistortedP2PandCATrajPrior.cpp)
-add_executable(SimpleP2PandCATrajPrior samples/SimpleP2PandCATrajPrior.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
+add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
+add_executable(SimpleConstVelTrajPrior samples/SimpleConstVelTrajPrior.cpp)
+add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
+add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
+add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullRel.cpp)
+add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
+add_executable(SlidingWindowFilterExample samples/SlidingWindowFilterExample.cpp)
+add_executable(MotionPriors samples/MotionPriors.cpp)
 
 if (USE_AMENT)
 
 install(
   TARGETS
     # Executables
-    SimpleBAandTrajPrior
-    SimpleBAandCATrajPrior
-    SimpleBundleAdjustment
-    SimpleBundleAdjustmentFullRel
-    SimpleBundleAdjustmentRelLand
-    SimpleBundleAdjustmentRelLandX
+    BSplineTrajectoryExample
+    LandmarkSLAMExample
+    RadialVelMeasWithConstVelTraj
+    RadialVelocityMeasurement
     SimplePoseGraphRelax
-    SimpleTrajectoryPrior
     SpherePoseGraphRelax
-    TrustRegionExample
-    MotionDistortedP2PandCATrajPrior
-    SimpleP2PandCATrajPrior
     SimplePointCloudAlignment
+    TrustRegionExample
+    SimpleConstVelTrajPrior
+    SimpleBundleAdjustment
+    SimpleBundleAdjustmentRelLand
+    SimpleBundleAdjustmentFullRel
+    SimpleBAandConstVelTrajPrior
+    SlidingWindowFilterExample
+    MotionPriors
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -176,8 +193,6 @@ if(BUILD_TESTING)
   target_link_libraries(time_test ${PROJECT_NAME})
   ament_add_gtest(pattern_test tests/pattern_test.cpp)
   target_link_libraries(pattern_test ${PROJECT_NAME})
-  ament_add_gtest(evaluator_test tests/evaluator_test.cpp)
-  target_link_libraries(evaluator_test ${PROJECT_NAME})
 
   # Linting
   find_package(ament_lint_auto REQUIRED)

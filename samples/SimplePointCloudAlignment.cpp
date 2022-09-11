@@ -11,6 +11,8 @@
 #include <steam.hpp>
 
 int main(int argc, char **argv) {
+  using namespace steam;
+
   /// Reference points to align against
   Eigen::Matrix<double, 4, 9> ref_pts;
   // clang-format off
@@ -27,50 +29,41 @@ int main(int argc, char **argv) {
 
   Eigen::Matrix<double, 4, 9> qry_pts = T_mq.inverse().matrix() * ref_pts;
 
+  // Initialize problem
+  OptimizationProblem problem;
+
   // state and evaluator
-  steam::se3::TransformStateVar::Ptr T_mq_var(
-      new steam::se3::TransformStateVar());
-  steam::se3::TransformStateEvaluator::ConstPtr T_mq_eval =
-      steam::se3::TransformStateEvaluator::MakeShared(T_mq_var);
+  using SE3StateVar = se3::SE3StateVar;
+  const auto T_mq_var = SE3StateVar::MakeShared(SE3StateVar::T());
+  problem.addStateVariable(T_mq_var);
 
   // shared noise and loss functions
-  steam::BaseNoiseModel<3>::Ptr noise_model(
-      new steam::StaticNoiseModel<3>(Eigen::MatrixXd::Identity(3, 3)));
-  steam::L2LossFunc::Ptr loss_func(new steam::L2LossFunc());
+  Eigen::Matrix3d cov = Eigen::Matrix3d::Identity();
+  const auto noise_model = StaticNoiseModel<3>::MakeShared(cov);
+  const auto loss_function = L2LossFunc::MakeShared();
 
   // cost terms
-  steam::ParallelizedCostTermCollection::Ptr cost_terms(
-      new steam::ParallelizedCostTermCollection());
   for (int i = 0; i < ref_pts.cols(); i++) {
     // Construct error function
-    steam::PointToPointErrorEval2::Ptr error_func(
-        new steam::PointToPointErrorEval2(T_mq_eval, ref_pts.block<3, 1>(0, i),
-                                          qry_pts.block<3, 1>(0, i)));
-
-    // Create cost term and add to problem
-    steam::WeightedLeastSqCostTerm<3, 6>::Ptr cost(
-        new steam::WeightedLeastSqCostTerm<3, 6>(error_func, noise_model,
-                                                 loss_func));
-    cost_terms->add(cost);
+    const auto error_function = p2p::p2pError(
+        T_mq_var, ref_pts.block<3, 1>(0, i), qry_pts.block<3, 1>(0, i));
+    // Construct cost term
+    const auto cost_term = WeightedLeastSqCostTerm<3>::MakeShared(
+        error_function, noise_model, loss_function);
+    // Add cost term
+    problem.addCostTerm(cost_term);
   }
 
-  // Initialize problem
-  steam::OptimizationProblem problem;
-  problem.addStateVariable(T_mq_var);
-  problem.addCostTerm(cost_terms);
-
-  typedef steam::VanillaGaussNewtonSolver SolverType;
-  SolverType::Params params;
-  params.verbose = true;
-
   // Make solver
-  SolverType solver(&problem, params);
+  GaussNewtonSolver::Params params;
+  params.verbose = true;
+  GaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();
 
   std::cout << "true T_mq:\n" << T_mq << std::endl;
-  std::cout << "estimated T_mq:\n" << T_mq_var->getValue() << std::endl;
+  std::cout << "estimated T_mq:\n" << T_mq_var->value() << std::endl;
 
   return 0;
 }

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \file SpherePoseGraphRelax.cpp
-/// \brief A sample usage of the STEAM Engine library for solving the iSAM1 spherical pose graph
-///        relaxation problem.
+/// \brief A sample usage of the STEAM Engine library for solving the iSAM1
+/// spherical pose graph relaxation problem.
 ///
 /// \author Sean Anderson, ASRL
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -12,13 +12,15 @@
 #include <steam.hpp>
 #include <steam/data/ParseSphere.hpp>
 
+using SE3StateVar = steam::se3::SE3StateVar;
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// \brief Example that loads and solves an iSAM1 spherical pose graph problem
 //////////////////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char **argv) {
-
+int main(int argc, char** argv) {
   ///
-  /// Parse Dataset - sphere of relative pose measurements (fairly dense loop closures)
+  /// Parse Dataset - sphere of relative pose measurements (fairly dense loop
+  /// closures)
   ///
 
   // Get filename
@@ -31,107 +33,92 @@ int main(int argc, char **argv) {
     std::cout << "Parsing file: " << filename << std::endl << std::endl;
   }
 
-  std::vector<steam::data::SphereEdge> measCollection = steam::data::parseSphereDataset(filename);
+  std::vector<steam::data::SphereEdge> measCollection =
+      steam::data::parseSphereDataset(filename);
+
+  // Initialize problem
+  steam::OptimizationProblem problem;
 
   ///
   /// Setup and Initialize States
   ///
 
   // steam state variables
-  std::vector<steam::se3::TransformStateVar::Ptr> poses_k_0;
+  std::vector<SE3StateVar::Ptr> poses_k_0;
 
   // Edges (for graphics)
-  std::vector<std::pair<int,int> > edges;
+  std::vector<std::pair<int, int>> edges;
 
   // Add initial state
   {
-    steam::se3::TransformStateVar::Ptr pose_0_0(new steam::se3::TransformStateVar());
+    const auto pose_0_0 = SE3StateVar::MakeShared(SE3StateVar::T());
 
     // Lock first pose (otherwise entire solution is 'floating')
-    //  **Note: alternatively we could add a prior (UnaryTransformError) to the first pose.
-    pose_0_0->setLock(true);
+    //  **Note: alternatively we could add a prior (UnaryTransformError) to the
+    //  first pose.
+    pose_0_0->locked() = true;
 
     poses_k_0.push_back(pose_0_0);
+    problem.addStateVariable(poses_k_0.back());
   }
 
   // Add states from odometry
   for (unsigned int i = 0; i < measCollection.size(); i++) {
-
-    // Looping through all measurements (including loop closures), check if measurement provides odometry
-    if (measCollection[i].idA == poses_k_0.size()-1 &&
+    // Looping through all measurements (including loop closures), check if
+    // measurement provides odometry
+    if (measCollection[i].idA == poses_k_0.size() - 1 &&
         measCollection[i].idB == poses_k_0.size()) {
-
-      lgmath::se3::Transformation T_k_0 = measCollection[i].T_BA * poses_k_0[poses_k_0.size()-1]->getValue();
-      steam::se3::TransformStateVar::Ptr temp(new steam::se3::TransformStateVar(T_k_0));
+      lgmath::se3::Transformation T_k_0 =
+          measCollection[i].T_BA * poses_k_0[poses_k_0.size() - 1]->value();
+      const auto temp = SE3StateVar::MakeShared(T_k_0);
       poses_k_0.push_back(temp);
+      problem.addStateVariable(poses_k_0.back());
     }
 
     // Add edge graphic
-    edges.push_back(std::make_pair(measCollection[i].idA, measCollection[i].idB));
+    edges.push_back(
+        std::make_pair(measCollection[i].idA, measCollection[i].idB));
   }
 
   ///
   /// Setup Cost Terms
   ///
 
-  // steam cost terms
-  steam::ParallelizedCostTermCollection::Ptr costTerms(new steam::ParallelizedCostTermCollection());
-
   // Setup shared noise and loss functions
-  steam::BaseNoiseModel<6>::Ptr sharedNoiseModel(new steam::StaticNoiseModel<6>(measCollection[0].sqrtInformation, steam::SQRT_INFORMATION));
-  steam::L2LossFunc::Ptr sharedLossFunc(new steam::L2LossFunc());
+  const auto sharedNoiseModel = steam::StaticNoiseModel<6>::MakeShared(
+      measCollection[0].sqrtInformation, steam::NoiseType::SQRT_INFORMATION);
+  const auto sharedLossFunc = steam::L2LossFunc::MakeShared();
 
   // Turn measurements into cost terms
-  for (unsigned int i = 0; i < measCollection.size(); i++)
-  {
+  for (unsigned int i = 0; i < measCollection.size(); i++) {
     // Get first referenced state variable
-    steam::se3::TransformStateVar::Ptr& stateVarA = poses_k_0[measCollection[i].idA];
-
+    const auto& stateVarA = poses_k_0[measCollection[i].idA];
     // Get second referenced state variable
-    steam::se3::TransformStateVar::Ptr& stateVarB = poses_k_0[measCollection[i].idB];
-
+    const auto& stateVarB = poses_k_0[measCollection[i].idB];
     // Get transform measurement
-    lgmath::se3::Transformation& meas_T_BA = measCollection[i].T_BA;
-
+    const auto meas_T_BA = SE3StateVar::MakeShared(measCollection[i].T_BA);
+    meas_T_BA->locked() = true;
     // Construct error function
-    steam::TransformErrorEval::Ptr errorfunc(new steam::TransformErrorEval(meas_T_BA, stateVarB, stateVarA));
+    using namespace steam::se3;
+    const auto hat_T_AB = compose(stateVarA, inverse(stateVarB));
+    const auto error_function = tran2vec(compose(meas_T_BA, hat_T_AB));
 
-    // Create cost term and add to problem
-    steam::WeightedLeastSqCostTerm<6,6>::Ptr cost(new steam::WeightedLeastSqCostTerm<6,6>(errorfunc, sharedNoiseModel, sharedLossFunc));
-    costTerms->add(cost);
+    // Construct cost term
+    const auto cost_term = steam::WeightedLeastSqCostTerm<6>::MakeShared(
+        error_function, sharedNoiseModel, sharedLossFunc);
+    // Add cost term
+    problem.addCostTerm(cost_term);
   }
-
-  ///
-  /// Make Optimization Problem
-  ///
-
-  // Initialize problem
-  steam::OptimizationProblem problem;
-
-  // Add state variables
-  for (unsigned int i = 1; i < poses_k_0.size(); i++)
-  {
-    problem.addStateVariable(poses_k_0[i]);
-  }
-
-  // Add cost terms
-  problem.addCostTerm(costTerms);
 
   ///
   /// Setup Solver and Optimize
   ///
-  typedef steam::DoglegGaussNewtonSolver SolverType;
-
-  // Initialize parameters (enable verbose mode)
-  SolverType::Params params;
+  steam::DoglegGaussNewtonSolver::Params params;
   params.verbose = true;
-
-  // Make solver
-  SolverType solver(&problem, params);
+  steam::DoglegGaussNewtonSolver solver(problem, params);
 
   // Optimize
   solver.optimize();
 
   return 0;
 }
-
