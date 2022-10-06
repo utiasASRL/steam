@@ -108,7 +108,7 @@ void SolverBase::iterate() {
 ///        can choose to control the loop themselves.
 //////////////////////////////////////////////////////////////////////////////////////////////
 void SolverBase::optimize() {
-  // Timer
+  // Timersldkfjlsd
   steam::Timer timer;
 
   // Optimization loop
