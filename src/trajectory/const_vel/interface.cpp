@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "steam/trajectory/const_vel/interface.hpp"
 
 #include "steam/evaluable/se3/evaluables.hpp"
@@ -113,6 +115,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
 
   // extrapolate after last entry
   if (it1 == knot_map_.end()) {
+    std::cout << "[steam] (1)" << std::endl;
     --it1;  // should be safe, as we checked that the map was not empty..
 
     const auto& endKnot = it1->second;
@@ -136,21 +139,22 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
     // the state estimation textbook where we take the interpolation equations.
     // This doesn't apply to jacKnot2.
     auto F_t1 = -getJacKnot1(endKnot, extrap_knot);
-    auto E_t1_inv = getJacKnot2(endKnot, extrap_knot).inverse();
+    auto E_t1_inv = getJacKnot3(endKnot, extrap_knot);
 
     // Prior covariance
-    auto Qt1_inv = getQinv((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
+    auto Qt1 = getQ((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
 
     // end knot covariance
     std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var};
     Eigen::Matrix<double, 12, 12> P_end = cov.query(state_var);
 
     // Compute covariance
-    return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1_inv.inverse()) * E_t1_inv.transpose();
+    return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1) * E_t1_inv.transpose();
   }
 
   // Check if we requested time exactly
   if (it1->second->time() == time) {
+    std::cout << "[steam] (2)" << std::endl;
     const auto& knot = it1->second;
     const auto T_k0 = knot->pose();
     const auto w_0k_ink = knot->velocity();
@@ -174,6 +178,8 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   // Get iterators bounding the time interval
   auto it2 = it1;
   --it1;
+
+  std::cout << "[steam] (3)" << std::endl;
 
   const auto& knot1 = it1->second;
   const auto T_10 = knot1->pose();
@@ -200,18 +206,28 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   // Note: jacKnot1 will return the negative of F as defined in
   // the state estimation textbook where we take the interpolation equations.
   // This doesn't apply to jacKnot2.
-  auto F_t1 = -getJacKnot1(knot1, knotq);
-  auto E_t1 = getJacKnot2(knot1, knotq);
-  auto F_2t = -getJacKnot1(knotq, knot2);
-  auto E_2t = getJacKnot2(knotq, knot2);
+  Eigen::Matrix<double, 12, 12> F_t1 = -getJacKnot1(knot1, knotq);
+  Eigen::Matrix<double, 12, 12> E_t1 = getJacKnot2(knot1, knotq);
+  Eigen::Matrix<double, 12, 12> F_2t = -getJacKnot1(knotq, knot2);
+  Eigen::Matrix<double, 12, 12> E_2t = getJacKnot2(knotq, knot2);
+
+  std::cout << "[steam] F_t1 " << F_t1 << std::endl;
+  std::cout << "[steam] E_t1 " << E_t1 << std::endl;
+  std::cout << "[steam] F_2t " << F_2t << std::endl;
+  std::cout << "[steam] E_2t " << E_2t << std::endl;
 
   // Prior inverse covariances
   Eigen::Matrix<double, 12, 12> Qt1_inv = getQinv((knotq->time() - knot1->time()).seconds(), Qc_diag_);
   Eigen::Matrix<double, 12, 12> Q2t_inv = getQinv((knot2->time() - knotq->time()).seconds(), Qc_diag_);
 
+  std::cout << "[steam] Qt1_inv " << Qt1_inv << std::endl;
+  std::cout << "[steam] Q2t_inv " << Q2t_inv << std::endl;
+
   // Covariance of knot1 and knot2
   std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
   Eigen::Matrix<double, 24, 24> P_1n2 = cov.query(state_var);
+  std::cout << "[steam] P_1n2 " << P_1n2 << std::endl;
+  std::cout << "[steam] P_1n2.inverse(): " << P_1n2.fullPivLu().inverse() << std::endl;
 
   // Helper matrices
   Eigen::Matrix<double, 24, 12> A = Eigen::Matrix<double, 24, 12>::Zero();
@@ -222,21 +238,90 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   B.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
   B.block<12, 12>(12, 12) = E_2t.transpose() * Q2t_inv * E_2t;
 
-  auto F_21 = -getJacKnot1(knot1, knot2);
-  auto E_21 = getJacKnot2(knot1, knot2);
+  Eigen::Matrix<double, 12, 12> F_21 = -getJacKnot1(knot1, knot2);
+  Eigen::Matrix<double, 12, 12> E_21 = getJacKnot2(knot1, knot2);
   Eigen::Matrix<double, 12, 12> Q21_inv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
+
+  std::cout << "[steam] F_21 " << F_21 << std::endl;
+  std::cout << "[steam] E_21 " << E_21 << std::endl;
+  std::cout << "[steam] Q21_inv " << Q21_inv << std::endl;
+
   Eigen::Matrix<double, 24, 24> Pinv_comp = Eigen::Matrix<double, 24, 24>::Zero();
   Pinv_comp.block<12, 12>(0, 0) = F_21.transpose() * Q21_inv * F_21;
   Pinv_comp.block<12, 12>(12, 0) = -E_21.transpose() * Q21_inv * F_21;
   Pinv_comp.block<12, 12>(0, 12) = Pinv_comp.block<12, 12>(12, 0).transpose();
   Pinv_comp.block<12, 12>(12, 12) = E_21.transpose() * Q21_inv * E_21;
 
+  Eigen::Matrix<double, 12, 12> AA = P_1n2.block<12, 12>(0, 0);
+  Eigen::Matrix<double, 12, 12> CC = P_1n2.block<12, 12>(12, 0);
+  Eigen::Matrix<double, 12, 12> DD = P_1n2.block<12, 12>(12, 12);
+
+  Eigen::Matrix<double, 12, 12> AAinv = AA.partialPivLu().inverse();
+  Eigen::Matrix<double, 12, 12> DCABinv = (DD - CC * AAinv * CC.transpose()).partialPivLu().inverse();
+  Eigen::Matrix<double, 24, 24> P_1n2_inv = Eigen::Matrix<double, 24, 24>::Zero();
+  P_1n2_inv.block<12, 12>(0, 0) = AAinv + AAinv * CC.transpose() * DCABinv * CC * AAinv;
+  P_1n2_inv.block<12, 12>(12, 0) = -DCABinv * CC * AAinv;
+  P_1n2_inv.block<12, 12>(0, 12) = P_1n2_inv.block<12, 12>(12, 0).transpose();
+  P_1n2_inv.block<12, 12>(12, 12) = DCABinv;
+  Eigen::Matrix<double, 24, 24> I = Eigen::Matrix<double, 24, 24>::Identity();
+//   P_1n2_inv = P_1n2.partialPivLu().solve(I);
+  std::cout << "[steam] P_1n2_inv: " << P_1n2_inv << std::endl;
+
+//   Eigen::Matrix<double, 24, 24> C = P_1n2.fullPivLu().inverse() + B - Pinv_comp;
+  Eigen::Matrix<double, 24, 24> C = P_1n2_inv + B - Pinv_comp;
+
   // interpolated covariance
-  auto P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 +
+  Eigen::Matrix<double, 12, 12> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 +
                  F_2t.transpose() * Q2t_inv * F_2t -
                  A.transpose() * (P_1n2.inverse() + B - Pinv_comp).inverse() * A;
+//   Eigen::Matrix<double, 12, 12> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 +
+//                  F_2t.transpose() * Q2t_inv * F_2t -
+//                  A.transpose() * C.partialPivLu().solve(A);
 
-  return P_t_inv.inverse();
+  std::cout << "[steam] P_t_inv " << P_t_inv << std::endl;
+
+//   return P_t_inv.inverse();
+
+  // Following Sean Anderson's thesis (2016):
+  // we first use (6.126) to translate P_1n2 to P_1n2_k:
+  const auto G_1 = getJacKnot2(knot1, knot1);
+  const auto G_2 = getJacKnot2(knot1, knot2);
+  const auto Xi_1 = getXi(knot1, knot1);
+  const auto Xi_2 = getXi(knot1, knot2);
+
+  Eigen::Matrix<double, 24, 24> P_1n2_k = Eigen::Matrix<double, 24, 24>::Zero();
+  P_1n2_k.block<12, 12>(0, 0) = G_1 * (P_1n2.block<12, 12>(0, 0) -
+    Xi_1 * P_1n2.block<12, 12>(0, 0) * Xi_1.transpose()) * G_1.transpose();
+  P_1n2_k.block<12, 12>(0, 12) = G_1 * (P_1n2.block<12, 12>(0, 12) -
+    Xi_1 * P_1n2.block<12, 12>(0, 0) * Xi_2.transpose()) * G_2.transpose();
+  P_1n2_k.block<12, 12>(12, 0) = P_1n2_k.block<12, 12>(0, 12).transpose();
+  P_1n2_k.block<12, 12>(12, 12) = G_2 * (P_1n2.block<12, 12>(12, 12) -
+    Xi_2 * P_1n2.block<12, 12>(0, 0) * Xi_2.transpose()) * G_2.transpose();
+
+  // now we interpolate the local posterior P_k_tau using 6.116:
+  const auto Qt1 = getQ((knotq->time() - knot1->time()).seconds(), Qc_diag_);
+  const auto Phi_t1 = getPhi((knotq->time() - knot1->time()).seconds());
+  const auto Phi_2t = getPhi((knot2->time() - knotq->time()).seconds());
+  const auto Phi_21 = getPhi((knot2->time() - knot1->time()).seconds());
+  const auto Omega = Qt1 * Phi_2t.transpose() * Q21_inv;
+  const auto Lambda = Phi_t1 - Omega * Phi_21;
+  const auto Qk = Qt1 - Qt1 * Phi_2t.transpose() * Q21_inv * Phi_t1 * Qt1;
+
+  Eigen::Matrix<double, 12, 24> Int = Eigen::Matrix<double, 12, 24>::Zero();
+  Int.block<12, 12>(0, 0) = Lambda;
+  Int.block<12, 12>(0, 12) = Omega;
+
+  const auto P_k_tau = Int * P_1n2_k * Int.transpose() + Qk;
+
+  // finally use 6.127 to calculate P_tau:
+  const auto G_tau_inv = getJacKnot3(knot1, knotq);
+  const auto Xi_tau = getXi(knot1, knotq);
+  const auto P_tau = G_tau_inv * P_k_tau * G_tau_inv.transpose() +
+    Xi_tau * P_1n2.block<12, 12>(0, 0) * Xi_tau.transpose();
+
+  std::cout << "[steam] P_tau: " << P_tau << std::endl;
+
+  return P_tau;
 
   // clang-format on
 }
