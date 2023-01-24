@@ -56,6 +56,40 @@ inline Eigen::Matrix<double, 12, 12> getJacKnot2(
   return jacobian;
 }
 
+// inverse of getJacKnot2
+inline Eigen::Matrix<double, 12, 12> getJacKnot3(
+    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) {
+  // precompute
+  const auto T_21 = knot2->pose()->value() / knot1->pose()->value();
+  const auto xi_21 = T_21.vec();
+  const auto J_21 = lgmath::se3::vec2jac(xi_21);
+
+  // init jacobian
+  Eigen::Matrix<double, 12, 12> gamma_inv;
+  gamma_inv.setZero();
+
+  // pose
+  gamma_inv.block<6, 6>(0, 0) = J_21;
+  gamma_inv.block<6, 6>(6, 0) =
+      -0.5 * J_21 * lgmath::se3::curlyhat(knot2->velocity()->value());
+
+  // velocity
+  gamma_inv.block<6, 6>(6, 6) = J_21;
+
+  return gamma_inv;
+}
+
+inline Eigen::Matrix<double, 12, 12> getXi(
+    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) {
+  const auto T_21 = knot2->pose()->value() / knot1->pose()->value();
+//   const auto Tau_21 = lgmath::se3::tranAd(T_21);
+  const auto Tau_21 = T_21.adjoint();
+  Eigen::Matrix<double, 12, 12> Xi;
+  Xi.setZero();
+  Xi.block<6, 6>(0, 0) = Tau_21;
+  return Xi;
+}
+
 inline Eigen::Matrix<double, 12, 12> getQinv(
     const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) {
   // constants
@@ -73,6 +107,26 @@ inline Eigen::Matrix<double, 12, 12> getQinv(
   // clang-format on
 
   return Qinv;
+}
+
+inline Eigen::Matrix<double, 12, 12> getQ(
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) {
+  // constants
+  const double dt2 = dt * dt;
+  const double dt3 = dt * dt2;
+  // clang-format off
+  Eigen::Matrix<double, 12, 12> Q = Eigen::Matrix<double, 12, 12>::Zero();
+  Q.block<6, 6>(0, 0).diagonal() = dt3 * Qc_diag / 3.0;
+  Q.block<6, 6>(6, 6).diagonal() = dt * Qc_diag;
+  Q.block<6, 6>(0, 6).diagonal() = Q.block<6, 6>(6, 0).diagonal() = dt2 * Qc_diag / 2.0;
+  // clang-format on
+  return Q;
+}
+
+inline Eigen::Matrix<double, 12, 12> getPhi(const double& dt) {
+  Eigen::Matrix<double, 12, 12> Tran = Eigen::Matrix<double, 12, 12>::Identity();
+  Tran.block<6, 6>(0, 6) = Eigen::Matrix<double, 6, 6>::Identity() * dt;
+  return Tran;
 }
 
 inline Eigen::Matrix<double, 2, 2> getQinv(const double& dt) {

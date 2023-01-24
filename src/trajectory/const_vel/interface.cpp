@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "steam/trajectory/const_vel/interface.hpp"
 
 #include "steam/evaluable/se3/evaluables.hpp"
@@ -136,17 +138,17 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
     // the state estimation textbook where we take the interpolation equations.
     // This doesn't apply to jacKnot2.
     auto F_t1 = -getJacKnot1(endKnot, extrap_knot);
-    auto E_t1_inv = getJacKnot2(endKnot, extrap_knot).inverse();
+    auto E_t1_inv = getJacKnot3(endKnot, extrap_knot);
 
     // Prior covariance
-    auto Qt1_inv = getQinv((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
+    auto Qt1 = getQ((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
 
     // end knot covariance
     std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var};
     Eigen::Matrix<double, 12, 12> P_end = cov.query(state_var);
 
     // Compute covariance
-    return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1_inv.inverse()) * E_t1_inv.transpose();
+    return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1) * E_t1_inv.transpose();
   }
 
   // Check if we requested time exactly
@@ -200,10 +202,10 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   // Note: jacKnot1 will return the negative of F as defined in
   // the state estimation textbook where we take the interpolation equations.
   // This doesn't apply to jacKnot2.
-  auto F_t1 = -getJacKnot1(knot1, knotq);
-  auto E_t1 = getJacKnot2(knot1, knotq);
-  auto F_2t = -getJacKnot1(knotq, knot2);
-  auto E_2t = getJacKnot2(knotq, knot2);
+  Eigen::Matrix<double, 12, 12> F_t1 = -getJacKnot1(knot1, knotq);
+  Eigen::Matrix<double, 12, 12> E_t1 = getJacKnot2(knot1, knotq);
+  Eigen::Matrix<double, 12, 12> F_2t = -getJacKnot1(knotq, knot2);
+  Eigen::Matrix<double, 12, 12> E_2t = getJacKnot2(knotq, knot2);
 
   // Prior inverse covariances
   Eigen::Matrix<double, 12, 12> Qt1_inv = getQinv((knotq->time() - knot1->time()).seconds(), Qc_diag_);
@@ -222,9 +224,10 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   B.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
   B.block<12, 12>(12, 12) = E_2t.transpose() * Q2t_inv * E_2t;
 
-  auto F_21 = -getJacKnot1(knot1, knot2);
-  auto E_21 = getJacKnot2(knot1, knot2);
+  Eigen::Matrix<double, 12, 12> F_21 = -getJacKnot1(knot1, knot2);
+  Eigen::Matrix<double, 12, 12> E_21 = getJacKnot2(knot1, knot2);
   Eigen::Matrix<double, 12, 12> Q21_inv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
+
   Eigen::Matrix<double, 24, 24> Pinv_comp = Eigen::Matrix<double, 24, 24>::Zero();
   Pinv_comp.block<12, 12>(0, 0) = F_21.transpose() * Q21_inv * F_21;
   Pinv_comp.block<12, 12>(12, 0) = -E_21.transpose() * Q21_inv * F_21;
@@ -232,11 +235,62 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   Pinv_comp.block<12, 12>(12, 12) = E_21.transpose() * Q21_inv * E_21;
 
   // interpolated covariance
-  auto P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 +
-                 F_2t.transpose() * Q2t_inv * F_2t -
+  Eigen::Matrix<double, 12, 12> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 + F_2t.transpose() * Q2t_inv * F_2t -
                  A.transpose() * (P_1n2.inverse() + B - Pinv_comp).inverse() * A;
 
-  return P_t_inv.inverse();
+  Eigen::Matrix<double, 12, 12> P_tau = P_t_inv.inverse();
+  const Eigen::VectorXcd evalues = P_tau.eigenvalues();
+  bool psd = true;
+  for (uint i = 0; i < 12; ++i) {
+    if (evalues(i).real() < 0.0) {
+        psd = false;
+        break;
+    }
+  }
+  if (psd)
+    return P_tau;
+
+  // Patch: if Tim's method for Covariance interpolation fails
+  // use Sean's method from his thesis (2016).
+  // This came up during radar localization when measurements are SE(2)
+  // but the motion prior we used is still SE(3).
+  // We first use (6.126) to translate P_1n2 to P_1n2_k:
+  const auto G_1 = getJacKnot2(knot1, knot1);
+  const auto G_2 = getJacKnot2(knot1, knot2);
+  const auto Xi_1 = getXi(knot1, knot1);
+  const auto Xi_2 = getXi(knot1, knot2);
+
+  Eigen::Matrix<double, 24, 24> P_1n2_k = Eigen::Matrix<double, 24, 24>::Zero();
+  P_1n2_k.block<12, 12>(0, 0) = G_1 * (P_1n2.block<12, 12>(0, 0) -
+    Xi_1 * P_1n2.block<12, 12>(0, 0) * Xi_1.transpose()) * G_1.transpose();
+  P_1n2_k.block<12, 12>(0, 12) = G_1 * (P_1n2.block<12, 12>(0, 12) -
+    Xi_1 * P_1n2.block<12, 12>(0, 0) * Xi_2.transpose()) * G_2.transpose();
+  P_1n2_k.block<12, 12>(12, 0) = P_1n2_k.block<12, 12>(0, 12).transpose();
+  P_1n2_k.block<12, 12>(12, 12) = G_2 * (P_1n2.block<12, 12>(12, 12) -
+    Xi_2 * P_1n2.block<12, 12>(0, 0) * Xi_2.transpose()) * G_2.transpose();
+
+  // now we interpolate the local posterior P_k_tau using 6.116:
+  const auto Qt1 = getQ((knotq->time() - knot1->time()).seconds(), Qc_diag_);
+  const auto Phi_t1 = getPhi((knotq->time() - knot1->time()).seconds());
+  const auto Phi_2t = getPhi((knot2->time() - knotq->time()).seconds());
+  const auto Phi_21 = getPhi((knot2->time() - knot1->time()).seconds());
+  const auto Omega = Qt1 * Phi_2t.transpose() * Q21_inv;
+  const auto Lambda = Phi_t1 - Omega * Phi_21;
+  const auto Qk = Qt1 - Qt1 * Phi_2t.transpose() * Q21_inv * Phi_t1 * Qt1;
+
+  Eigen::Matrix<double, 12, 24> Int = Eigen::Matrix<double, 12, 24>::Zero();
+  Int.block<12, 12>(0, 0) = Lambda;
+  Int.block<12, 12>(0, 12) = Omega;
+
+  const auto P_k_tau = Int * P_1n2_k * Int.transpose() + Qk;
+
+  // finally use 6.127 to calculate P_tau:
+  const auto G_tau_inv = getJacKnot3(knot1, knotq);
+  const auto Xi_tau = getXi(knot1, knotq);
+  P_tau = G_tau_inv * P_k_tau * G_tau_inv.transpose() +
+    Xi_tau * P_1n2.block<12, 12>(0, 0) * Xi_tau.transpose();
+
+  return P_tau;
 
   // clang-format on
 }
