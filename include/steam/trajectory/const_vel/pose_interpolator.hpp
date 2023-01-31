@@ -39,8 +39,8 @@ class PoseInterpolator : public Evaluable<lgmath::se3::Transformation> {
   const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
-  /** \brief internal auto-diff evaluator */
-  Evaluable<OutType>::ConstPtr T_i0_;
+  /** \brief interpolation values **/
+  double psi11_, psi12_, psi21_, psi22_, lambda11_, lambda12_, lambda21_, lambda22_;
 };
 
 }  // namespace const_vel

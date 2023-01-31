@@ -1,3 +1,4 @@
+#include <iostream>
 #include "steam/trajectory/const_vel/prior_factor.hpp"
 
 #include "steam/evaluable/se3/evaluables.hpp"
@@ -16,34 +17,7 @@ auto PriorFactor::MakeShared(const Variable::ConstPtr& knot1,
 
 PriorFactor::PriorFactor(const Variable::ConstPtr& knot1,
                          const Variable::ConstPtr& knot2)
-    : knot1_(knot1), knot2_(knot2) {
-  // constants
-  const double dt = (knot2->time() - knot1->time()).seconds();
-
-  // construct computation graph
-  const auto T1 = knot1_->pose();
-  const auto w1 = knot1_->velocity();
-  const auto T2 = knot2_->pose();
-  const auto w2 = knot2_->velocity();
-
-  using namespace steam::se3;
-  using namespace steam::vspace;
-
-  // get relative matrix info
-  const auto T_21 = compose_rinv(T2, T1);
-  // get se3 algebra of relative matrix
-  const auto xi_21 = tran2vec(T_21);
-
-  // pose error
-  const auto t1_ = xi_21;
-  const auto t2_ = smult<6>(w1, -dt);
-  ep_ = add<6>(t1_, t2_);
-
-  // velocity error
-  const auto w1_ = jinv_velocity(xi_21, w2);
-  const auto w2_ = neg<6>(w1);
-  ev_ = add<6>(w1_, w2_);
-}
+    : knot1_(knot1), knot2_(knot2) { }
 
 bool PriorFactor::active() const {
   return knot1_->pose()->active() || knot1_->velocity()->active() ||
@@ -58,43 +32,70 @@ void PriorFactor::getRelatedVarKeys(KeySet& keys) const {
 }
 
 auto PriorFactor::value() const -> OutType {
-  //
   OutType error = OutType::Zero();
-  error.block<6, 1>(0, 0) = ep_->value();
-  error.block<6, 1>(6, 0) = ev_->value();
+
+  const auto T1 = knot1_->pose()->value();
+  const auto w1 = knot1_->velocity()->value();
+  const auto T2 = knot2_->pose()->value();
+  const auto w2 = knot2_->velocity()->value();
+
+  const double dt = (knot2_->time() - knot1_->time()).seconds();
+  const auto xi_21 = (T2 / T1).vec();
+  error.block<6, 1>(0, 0) = xi_21 - dt * w1;
+  error.block<6, 1>(6, 0) = lgmath::se3::vec2jacinv(xi_21) * w2 - w1;
   return error;
 }
 
 auto PriorFactor::forward() const -> Node<OutType>::Ptr {
-  //
-  const auto ep = ep_->forward();
-  const auto ev = ev_->forward();
+  const auto T1 = knot1_->pose()->forward();
+  const auto w1 = knot1_->velocity()->forward();
+  const auto T2 = knot2_->pose()->forward();
+  const auto w2 = knot2_->velocity()->forward();
 
-  //
+  const double dt = (knot2_->time() - knot1_->time()).seconds();
+  const auto xi_21 = (T2->value() / T1->value()).vec();
   OutType error = OutType::Zero();
-  error.block<6, 1>(0, 0) = ep_->value();
-  error.block<6, 1>(6, 0) = ev_->value();
+  error.block<6, 1>(0, 0) = xi_21 - dt * w1->value();
+  error.block<6, 1>(6, 0) = lgmath::se3::vec2jacinv(xi_21) * w2->value() - w1->value();
 
-  //
   const auto node = Node<OutType>::MakeShared(error);
-  node->addChild(ep);
-  node->addChild(ev);
-
+  node->addChild(T1);
+  node->addChild(w1);
+  node->addChild(T2);
+  node->addChild(w2);
   return node;
 }
 
 void PriorFactor::backward(const Eigen::MatrixXd& lhs,
                            const Node<OutType>::Ptr& node,
                            Jacobians& jacs) const {
-  using OutT = Eigen::Matrix<double, 6, 1>;
-  if (ep_->active()) {
-    const auto ep = std::static_pointer_cast<Node<OutT>>(node->at(0));
-    ep_->backward(lhs.leftCols(6), ep, jacs);
+  
+  // e \approx ebar + JAC * delta_x
+  if (knot1_->pose()->active() || knot1_->velocity()->active()) {
+    const auto Fk1 = getJacKnot1(knot1_, knot2_);
+    if (knot1_->pose()->active()) {
+      const auto T1 = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
+      Eigen::MatrixXd new_lhs = lhs * Fk1.block<12, 6>(0, 0);
+      knot1_->pose()->backward(new_lhs, T1, jacs);
+    }
+    if (knot1_->velocity()->active()) {
+      const auto w1 = std::static_pointer_cast<Node<InVelType>>(node->at(1));
+      Eigen::MatrixXd new_lhs = lhs * Fk1.block<12, 6>(0, 6);
+      knot1_->velocity()->backward(new_lhs, w1, jacs);
+    }
   }
-
-  if (ev_->active()) {
-    const auto ev = std::static_pointer_cast<Node<OutT>>(node->at(1));
-    ev_->backward(lhs.rightCols(6), ev, jacs);
+  if (knot2_->pose()->active() || knot2_->velocity()->active()) {
+    const auto Ek = getJacKnot2(knot1_, knot2_);
+    if (knot2_->pose()->active()) {
+      const auto T2 = std::static_pointer_cast<Node<InPoseType>>(node->at(2));
+      Eigen::MatrixXd new_lhs = lhs * Ek.block<12, 6>(0, 0);
+      knot2_->pose()->backward(new_lhs, T2, jacs);
+    }
+    if (knot2_->velocity()->active()) {
+      const auto w2 = std::static_pointer_cast<Node<InVelType>>(node->at(3));
+      Eigen::MatrixXd new_lhs = lhs * Ek.block<12, 6>(0, 6);
+      knot2_->velocity()->backward(new_lhs, w2, jacs);
+    }
   }
 }
 

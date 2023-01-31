@@ -137,15 +137,15 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
     // Note: jacKnot1 will return the negative of F as defined in
     // the state estimation textbook where we take the interpolation equations.
     // This doesn't apply to jacKnot2.
-    auto F_t1 = -getJacKnot1(endKnot, extrap_knot);
-    auto E_t1_inv = getJacKnot3(endKnot, extrap_knot);
+    const auto F_t1 = -getJacKnot1(endKnot, extrap_knot);
+    const auto E_t1_inv = getJacKnot3(endKnot, extrap_knot);
 
     // Prior covariance
-    auto Qt1 = getQ((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
+    const auto Qt1 = getQ((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
 
     // end knot covariance
-    std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var};
-    Eigen::Matrix<double, 12, 12> P_end = cov.query(state_var);
+    const std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var};
+    const Eigen::Matrix<double, 12, 12> P_end = cov.query(state_var);
 
     // Compute covariance
     return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1) * E_t1_inv.transpose();
