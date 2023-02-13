@@ -43,9 +43,8 @@ auto Interface::getPoseInterpolator(const Time& time) const
   if (it1 == knot_map_.end()) {
     --it1;  // should be safe, as we checked that the map was not empty..
     const auto& endKnot = it1->second;
-    const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->time(),
-                                                    endKnot->velocity());
-    return se3::compose(T_t_k, endKnot->pose());
+    const auto T_t_0 = PoseExtrapolator::MakeShared(time, endKnot);
+    return T_t_0;
   }
 
   // Check if we requested time exactly
@@ -54,9 +53,8 @@ auto Interface::getPoseInterpolator(const Time& time) const
   // Check if we requested before first time
   if (it1 == knot_map_.begin()) {
     const auto& startKnot = it1->second;
-    const auto T_t_k = PoseExtrapolator::MakeShared(time - startKnot->time(),
-                                                    startKnot->velocity());
-    return se3::compose(T_t_k, startKnot->pose());
+    const auto T_t_0 = PoseExtrapolator::MakeShared(time, startKnot);
+    return T_t_0;
   }
 
   // Get iterators bounding the time interval
@@ -103,6 +101,7 @@ auto Interface::getVelocityInterpolator(const Time& time) const
   return VelocityInterpolator::MakeShared(time, it1->second, it2->second);
 }
 
+// See State Estimation (2nd Ed) Sections 11.1.4, 11.3.2
 auto Interface::getCovariance(const Covariance& cov, const Time& time)
     -> CovType {
   // clang-format off
@@ -129,8 +128,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
       throw std::runtime_error("trajectory states are not variables.");
 
     // Construct a knot for the extrapolated state
-    const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->time(), endKnot->velocity());
-    const auto T_t_0 = se3::compose(T_t_k, endKnot->pose());  // mean of extrapolation
+    const auto T_t_0 = PoseExtrapolator::MakeShared(time, endKnot);
     const auto extrap_knot = Variable::MakeShared(time, T_t_0, endKnot->velocity());
 
     // Compute Jacobians
@@ -194,26 +192,26 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
     throw std::runtime_error("trajectory states are not variables.");
 
   // Construct a knot for the interpolated state
-  auto T_q0_eval = PoseInterpolator::MakeShared(time, knot1, knot2);
-  auto w_0q_inq_eval = VelocityInterpolator::MakeShared(time, knot1, knot2);
-  auto knotq = Variable::MakeShared(time, T_q0_eval, w_0q_inq_eval);
+  const auto T_q0_eval = PoseInterpolator::MakeShared(time, knot1, knot2);
+  const auto w_0q_inq_eval = VelocityInterpolator::MakeShared(time, knot1, knot2);
+  const auto knotq = Variable::MakeShared(time, T_q0_eval, w_0q_inq_eval);
 
   // Compute Jacobians
   // Note: jacKnot1 will return the negative of F as defined in
   // the state estimation textbook where we take the interpolation equations.
   // This doesn't apply to jacKnot2.
-  Eigen::Matrix<double, 12, 12> F_t1 = -getJacKnot1(knot1, knotq);
-  Eigen::Matrix<double, 12, 12> E_t1 = getJacKnot2(knot1, knotq);
-  Eigen::Matrix<double, 12, 12> F_2t = -getJacKnot1(knotq, knot2);
-  Eigen::Matrix<double, 12, 12> E_2t = getJacKnot2(knotq, knot2);
+  const Eigen::Matrix<double, 12, 12> F_t1 = -getJacKnot1(knot1, knotq);
+  const Eigen::Matrix<double, 12, 12> E_t1 = getJacKnot2(knot1, knotq);
+  const Eigen::Matrix<double, 12, 12> F_2t = -getJacKnot1(knotq, knot2);
+  const Eigen::Matrix<double, 12, 12> E_2t = getJacKnot2(knotq, knot2);
 
   // Prior inverse covariances
-  Eigen::Matrix<double, 12, 12> Qt1_inv = getQinv((knotq->time() - knot1->time()).seconds(), Qc_diag_);
-  Eigen::Matrix<double, 12, 12> Q2t_inv = getQinv((knot2->time() - knotq->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 12, 12> Qt1_inv = getQinv((knotq->time() - knot1->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 12, 12> Q2t_inv = getQinv((knot2->time() - knotq->time()).seconds(), Qc_diag_);
 
   // Covariance of knot1 and knot2
-  std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
-  Eigen::Matrix<double, 24, 24> P_1n2 = cov.query(state_var);
+  const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
+  const Eigen::Matrix<double, 24, 24> P_1n2 = cov.query(state_var);
 
   // Helper matrices
   Eigen::Matrix<double, 24, 12> A = Eigen::Matrix<double, 24, 12>::Zero();
@@ -224,9 +222,9 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   B.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
   B.block<12, 12>(12, 12) = E_2t.transpose() * Q2t_inv * E_2t;
 
-  Eigen::Matrix<double, 12, 12> F_21 = -getJacKnot1(knot1, knot2);
-  Eigen::Matrix<double, 12, 12> E_21 = getJacKnot2(knot1, knot2);
-  Eigen::Matrix<double, 12, 12> Q21_inv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 12, 12> F_21 = -getJacKnot1(knot1, knot2);
+  const Eigen::Matrix<double, 12, 12> E_21 = getJacKnot2(knot1, knot2);
+  const Eigen::Matrix<double, 12, 12> Q21_inv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
 
   Eigen::Matrix<double, 24, 24> Pinv_comp = Eigen::Matrix<double, 24, 24>::Zero();
   Pinv_comp.block<12, 12>(0, 0) = F_21.transpose() * Q21_inv * F_21;
@@ -235,7 +233,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   Pinv_comp.block<12, 12>(12, 12) = E_21.transpose() * Q21_inv * E_21;
 
   // interpolated covariance
-  Eigen::Matrix<double, 12, 12> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 + F_2t.transpose() * Q2t_inv * F_2t -
+  const Eigen::Matrix<double, 12, 12> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 + F_2t.transpose() * Q2t_inv * F_2t -
                  A.transpose() * (P_1n2.inverse() + B - Pinv_comp).inverse() * A;
 
   Eigen::Matrix<double, 12, 12> P_tau = P_t_inv.inverse();
@@ -271,9 +269,9 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
 
   // now we interpolate the local posterior P_k_tau using 6.116:
   const auto Qt1 = getQ((knotq->time() - knot1->time()).seconds(), Qc_diag_);
-  const auto Phi_t1 = getPhi((knotq->time() - knot1->time()).seconds());
-  const auto Phi_2t = getPhi((knot2->time() - knotq->time()).seconds());
-  const auto Phi_21 = getPhi((knot2->time() - knot1->time()).seconds());
+  const auto Phi_t1 = getTran((knotq->time() - knot1->time()).seconds());
+  const auto Phi_2t = getTran((knot2->time() - knotq->time()).seconds());
+  const auto Phi_21 = getTran((knot2->time() - knot1->time()).seconds());
   const auto Omega = Qt1 * Phi_2t.transpose() * Q21_inv;
   const auto Lambda = Phi_t1 - Omega * Phi_21;
   const auto Qk = Qt1 - Qt1 * Phi_2t.transpose() * Q21_inv * Phi_t1 * Qt1;

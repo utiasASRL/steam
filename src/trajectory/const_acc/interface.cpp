@@ -8,6 +8,10 @@
 #include "steam/trajectory/const_acc/pose_interpolator.hpp"
 #include "steam/trajectory/const_acc/prior_factor.hpp"
 #include "steam/trajectory/const_acc/velocity_interpolator.hpp"
+#include "steam/trajectory/const_acc/acceleration_interpolator.hpp"
+#include "steam/trajectory/const_acc/pose_extrapolator.hpp"
+#include "steam/trajectory/const_acc/velocity_extrapolator.hpp"
+#include "steam/trajectory/const_acc/acceleration_extrapolator.hpp"
 
 namespace steam {
 namespace traj {
@@ -40,11 +44,8 @@ auto Interface::getPoseInterpolator(const Time& time) const
   // Check if time is passed the last entry
   if (it1 == knot_map_.end()) {
     --it1;  // should be safe, as we checked that the map was not empty..
-    throw std::runtime_error("pose extrapolation not implemented");
-    // const auto& endKnot = it1->second;
-    // const auto T_t_k = PoseExtrapolator::MakeShared(time - endKnot->time(),
-    //                                                 endKnot->velocity());
-    // return se3::compose(T_t_k, endKnot->pose());
+    const auto& endKnot = it1->second;
+    return getPoseExtrapolator_(time, endKnot);
   }
 
   // Check if we requested time exactly
@@ -52,11 +53,8 @@ auto Interface::getPoseInterpolator(const Time& time) const
 
   // Check if we requested before first time
   if (it1 == knot_map_.begin()) {
-    throw std::runtime_error("pose extrapolation not implemented");
-    // const auto& startKnot = it1->second;
-    // const auto T_t_k = PoseExtrapolator::MakeShared(time - startKnot->time(),
-    //                                                 startKnot->velocity());
-    // return se3::compose(T_t_k, startKnot->pose());
+    const auto& startKnot = it1->second;
+    return getPoseExtrapolator_(time, startKnot);
   }
 
   // Get iterators bounding the time interval
@@ -66,7 +64,7 @@ auto Interface::getPoseInterpolator(const Time& time) const
     throw std::runtime_error("Requested interpolation at an invalid time");
 
   // Create interpolated evaluator
-  return PoseInterpolator::MakeShared(time, it1->second, it2->second);
+  return getPoseInterpolator_(time, it1->second, it2->second);
 }
 
 auto Interface::getVelocityInterpolator(const Time& time) const
@@ -80,9 +78,9 @@ auto Interface::getVelocityInterpolator(const Time& time) const
   // Check if time is passed the last entry
   if (it1 == knot_map_.end()) {
     --it1;  // should be safe, as we checked that the map was not empty..
-    throw std::runtime_error("velocity extrapolation not implemented");
-    // const auto& endKnot = it1->second;
-    // return endKnot->velocity();
+    const auto& endKnot = it1->second;
+    return getVelocityExtrapolator_(time, endKnot);
+
   }
 
   // Check if we requested time exactly
@@ -90,9 +88,8 @@ auto Interface::getVelocityInterpolator(const Time& time) const
 
   // Check if we requested before first time
   if (it1 == knot_map_.begin()) {
-    throw std::runtime_error("pose extrapolation not implemented");
-    // const auto& startKnot = it1->second;
-    // return startKnot->velocity();
+    const auto& startKnot = it1->second;
+    return getVelocityExtrapolator_(time, startKnot);
   }
 
   // Get iterators bounding the time interval
@@ -102,7 +99,193 @@ auto Interface::getVelocityInterpolator(const Time& time) const
     throw std::runtime_error("Requested interpolation at an invalid time");
 
   // Create interpolated evaluator
-  return VelocityInterpolator::MakeShared(time, it1->second, it2->second);
+  return getVelocityInterpolator_(time, it1->second, it2->second);
+}
+
+auto Interface::getAccelerationInterpolator(const Time& time) const
+    -> Evaluable<AccelerationType>::ConstPtr {
+  // Check that map is not empty
+  if (knot_map_.empty()) throw std::runtime_error("knot map is empty");
+
+  // Get iterator to first element with time equal to or greater than 'time'
+  auto it1 = knot_map_.lower_bound(time);
+
+  // Check if time is passed the last entry
+  if (it1 == knot_map_.end()) {
+    --it1;  // should be safe, as we checked that the map was not empty..
+    const auto& endKnot = it1->second;
+    return getAccelerationExtrapolator_(time, endKnot);
+  }
+
+  // Check if we requested time exactly
+  if (it1->second->time() == time) return it1->second->acceleration();
+
+  // Check if we requested before first time
+  if (it1 == knot_map_.begin()) {
+    const auto& startKnot = it1->second;
+    return getAccelerationExtrapolator_(time, startKnot);
+  }
+
+  // Get iterators bounding the time interval
+  auto it2 = it1;
+  --it1;
+  if (time <= it1->second->time() || time >= it2->second->time())
+    throw std::runtime_error("Requested interpolation at an invalid time");
+
+  // Create interpolated evaluator
+  return getAccelerationInterpolator_(time, it1->second, it2->second);
+}
+
+// See State Estimation (2nd Ed) Sections 11.1.4, 11.3.2
+auto Interface::getCovariance(const Covariance& cov, const Time& time)
+    -> CovType {
+  // clang-format off
+
+  //
+  if (knot_map_.empty()) throw std::runtime_error("map is empty");
+
+  // Get iterator to first element with time equal to or greater than 'time'
+  auto it1 = knot_map_.lower_bound(time);
+
+  // extrapolate after last entry
+  if (it1 == knot_map_.end()) {
+    --it1;  // should be safe, as we checked that the map was not empty..
+
+    const auto& endKnot = it1->second;
+    const auto T_k0 = endKnot->pose();
+    const auto w_0k_ink = endKnot->velocity();
+    const auto dw_0k_ink = endKnot->acceleration();
+    if (!T_k0->active() || !w_0k_ink->active() || !dw_0k_ink->active())
+      throw std::runtime_error("extrapolation from a locked knot not implemented.");
+
+    const auto T_k0_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_k0);
+    const auto w_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_0k_ink);
+    const auto dw_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(dw_0k_ink);
+    if (!T_k0_var || !w_0k_ink_var || !dw_0k_ink_var)
+      throw std::runtime_error("trajectory states are not variables.");
+
+    // Construct a knot for the extrapolated state
+    const auto T_t_0 = getPoseExtrapolator_(time, endKnot);
+    const auto w_t_0 = getVelocityExtrapolator_(time, endKnot);
+    const auto dw_t_0 = getAccelerationExtrapolator_(time, endKnot);
+    
+    const auto extrap_knot = Variable::MakeShared(time, T_t_0, w_t_0, dw_t_0);
+
+    // Compute Jacobians
+    // Note: jacKnot1 will return the negative of F as defined in
+    // the state estimation textbook where we take the interpolation equations.
+    // This doesn't apply to jacKnot2.
+    const auto F_t1 = -getJacKnot1_(endKnot, extrap_knot);
+    const auto E_t1_inv = getJacKnot2_(endKnot, extrap_knot).inverse();
+
+    // Prior covariance
+    const auto Qt1 = getQ_((extrap_knot->time() - endKnot->time()).seconds(), Qc_diag_);
+
+    // end knot covariance
+    const std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var, dw_0k_ink_var};
+    const Eigen::Matrix<double, 18, 18> P_end = cov.query(state_var);
+
+    // Compute covariance
+    return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1) * E_t1_inv.transpose();
+  }
+
+  // Check if we requested time exactly
+  if (it1->second->time() == time) {
+    const auto& knot = it1->second;
+    const auto T_k0 = knot->pose();
+    const auto w_0k_ink = knot->velocity();
+    const auto dw_0k_ink = knot->acceleration();
+    if (!T_k0->active() || !w_0k_ink->active() || !dw_0k_ink->active())
+      throw std::runtime_error("extrapolation from a locked knot not implemented.");
+
+    const auto T_k0_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_k0);
+    const auto w_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_0k_ink);
+    const auto dw_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(dw_0k_ink);
+    if (!T_k0_var || !w_0k_ink_var || !dw_0k_ink_var)
+      throw std::runtime_error("trajectory states are not variables.");
+
+    std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var, dw_0k_ink_var};
+    return cov.query(state_var);
+  }
+
+  // Check if we requested before first time
+  if (it1 == knot_map_.begin())
+    throw std::runtime_error("Requested covariance before first time.");
+
+
+  // Get iterators bounding the time interval
+  auto it2 = it1;
+  --it1;
+
+  const auto& knot1 = it1->second;
+  const auto T_10 = knot1->pose();
+  const auto w_01_in1 = knot1->velocity();
+  const auto dw_01_in1 = knot1->acceleration();
+  const auto& knot2 = it2->second;
+  const auto T_20 = knot2->pose();
+  const auto w_02_in2 = knot2->velocity();
+  const auto dw_02_in2 = knot2->acceleration();
+  if (!T_10->active() || !w_01_in1->active() || !dw_01_in1->active()
+    || !T_20->active() || !w_02_in2->active() || !dw_02_in2->active())
+    throw std::runtime_error("extrapolation from a locked knot not implemented.");
+
+  const auto T_10_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_10);
+  const auto w_01_in1_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_01_in1);
+  const auto dw_01_in1_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(dw_01_in1);
+  const auto T_20_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_20);
+  const auto w_02_in2_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_02_in2);
+  const auto dw_02_in2_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(dw_02_in2);
+  if (!T_10_var || !w_01_in1_var || !dw_01_in1_var || !T_20_var || !w_02_in2_var || !dw_02_in2_var)
+    throw std::runtime_error("trajectory states are not variables.");
+
+  // Construct a knot for the interpolated state
+  const auto T_q0_eval = getPoseInterpolator_(time, knot1, knot2);
+  const auto w_0q_inq_eval = getVelocityInterpolator_(time, knot1, knot2);
+  const auto dw_0q_inq_eval = getAccelerationInterpolator_(time, knot1, knot2);
+  const auto knotq = Variable::MakeShared(time, T_q0_eval, w_0q_inq_eval, dw_0q_inq_eval);
+
+  // Compute Jacobians
+  // Note: jacKnot1 will return the negative of F as defined in
+  // the state estimation textbook where we take the interpolation equations.
+  // This doesn't apply to jacKnot2.
+  const Eigen::Matrix<double, 18, 18> F_t1 = -getJacKnot1_(knot1, knotq);
+  const Eigen::Matrix<double, 18, 18> E_t1 = getJacKnot2_(knot1, knotq);
+  const Eigen::Matrix<double, 18, 18> F_2t = -getJacKnot1_(knotq, knot2);
+  const Eigen::Matrix<double, 18, 18> E_2t = getJacKnot2_(knotq, knot2);
+
+  // Prior inverse covariances
+  const Eigen::Matrix<double, 18, 18> Qt1_inv = getQinv_((knotq->time() - knot1->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 18, 18> Q2t_inv = getQinv_((knot2->time() - knotq->time()).seconds(), Qc_diag_);
+
+  // Covariance of knot1 and knot2
+  const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
+  const Eigen::Matrix<double, 36, 36> P_1n2 = cov.query(state_var);
+
+  // Helper matrices
+  Eigen::Matrix<double, 36, 18> A = Eigen::Matrix<double, 36, 18>::Zero();
+  A.block<18, 18>(0, 0) = F_t1.transpose() * Qt1_inv * E_t1;
+  A.block<18, 18>(18, 0) = E_2t.transpose() * Q2t_inv * F_2t;
+
+  Eigen::Matrix<double, 36, 36> B = Eigen::Matrix<double, 36, 36>::Zero();
+  B.block<18, 18>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
+  B.block<18, 18>(18, 18) = E_2t.transpose() * Q2t_inv * E_2t;
+
+  const Eigen::Matrix<double, 18, 18> F_21 = -getJacKnot1_(knot1, knot2);
+  const Eigen::Matrix<double, 18, 18> E_21 = getJacKnot2_(knot1, knot2);
+  const Eigen::Matrix<double, 18, 18> Q21_inv = getQinv_((knot2->time() - knot1->time()).seconds(), Qc_diag_);
+
+  Eigen::Matrix<double, 36, 36> Pinv_comp = Eigen::Matrix<double, 36, 36>::Zero();
+  Pinv_comp.block<18, 18>(0, 0) = F_21.transpose() * Q21_inv * F_21;
+  Pinv_comp.block<18, 18>(18, 0) = -E_21.transpose() * Q21_inv * F_21;
+  Pinv_comp.block<18, 18>(0, 18) = Pinv_comp.block<18, 18>(18, 0).transpose();
+  Pinv_comp.block<18, 18>(18, 18) = E_21.transpose() * Q21_inv * E_21;
+
+  // interpolated covariance
+  const Eigen::Matrix<double, 18, 18> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 + F_2t.transpose() * Q2t_inv * F_2t -
+                 A.transpose() * (P_1n2.inverse() + B - Pinv_comp).inverse() * A;
+
+  return P_t_inv.inverse();
+  // clang-format on
 }
 
 void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
@@ -224,11 +407,11 @@ void Interface::addPriorCostTerms(Problem& problem) const {
         knot1->acceleration()->active() || knot2->pose()->active() ||
         knot2->velocity()->active() || knot2->acceleration()->active()) {
       // Generate information matrix for GP prior factor
-      auto Qinv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
+      auto Qinv = getQinv_((knot2->time() - knot1->time()).seconds(), Qc_diag_);
       const auto noise_model =
           std::make_shared<StaticNoiseModel<18>>(Qinv, NoiseType::INFORMATION);
       //
-      const auto error_function = PriorFactor::MakeShared(knot1, knot2);
+      const auto error_function = getPriorFactor_(knot1, knot2);
       // Create cost term
       const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<18>>(
           error_function, noise_model, loss_function);
@@ -236,6 +419,61 @@ void Interface::addPriorCostTerms(Problem& problem) const {
       problem.addCostTerm(cost_term);
     }
   }
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getJacKnot1_(
+  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const {
+  return getJacKnot1(knot1, knot2);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getJacKnot2_(
+  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const {
+  return getJacKnot2(knot1, knot2);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQ_(
+  const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+  return getQ(dt, Qc_diag);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQinv_(
+  const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+  return getQinv(dt, Qc_diag);
+}
+
+auto Interface::getPoseInterpolator_(const Time& time,
+  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<PoseType>::Ptr {
+  return PoseInterpolator::MakeShared(time, knot1, knot2);
+}
+
+auto Interface::getVelocityInterpolator_(const Time& time,
+  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<VelocityType>::Ptr {
+  return VelocityInterpolator::MakeShared(time, knot1, knot2);
+}
+
+auto Interface::getAccelerationInterpolator_(const Time& time,
+  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<AccelerationType>::Ptr {
+  return AccelerationInterpolator::MakeShared(time, knot1, knot2);
+}
+
+auto Interface::getPoseExtrapolator_(const Time& time,
+  const Variable::ConstPtr& knot) const -> Evaluable<PoseType>::Ptr {
+  return PoseExtrapolator::MakeShared(time, knot);
+}
+
+auto Interface::getVelocityExtrapolator_(const Time& time,
+  const Variable::ConstPtr& knot) const -> Evaluable<VelocityType>::Ptr {
+  return VelocityExtrapolator::MakeShared(time, knot);
+}
+
+auto Interface::getAccelerationExtrapolator_(const Time& time,
+  const Variable::ConstPtr& knot) const -> Evaluable<AccelerationType>::Ptr {
+  return AccelerationExtrapolator::MakeShared(time, knot);
+}
+
+auto Interface::getPriorFactor_(
+  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr {
+  return PriorFactor::MakeShared(knot1, knot2);
 }
 
 }  // namespace const_acc

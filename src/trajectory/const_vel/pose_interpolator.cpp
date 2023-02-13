@@ -92,9 +92,11 @@ auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
+// See State Estimation (2nd Ed) Section 11.1.4 / Page 116 of Sean Anderson's thesis
 void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
                                 const Node<OutType>::Ptr& node,
                                 Jacobians& jacs) const {
+  if (!active()) return;
   const auto T1 = knot1_->pose()->value();
   const auto w1 = knot1_->velocity()->value();
   const auto T2 = knot2_->pose()->value();

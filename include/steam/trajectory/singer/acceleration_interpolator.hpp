@@ -2,30 +2,30 @@
 
 #include <Eigen/Core>
 
-#include "steam/trajectory/time.hpp"
-#include "steam/trajectory/const_acc/pose_interpolator.hpp"
+#include "steam/trajectory/const_acc/acceleration_interpolator.hpp"
 #include "steam/trajectory/const_acc/variable.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
 namespace singer {
 
-class PoseInterpolator : public steam::traj::const_acc::PoseInterpolator {
+class AccelerationInterpolator : public steam::traj::const_acc::AccelerationInterpolator {
  public:
-  using Ptr = std::shared_ptr<PoseInterpolator>;
-  using ConstPtr = std::shared_ptr<const PoseInterpolator>;
+  using Ptr = std::shared_ptr<AccelerationInterpolator>;
+  using ConstPtr = std::shared_ptr<const AccelerationInterpolator>;
   using Variable = steam::traj::const_acc::Variable;
-  
+
   static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2,
                         const Eigen::Matrix<double, 6, 1>& ad) {
-    return std::make_shared<PoseInterpolator>(time, knot1, knot2, ad);
+    return std::make_shared<AccelerationInterpolator>(time, knot1, knot2, ad);
   }
-  
-  PoseInterpolator(const Time& time, const Variable::ConstPtr& knot1,
-                   const Variable::ConstPtr& knot2,
-                   const Eigen::Matrix<double, 6, 1>& ad)
-      : steam::traj::const_acc::PoseInterpolator(time, knot1, knot2) {
+
+  AccelerationInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+                       const Variable::ConstPtr& knot2,
+                       const Eigen::Matrix<double, 6, 1>& ad)
+      : steam::traj::const_acc::AccelerationInterpolator(time, knot1, knot2) {
     // Calculate time constants
     const double T = (knot2->time() - knot1->time()).seconds();
     const double tau = (time - knot1->time()).seconds();

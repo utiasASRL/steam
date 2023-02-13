@@ -24,56 +24,16 @@ PoseInterpolator::PoseInterpolator(const Time& time,
   const double T = (knot2->time() - knot1->time()).seconds();
   const double tau = (time - knot1->time()).seconds();
   const double kappa = (knot2->time() - time).seconds();
-
   // Q and Transition matrix
-  const auto Q_tau = getQ(tau);
-  const auto Qinv_T = getQinv(T);
+  const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
+  const auto Q_tau = getQ(tau, ones);
+  const auto Qinv_T = getQinv(T, ones);
   const auto Tran_kappa = getTran(kappa);
   const auto Tran_tau = getTran(tau);
   const auto Tran_T = getTran(T);
-
   // Calculate interpolation values
-  Eigen::Matrix<double, 3, 3> Omega(Q_tau * Tran_kappa.transpose() * Qinv_T);
-  Eigen::Matrix<double, 3, 3> Lambda(Tran_tau - Omega * Tran_T);
-
-  // construct computation graph
-  const auto T1 = knot1_->pose();
-  const auto w1 = knot1_->velocity();
-  const auto dw1 = knot1_->acceleration();
-  const auto T2 = knot2_->pose();
-  const auto w2 = knot2_->velocity();
-  const auto dw2 = knot2_->acceleration();
-
-  using namespace steam::se3;
-  using namespace steam::vspace;
-
-  // clang-format off
-
-  // Get relative matrix info
-  const auto T_21 = compose_rinv(T2, T1);
-  // Get se3 algebra of relative matrix
-  const auto xi_21 = tran2vec(T_21);
-  //
-  const auto gamma11 = w1;
-  const auto gamma12 = dw1;
-  const auto gamma20 = xi_21;
-  const auto gamma21 = const_vel::jinv_velocity(xi_21, w2);
-  const auto gamma22 = add<6>(smult<6>(compose_curlyhat(const_vel::jinv_velocity(xi_21, w2), w2), -0.5), const_vel::jinv_velocity(xi_21, dw2));
-
-  // pose
-  const auto _t1 = smult<6>(gamma11, Lambda(0, 1));
-  const auto _t2 = smult<6>(gamma12, Lambda(0, 2));
-  const auto _t3 = smult<6>(gamma20, Omega(0, 0));
-  const auto _t4 = smult<6>(gamma21, Omega(0, 1));
-  const auto _t5 = smult<6>(gamma22, Omega(0, 2));
-  const auto xi_i1 = add<6>(_t1, add<6>(_t2, add<6>(_t3, add<6>(_t4, _t5))));
-
-  // calculate interpolated relative transformation matrix
-  const auto T_i1 = vec2tran(xi_i1);
-  // compose to get global transform
-  T_i0_ = compose(T_i1, T1);
-
-  // clang-format on
+  omega_ = (Q_tau * Tran_kappa.transpose() * Qinv_T);
+  lambda_ = (Tran_tau - omega_ * Tran_T);
 }
 
 bool PoseInterpolator::active() const {
@@ -91,16 +51,119 @@ void PoseInterpolator::getRelatedVarKeys(KeySet& keys) const {
   knot2_->acceleration()->getRelatedVarKeys(keys);
 }
 
-auto PoseInterpolator::value() const -> OutType { return T_i0_->value(); }
+auto PoseInterpolator::value() const -> OutType {
+  const auto T1 = knot1_->pose()->value();
+  const auto w1 = knot1_->velocity()->value();
+  const auto dw1 = knot1_->acceleration()->value();
+  const auto T2 = knot2_->pose()->value();
+  const auto w2 = knot2_->velocity()->value();
+  const auto dw2 = knot2_->acceleration()->value();
+  // Get se3 algebra of relative matrix
+  const auto xi_21 = (T2 / T1).vec();
+  // Calculate the 6x6 associated Jacobian
+  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  // Calculate interpolated relative se3 algebra
+  const Eigen::Matrix<double,6,1> xi_i1 = lambda_.block<6, 6>(0, 6) * w1 + lambda_.block<6, 6>(0, 12) * dw1
+    + omega_.block<6, 6>(0, 0) * xi_21 + omega_.block<6, 6>(0, 6) * J_21_inv * w2
+    + omega_.block<6, 6>(0, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  // Calculate interpolated relative transformation matrix
+  const lgmath::se3::Transformation T_i1(xi_i1);
+  OutType T_i0 = T_i1 * T1;
+  return T_i0;
+}
 
 auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {
-  return T_i0_->forward();
+  const auto T1 = knot1_->pose()->forward();
+  const auto w1 = knot1_->velocity()->forward();
+  const auto dw1 = knot1_->acceleration()->forward();
+  const auto T2 = knot2_->pose()->forward();
+  const auto w2 = knot2_->velocity()->forward();
+  const auto dw2 = knot2_->acceleration()->forward();
+  // Get se3 algebra of relative matrix
+  const auto xi_21 = (T2->value() / T1->value()).vec();
+  // Calculate the 6x6 associated Jacobian
+  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  // Calculate interpolated relative se3 algebra
+  const Eigen::Matrix<double,6,1> xi_i1 = lambda_.block<6, 6>(0, 6) * w1->value() + lambda_.block<6, 6>(0, 12) * dw1->value()
+    + omega_.block<6, 6>(0, 0) * xi_21 + omega_.block<6, 6>(0, 6) * J_21_inv * w2->value()
+    + omega_.block<6, 6>(0, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() + J_21_inv * dw2->value());
+  // Calculate interpolated relative transformation matrix
+  const lgmath::se3::Transformation T_i1(xi_i1);
+  OutType T_i0 = T_i1 * T1->value();
+  const auto node = Node<OutType>::MakeShared(T_i0);
+  node->addChild(T1);
+  node->addChild(w1);
+  node->addChild(dw1);
+  node->addChild(T2);
+  node->addChild(w2);
+  node->addChild(dw2);
+  return node;
 }
 
 void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
                                 const Node<OutType>::Ptr& node,
                                 Jacobians& jacs) const {
-  return T_i0_->backward(lhs, node, jacs);
+  if (!active()) return;
+  const auto T1 = knot1_->pose()->value();
+  const auto w1 = knot1_->velocity()->value();
+  const auto dw1 = knot1_->acceleration()->value();
+  const auto T2 = knot2_->pose()->value();
+  const auto w2 = knot2_->velocity()->value();
+  const auto dw2 = knot2_->acceleration()->value();
+  // Get se3 algebra of relative matrix
+  const auto xi_21 = (T2 / T1).vec();
+  // Calculate the 6x6 associated Jacobian
+  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  // Calculate interpolated relative se3 algebra
+  const Eigen::Matrix<double,6,1> xi_i1 = lambda_.block<6, 6>(0, 6) * w1 + lambda_.block<6, 6>(0, 12) * dw1
+    + omega_.block<6, 6>(0, 0) * xi_21 + omega_.block<6, 6>(0, 6) * J_21_inv * w2
+    + omega_.block<6, 6>(0, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  // Calculate interpolated relative transformation matrix
+  const lgmath::se3::Transformation T_21(xi_21);
+  const lgmath::se3::Transformation T_i1(xi_i1);
+  // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
+  const Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+
+  if (knot1_->pose()->active() || knot2_->pose()->active()) {
+    // Precompute part of jacobian matrices
+    const Eigen::Matrix<double,6,6> w = J_i1 * (omega_.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity()
+      + omega_.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2)
+      + omega_.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2)
+      + omega_.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) * J_21_inv;
+    if (knot1_->pose()->active()) {
+        const auto T1_ = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
+        Eigen::MatrixXd new_lhs = lhs * (-w * T_21.adjoint() + T_i1.adjoint());
+        knot1_->pose()->backward(new_lhs, T1_, jacs);
+    }
+    if (knot2_->pose()->active()) {
+        const auto T2_ = std::static_pointer_cast<Node<InPoseType>>(node->at(3));
+        Eigen::MatrixXd new_lhs = lhs * w;
+        knot2_->pose()->backward(new_lhs, T2_, jacs);
+    }
+  }
+  if (knot1_->velocity()->active()) {
+    const auto w1_ = std::static_pointer_cast<Node<InVelType>>(node->at(1));
+    Eigen::MatrixXd new_lhs = lhs * lambda_.block<6, 6>(0, 6) * J_i1;
+    knot1_->velocity()->backward(new_lhs, w1_, jacs);
+  }
+  if (knot2_->velocity()->active()) {
+    const auto w2_ = std::static_pointer_cast<Node<InVelType>>(node->at(4));
+    Eigen::MatrixXd new_lhs = lhs * (omega_.block<6, 6>(0, 6) * J_i1 * J_21_inv
+      + omega_.block<6, 6>(0, 12) * -0.5  * J_i1 * (lgmath::se3::curlyhat(J_21_inv * w2) - lgmath::se3::curlyhat(w2) * J_21_inv)
+    );
+    knot2_->velocity()->backward(new_lhs, w2_, jacs);
+  }
+  if (knot1_->acceleration()->active()) {
+    const auto dw1_ = std::static_pointer_cast<Node<InAccType>>(node->at(2));
+    Eigen::MatrixXd new_lhs = lhs * lambda_.block<6, 6>(0, 12) * J_i1;
+    knot1_->velocity()->backward(new_lhs, dw1_, jacs);
+  }
+  if (knot2_->acceleration()->active()) {
+    const auto dw2_ = std::static_pointer_cast<Node<InAccType>>(node->at(5));
+    Eigen::MatrixXd new_lhs = lhs * omega_.block<6, 6>(0, 12) * J_i1 * J_21_inv;
+    knot2_->velocity()->backward(new_lhs, dw2_, jacs);
+  }
+
 }
 
 }  // namespace const_acc

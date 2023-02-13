@@ -12,10 +12,10 @@ namespace steam {
 namespace traj {
 namespace const_acc {
 
-class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
+class AccelerationInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
  public:
-  using Ptr = std::shared_ptr<VelocityInterpolator>;
-  using ConstPtr = std::shared_ptr<const VelocityInterpolator>;
+  using Ptr = std::shared_ptr<AccelerationInterpolator>;
+  using ConstPtr = std::shared_ptr<const AccelerationInterpolator>;
 
   using InPoseType = lgmath::se3::Transformation;
   using InVelType = Eigen::Matrix<double, 6, 1>;
@@ -24,7 +24,7 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
 
   static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2);
-  VelocityInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+  AccelerationInterpolator(const Time& time, const Variable::ConstPtr& knot1,
                        const Variable::ConstPtr& knot2);
 
   bool active() const override;

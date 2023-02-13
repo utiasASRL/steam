@@ -51,8 +51,7 @@ void JVelocityEvaluator::backward(const Eigen::MatrixXd& lhs,
   const auto child2 = std::static_pointer_cast<Node<VelInType>>(node->at(1));
 
   if (xi_->active()) {
-    xi_->backward((-0.5) * lhs * lgmath::se3::curlyhat(child2->value()) *
-                      lgmath::se3::vec2jac(child1->value()),
+    xi_->backward((-0.5) * lhs * lgmath::se3::curlyhat(child2->value()),
                   child1, jacs);
   }
 

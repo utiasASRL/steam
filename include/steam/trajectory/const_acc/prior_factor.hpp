@@ -33,16 +33,15 @@ class PriorFactor : public Evaluable<Eigen::Matrix<double, 18, 1>> {
   void backward(const Eigen::MatrixXd& lhs, const Node<OutType>::Ptr& node,
                 Jacobians& jacs) const override;
 
- private:
+ protected:
   /** \brief First (earlier) knot */
   const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
-
-  //
-  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ep_ = nullptr;
-  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ev_ = nullptr;
-  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ea_ = nullptr;
+  /** \brief Transition matrix */
+  Eigen::Matrix<double, 18, 18> Phi_ = Eigen::Matrix<double, 18, 18>::Identity();
+  Eigen::Matrix<double, 18, 18> getJacKnot1_() const;
+  Eigen::Matrix<double, 18, 18> getJacKnot2_() const;
 };
 
 }  // namespace const_acc

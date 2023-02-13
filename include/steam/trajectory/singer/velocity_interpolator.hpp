@@ -2,48 +2,47 @@
 
 #include <Eigen/Core>
 
-#include "lgmath.hpp"
-
-#include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/singer/variable.hpp"
 #include "steam/trajectory/time.hpp"
+#include "steam/trajectory/const_acc/velocity_interpolator.hpp"
+#include "steam/trajectory/const_acc/variable.hpp"
+
 
 namespace steam {
 namespace traj {
 namespace singer {
 
-class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
+class VelocityInterpolator : public steam::traj::const_acc::VelocityInterpolator {
  public:
   using Ptr = std::shared_ptr<VelocityInterpolator>;
   using ConstPtr = std::shared_ptr<const VelocityInterpolator>;
-
-  using InPoseType = lgmath::se3::Transformation;
-  using InVelType = Eigen::Matrix<double, 6, 1>;
-  using InAccType = Eigen::Matrix<double, 6, 1>;
-  using OutType = Eigen::Matrix<double, 6, 1>;
+  using Variable = steam::traj::const_acc::Variable;
 
   static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2,
-                        const Eigen::Matrix<double, 6, 1>& ad);
+                        const Eigen::Matrix<double, 6, 1>& ad) {
+    return std::make_shared<VelocityInterpolator>(time, knot1, knot2, ad);
+  }
+
   VelocityInterpolator(const Time& time, const Variable::ConstPtr& knot1,
                        const Variable::ConstPtr& knot2,
-                       const Eigen::Matrix<double, 6, 1>& ad);
+                       const Eigen::Matrix<double, 6, 1>& ad)
+      : steam::traj::const_acc::VelocityInterpolator(time, knot1, knot2) {
+    // Calculate time constants
+    const double T = (knot2->time() - knot1->time()).seconds();
+    const double tau = (time - knot1->time()).seconds();
+    const double kappa = (knot2->time() - time).seconds();
 
-  bool active() const override;
-  void getRelatedVarKeys(KeySet& keys) const override;
+    // Q and Transition matrix
+    const auto Q_tau = getQ(tau, ad);
+    const auto Q_T = getQ(T, ad);
+    const auto Tran_kappa = getTran(kappa, ad);
+    const auto Tran_tau = getTran(tau, ad);
+    const auto Tran_T = getTran(T, ad);
 
-  OutType value() const override;
-  Node<OutType>::Ptr forward() const override;
-  void backward(const Eigen::MatrixXd& lhs, const Node<OutType>::Ptr& node,
-                Jacobians& jacs) const override;
-
- private:
-  /** \brief First (earlier) knot */
-  const Variable::ConstPtr knot1_;
-  /** \brief Second (later) knot */
-  const Variable::ConstPtr knot2_;
-  /** \brief internal auto-diff evaluator */
-  Evaluable<OutType>::ConstPtr xi_it_;
+    // Calculate interpolation values
+    omega_ = Q_tau * Tran_kappa.transpose() * Q_T.inverse();
+    lambda_ = Tran_tau - omega_ * Tran_T;
+  }
 };
 
 }  // namespace singer

@@ -66,10 +66,10 @@ auto PriorFactor::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
+// See State Estimation (2nd Ed) Section 11.1.4
 void PriorFactor::backward(const Eigen::MatrixXd& lhs,
                            const Node<OutType>::Ptr& node,
                            Jacobians& jacs) const {
-  
   // e \approx ebar + JAC * delta_x
   if (knot1_->pose()->active() || knot1_->velocity()->active()) {
     const auto Fk1 = getJacKnot1(knot1_, knot2_);
