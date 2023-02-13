@@ -42,10 +42,7 @@ Interpolation Jacobians:
 $$
 \begin{align*}
 &\mathbf{T}(\tau) = \exp \Big(\Big( \Lambda_{12} \w_{k} + \Lambda_{13} \dw_{k} + \Omega_{11} \ln (\mathbf{T}_{k+1,k})^\vee \\
-
-&+\Omega_{12}\J_{k+1,k}^{-1}\w_{k+1} + \Omega_{13} \Big(-\frac{1}{2}(\J_{k+1,k}^{-1} \w_{k+1})^\curlywedge \w_{k+1} + \J_{k+1,k}^{-1} \dw_{k+1} \Big)
-
-\Big)^\wedge \Big) \mathbf{T}_{k}
+&+\Omega_{12}\J_{k+1,k}^{-1}\w_{k+1} + \Omega_{13} \Big(-\frac{1}{2}(\J_{k+1,k}^{-1} \w_{k+1})^\curlywedge \w_{k+1} + \J_{k+1,k}^{-1} \dw_{k+1} \Big)\Big)^\wedge \Big) \mathbf{T}_{k}
 \end{align*}
 $$
 
@@ -71,10 +68,8 @@ $$
 
 $$
 \begin{align*}
-&\frac{\partial}{\partial \mathbf{x}} \Big(\ddot{\x}_{\tau} + \frac{1}{2} \dot{\x}_{\tau}^\curlywedge \w(\tau) \Big) = 
- \frac{\partial \ddot{\x}_{\tau}}{\partial \mathbf{x}} + \frac{1}{2} \frac{\partial}{\partial \mathbf{x}} \dot{\x}_{\tau}^\curlywedge \w(\tau) \\
+&\frac{\partial}{\partial \mathbf{x}} \Big(\ddot{\x}_{\tau} + \frac{1}{2} \dot{\x}_{\tau}^\curlywedge \w(\tau) \Big) = \frac{\partial \ddot{\x}_{\tau}}{\partial \mathbf{x}} + \frac{1}{2} \frac{\partial}{\partial \mathbf{x}} \dot{\x}_{\tau}^\curlywedge \w(\tau) \\
  &= \frac{\partial \ddot{\x}_{\tau}}{\partial \mathbf{x}} - \frac{1}{2} \w_{\text{op}}(\tau)^\curlywedge \frac{\partial \dot{\x}_{\tau}}{\partial \mathbf{x}}  + \frac{1}{2} \dot{\x}_{\text{op},\tau}^\curlywedge \frac{\partial \w(\tau)}{\partial \mathbf{x}}
-
 \end{align*}
 $$
 
@@ -82,11 +77,9 @@ $$
 \begin{align*}
 \frac{\partial \dw(\tau)}{\partial \mathbf{x}} =~&\J_{\text{op},\tau} \Bigg(  \frac{\partial \ddot{\x}_{\tau}}{\partial \mathbf{x}} - \frac{1}{2} \w_{\text{op}}(\tau)^\curlywedge \frac{\partial \dot{\x}_{\tau}}{\partial \mathbf{x}}  + \frac{1}{2} \dot{\x}_{\text{op},\tau}^\curlywedge \Big( \J_{\text{op},\tau} \frac{\partial \dot{\x}_{\tau}}{\partial \mathbf{x}} - \frac{1}{2} \dot{\x}_{\text{op},\tau}^\curlywedge  \frac{\partial \x_{\tau}}{\partial \mathbf{x}} \Big)   \Bigg) \\
 &- \frac{1}{2} \Big( \ddot{\x}_{\text{op},\tau} + \frac{1}{2} \dot{\x}_{\text{op},\tau}^\curlywedge \w_\text{op}(\tau) \Big)^\curlywedge \frac{\partial \x_{\tau}}{\partial \mathbf{x}} \\
-
 \frac{\partial \dw(\tau)}{\partial \mathbf{x}} =~&\J_{\text{op},\tau} \frac{\partial \ddot{\x}_{\tau}}{\partial \mathbf{x}} \\
 &+ \J_{\text{op},\tau} \left( - \frac{1}{2} \w_{\text{op}}(\tau)^\curlywedge  + \frac{1}{2} \dot{\x}_{\text{op},\tau}^\curlywedge \J_{\text{op},\tau} \right) \frac{\partial \dot{\x}_{\tau}}{\partial \mathbf{x}} \\
 &+ \left(-\frac{1}{4} \J_{\text{op},\tau}  \dot{\x}_{\text{op},\tau}^\curlywedge \dot{\x}_{\text{op},\tau}^\curlywedge - \frac{1}{2} \Big( \ddot{\x}_{\text{op},\tau} + \frac{1}{2} \dot{\x}_{\text{op},\tau}^\curlywedge \w_\text{op}(\tau) \Big)^\curlywedge \right)  \frac{\partial \x_{\tau}}{\partial \mathbf{x}}
-
 \end{align*}
 $$
 
