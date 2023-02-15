@@ -4,14 +4,14 @@
 #include "steam/evaluable/vspace/evaluables.hpp"
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/noise_model/static_noise_model.hpp"
+#include "steam/trajectory/const_acc/acceleration_extrapolator.hpp"
+#include "steam/trajectory/const_acc/acceleration_interpolator.hpp"
 #include "steam/trajectory/const_acc/helper.hpp"
+#include "steam/trajectory/const_acc/pose_extrapolator.hpp"
 #include "steam/trajectory/const_acc/pose_interpolator.hpp"
 #include "steam/trajectory/const_acc/prior_factor.hpp"
-#include "steam/trajectory/const_acc/velocity_interpolator.hpp"
-#include "steam/trajectory/const_acc/acceleration_interpolator.hpp"
-#include "steam/trajectory/const_acc/pose_extrapolator.hpp"
 #include "steam/trajectory/const_acc/velocity_extrapolator.hpp"
-#include "steam/trajectory/const_acc/acceleration_extrapolator.hpp"
+#include "steam/trajectory/const_acc/velocity_interpolator.hpp"
 
 namespace steam {
 namespace traj {
@@ -80,7 +80,6 @@ auto Interface::getVelocityInterpolator(const Time& time) const
     --it1;  // should be safe, as we checked that the map was not empty..
     const auto& endKnot = it1->second;
     return getVelocityExtrapolator_(time, endKnot);
-
   }
 
   // Check if we requested time exactly
@@ -422,57 +421,66 @@ void Interface::addPriorCostTerms(Problem& problem) const {
 }
 
 Eigen::Matrix<double, 18, 18> Interface::getJacKnot1_(
-  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const {
+    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const {
   return getJacKnot1(knot1, knot2);
 }
 
 Eigen::Matrix<double, 18, 18> Interface::getJacKnot2_(
-  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const {
+    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const {
   return getJacKnot2(knot1, knot2);
 }
 
 Eigen::Matrix<double, 18, 18> Interface::getQ_(
-  const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
   return getQ(dt, Qc_diag);
 }
 
 Eigen::Matrix<double, 18, 18> Interface::getQinv_(
-  const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
   return getQinv(dt, Qc_diag);
 }
 
 auto Interface::getPoseInterpolator_(const Time& time,
-  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<PoseType>::Ptr {
+                                     const Variable::ConstPtr& knot1,
+                                     const Variable::ConstPtr& knot2) const
+    -> Evaluable<PoseType>::Ptr {
   return PoseInterpolator::MakeShared(time, knot1, knot2);
 }
 
 auto Interface::getVelocityInterpolator_(const Time& time,
-  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<VelocityType>::Ptr {
+                                         const Variable::ConstPtr& knot1,
+                                         const Variable::ConstPtr& knot2) const
+    -> Evaluable<VelocityType>::Ptr {
   return VelocityInterpolator::MakeShared(time, knot1, knot2);
 }
 
-auto Interface::getAccelerationInterpolator_(const Time& time,
-  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<AccelerationType>::Ptr {
+auto Interface::getAccelerationInterpolator_(
+    const Time& time, const Variable::ConstPtr& knot1,
+    const Variable::ConstPtr& knot2) const -> Evaluable<AccelerationType>::Ptr {
   return AccelerationInterpolator::MakeShared(time, knot1, knot2);
 }
 
 auto Interface::getPoseExtrapolator_(const Time& time,
-  const Variable::ConstPtr& knot) const -> Evaluable<PoseType>::Ptr {
+                                     const Variable::ConstPtr& knot) const
+    -> Evaluable<PoseType>::Ptr {
   return PoseExtrapolator::MakeShared(time, knot);
 }
 
 auto Interface::getVelocityExtrapolator_(const Time& time,
-  const Variable::ConstPtr& knot) const -> Evaluable<VelocityType>::Ptr {
+                                         const Variable::ConstPtr& knot) const
+    -> Evaluable<VelocityType>::Ptr {
   return VelocityExtrapolator::MakeShared(time, knot);
 }
 
-auto Interface::getAccelerationExtrapolator_(const Time& time,
-  const Variable::ConstPtr& knot) const -> Evaluable<AccelerationType>::Ptr {
+auto Interface::getAccelerationExtrapolator_(
+    const Time& time, const Variable::ConstPtr& knot) const
+    -> Evaluable<AccelerationType>::Ptr {
   return AccelerationExtrapolator::MakeShared(time, knot);
 }
 
-auto Interface::getPriorFactor_(
-  const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const -> Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr {
+auto Interface::getPriorFactor_(const Variable::ConstPtr& knot1,
+                                const Variable::ConstPtr& knot2) const
+    -> Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr {
   return PriorFactor::MakeShared(knot1, knot2);
 }
 

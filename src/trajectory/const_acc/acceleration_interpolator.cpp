@@ -14,9 +14,9 @@ AccelerationInterpolator::Ptr AccelerationInterpolator::MakeShared(
   return std::make_shared<AccelerationInterpolator>(time, knot1, knot2);
 }
 
-AccelerationInterpolator::AccelerationInterpolator(const Time& time,
-                                           const Variable::ConstPtr& knot1,
-                                           const Variable::ConstPtr& knot2)
+AccelerationInterpolator::AccelerationInterpolator(
+    const Time& time, const Variable::ConstPtr& knot1,
+    const Variable::ConstPtr& knot2)
     : knot1_(knot1), knot2_(knot2) {
   // Calculate time constants
   const double T = (knot2->time() - knot1->time()).seconds();
@@ -59,20 +59,30 @@ auto AccelerationInterpolator::value() const -> OutType {
   // Get se3 algebra of relative matrix
   const auto xi_21 = (T2 / T1).vec();
   // Calculate the 6x6 associated Jacobian
-  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   // Calculate interpolated relative se3 algebra
-  const Eigen::Matrix<double,6,1> xi_i1 = lambda_.block<6, 6>(0, 6) * w1 + lambda_.block<6, 6>(0, 12) * dw1
-    + omega_.block<6, 6>(0, 0) * xi_21 + omega_.block<6, 6>(0, 6) * J_21_inv * w2
-    + omega_.block<6, 6>(0, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
-  const Eigen::Matrix<double,6,1> xi_j1 = lambda_.block<6, 6>(6, 6) * w1 + lambda_.block<6, 6>(6, 12) * dw1
-    + omega_.block<6, 6>(6, 0) * xi_21 + omega_.block<6, 6>(6, 6) * J_21_inv * w2
-    + omega_.block<6, 6>(6, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
-  const Eigen::Matrix<double,6,1> xi_k1 = lambda_.block<6, 6>(12, 6) * w1 + lambda_.block<6, 6>(12, 12) * dw1
-    + omega_.block<6, 6>(12, 0) * xi_21 + omega_.block<6, 6>(12, 6) * J_21_inv * w2
-    + omega_.block<6, 6>(12, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const Eigen::Matrix<double, 6, 1> xi_i1 =
+      lambda_.block<6, 6>(0, 6) * w1 + lambda_.block<6, 6>(0, 12) * dw1 +
+      omega_.block<6, 6>(0, 0) * xi_21 +
+      omega_.block<6, 6>(0, 6) * J_21_inv * w2 +
+      omega_.block<6, 6>(0, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const Eigen::Matrix<double, 6, 1> xi_j1 =
+      lambda_.block<6, 6>(6, 6) * w1 + lambda_.block<6, 6>(6, 12) * dw1 +
+      omega_.block<6, 6>(6, 0) * xi_21 +
+      omega_.block<6, 6>(6, 6) * J_21_inv * w2 +
+      omega_.block<6, 6>(6, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const Eigen::Matrix<double, 6, 1> xi_k1 =
+      lambda_.block<6, 6>(12, 6) * w1 + lambda_.block<6, 6>(12, 12) * dw1 +
+      omega_.block<6, 6>(12, 0) * xi_21 +
+      omega_.block<6, 6>(12, 6) * J_21_inv * w2 +
+      omega_.block<6, 6>(12, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
   // Calculate interpolated velocity
   const auto w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
-  OutType dw_i = lgmath::se3::vec2jac(xi_i1) * (xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
+  OutType dw_i = lgmath::se3::vec2jac(xi_i1) *
+                 (xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
   return dw_i;
 }
 
@@ -86,20 +96,36 @@ auto AccelerationInterpolator::forward() const -> Node<OutType>::Ptr {
   // Get se3 algebra of relative matrix
   const auto xi_21 = (T2->value() / T1->value()).vec();
   // Calculate the 6x6 associated Jacobian
-  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   // Calculate interpolated relative se3 algebra
-  const Eigen::Matrix<double,6,1> xi_i1 = lambda_.block<6, 6>(0, 6) * w1->value() + lambda_.block<6, 6>(0, 12) * dw1->value()
-    + omega_.block<6, 6>(0, 0) * xi_21 + omega_.block<6, 6>(0, 6) * J_21_inv * w2->value()
-    + omega_.block<6, 6>(0, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() + J_21_inv * dw2->value());
-  const Eigen::Matrix<double,6,1> xi_j1 = lambda_.block<6, 6>(6, 6) * w1->value() + lambda_.block<6, 6>(6, 12) * dw1->value()
-    + omega_.block<6, 6>(6, 0) * xi_21 + omega_.block<6, 6>(6, 6) * J_21_inv * w2->value()
-    + omega_.block<6, 6>(6, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() + J_21_inv * dw2->value());
-  const Eigen::Matrix<double,6,1> xi_k1 = lambda_.block<6, 6>(12, 6) * w1->value() + lambda_.block<6, 6>(12, 12) * dw1->value()
-    + omega_.block<6, 6>(12, 0) * xi_21 + omega_.block<6, 6>(12, 6) * J_21_inv * w2->value()
-    + omega_.block<6, 6>(12, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() + J_21_inv * dw2->value());
+  const Eigen::Matrix<double, 6, 1> xi_i1 =
+      lambda_.block<6, 6>(0, 6) * w1->value() +
+      lambda_.block<6, 6>(0, 12) * dw1->value() +
+      omega_.block<6, 6>(0, 0) * xi_21 +
+      omega_.block<6, 6>(0, 6) * J_21_inv * w2->value() +
+      omega_.block<6, 6>(0, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() +
+           J_21_inv * dw2->value());
+  const Eigen::Matrix<double, 6, 1> xi_j1 =
+      lambda_.block<6, 6>(6, 6) * w1->value() +
+      lambda_.block<6, 6>(6, 12) * dw1->value() +
+      omega_.block<6, 6>(6, 0) * xi_21 +
+      omega_.block<6, 6>(6, 6) * J_21_inv * w2->value() +
+      omega_.block<6, 6>(6, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() +
+           J_21_inv * dw2->value());
+  const Eigen::Matrix<double, 6, 1> xi_k1 =
+      lambda_.block<6, 6>(12, 6) * w1->value() +
+      lambda_.block<6, 6>(12, 12) * dw1->value() +
+      omega_.block<6, 6>(12, 0) * xi_21 +
+      omega_.block<6, 6>(12, 6) * J_21_inv * w2->value() +
+      omega_.block<6, 6>(12, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() +
+           J_21_inv * dw2->value());
 
   const auto w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
-  OutType dw_i = lgmath::se3::vec2jac(xi_i1) * (xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
+  OutType dw_i = lgmath::se3::vec2jac(xi_i1) *
+                 (xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
   const auto node = Node<OutType>::MakeShared(dw_i);
   node->addChild(T1);
   node->addChild(w1);
@@ -111,8 +137,8 @@ auto AccelerationInterpolator::forward() const -> Node<OutType>::Ptr {
 }
 
 void AccelerationInterpolator::backward(const Eigen::MatrixXd& lhs,
-                                    const Node<OutType>::Ptr& node,
-                                    Jacobians& jacs) const {
+                                        const Node<OutType>::Ptr& node,
+                                        Jacobians& jacs) const {
   if (!active()) return;
   const auto T1 = knot1_->pose()->value();
   const auto w1 = knot1_->velocity()->value();
@@ -123,83 +149,117 @@ void AccelerationInterpolator::backward(const Eigen::MatrixXd& lhs,
   // Get se3 algebra of relative matrix
   const auto xi_21 = (T2 / T1).vec();
   // Calculate the 6x6 associated Jacobian
-  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   // Calculate interpolated relative se3 algebra
-  const Eigen::Matrix<double,6,1> xi_i1 = lambda_.block<6, 6>(0, 6) * w1 + lambda_.block<6, 6>(0, 12) * dw1
-    + omega_.block<6, 6>(0, 0) * xi_21 + omega_.block<6, 6>(0, 6) * J_21_inv * w2
-    + omega_.block<6, 6>(0, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
-  const Eigen::Matrix<double,6,1> xi_j1 = lambda_.block<6, 6>(6, 6) * w1 + lambda_.block<6, 6>(6, 12) * dw1
-    + omega_.block<6, 6>(6, 0) * xi_21 + omega_.block<6, 6>(6, 6) * J_21_inv * w2
-    + omega_.block<6, 6>(6, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
-  const Eigen::Matrix<double,6,1> xi_k1 = lambda_.block<6, 6>(12, 6) * w1 + lambda_.block<6, 6>(12, 12) * dw1
-    + omega_.block<6, 6>(12, 0) * xi_21 + omega_.block<6, 6>(12, 6) * J_21_inv * w2
-    + omega_.block<6, 6>(12, 12) * (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const Eigen::Matrix<double, 6, 1> xi_i1 =
+      lambda_.block<6, 6>(0, 6) * w1 + lambda_.block<6, 6>(0, 12) * dw1 +
+      omega_.block<6, 6>(0, 0) * xi_21 +
+      omega_.block<6, 6>(0, 6) * J_21_inv * w2 +
+      omega_.block<6, 6>(0, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const Eigen::Matrix<double, 6, 1> xi_j1 =
+      lambda_.block<6, 6>(6, 6) * w1 + lambda_.block<6, 6>(6, 12) * dw1 +
+      omega_.block<6, 6>(6, 0) * xi_21 +
+      omega_.block<6, 6>(6, 6) * J_21_inv * w2 +
+      omega_.block<6, 6>(6, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const Eigen::Matrix<double, 6, 1> xi_k1 =
+      lambda_.block<6, 6>(12, 6) * w1 + lambda_.block<6, 6>(12, 12) * dw1 +
+      omega_.block<6, 6>(12, 0) * xi_21 +
+      omega_.block<6, 6>(12, 6) * J_21_inv * w2 +
+      omega_.block<6, 6>(12, 12) *
+          (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
   // Calculate interpolated relative transformation matrix
   const lgmath::se3::Transformation T_21(xi_21);
-//   const lgmath::se3::Transformation T_i1(xi_i1);
-  // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  const Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+  //   const lgmath::se3::Transformation T_i1(xi_i1);
+  // Calculate the 6x6 Jacobian associated with the interpolated relative
+  // transformation matrix
+  const Eigen::Matrix<double, 6, 6> J_i1 = lgmath::se3::vec2jac(xi_i1);
   const auto w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
-  const auto J_prep_2 = J_i1 * (-0.5 * lgmath::se3::curlyhat(w_i)
-    + 0.5 * lgmath::se3::curlyhat(xi_j1) * J_i1);
-  const auto J_prep_3 = -0.25 * J_i1 * lgmath::se3::curlyhat(xi_j1) * lgmath::se3::curlyhat(xi_j1)
-    - 0.5 * lgmath::se3::curlyhat(xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
+  const auto J_prep_2 = J_i1 * (-0.5 * lgmath::se3::curlyhat(w_i) +
+                                0.5 * lgmath::se3::curlyhat(xi_j1) * J_i1);
+  const auto J_prep_3 =
+      -0.25 * J_i1 * lgmath::se3::curlyhat(xi_j1) *
+          lgmath::se3::curlyhat(xi_j1) -
+      0.5 * lgmath::se3::curlyhat(xi_k1 +
+                                  0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
 
   if (knot1_->pose()->active() || knot2_->pose()->active()) {
     // Precompute part of jacobian matrix
-    const Eigen::Matrix<double,6,6> w = J_i1 * (omega_.block<6, 6>(12, 0) * Eigen::Matrix<double, 6, 6>::Identity()
-      + omega_.block<6, 6>(12, 6) * 0.5 * lgmath::se3::curlyhat(w2)
-      + omega_.block<6, 6>(12, 12) * 0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2)
-      + omega_.block<6, 6>(12, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) * J_21_inv
-                                        + J_prep_2 * (omega_.block<6, 6>(6, 0) * Eigen::Matrix<double, 6, 6>::Identity()
-      + omega_.block<6, 6>(6, 6) * 0.5 * lgmath::se3::curlyhat(w2)
-      + omega_.block<6, 6>(6, 12) * 0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2)
-      + omega_.block<6, 6>(6, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) * J_21_inv
-                                        + J_prep_3 * (omega_.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity()
-      + omega_.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2)
-      + omega_.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2)
-      + omega_.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) * J_21_inv;
+    const Eigen::Matrix<double, 6, 6> w =
+        J_i1 *
+            (omega_.block<6, 6>(12, 0) *
+                 Eigen::Matrix<double, 6, 6>::Identity() +
+             omega_.block<6, 6>(12, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
+             omega_.block<6, 6>(12, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
+                 lgmath::se3::curlyhat(w2) +
+             omega_.block<6, 6>(12, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
+            J_21_inv +
+        J_prep_2 *
+            (omega_.block<6, 6>(6, 0) *
+                 Eigen::Matrix<double, 6, 6>::Identity() +
+             omega_.block<6, 6>(6, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
+             omega_.block<6, 6>(6, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
+                 lgmath::se3::curlyhat(w2) +
+             omega_.block<6, 6>(6, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
+            J_21_inv +
+        J_prep_3 *
+            (omega_.block<6, 6>(0, 0) *
+                 Eigen::Matrix<double, 6, 6>::Identity() +
+             omega_.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
+             omega_.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
+                 lgmath::se3::curlyhat(w2) +
+             omega_.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
+            J_21_inv;
 
     if (knot1_->pose()->active()) {
-        const auto T1_ = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
-        Eigen::MatrixXd new_lhs = lhs * (-w * T_21.adjoint());
-        knot1_->pose()->backward(new_lhs, T1_, jacs);
+      const auto T1_ = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
+      Eigen::MatrixXd new_lhs = lhs * (-w * T_21.adjoint());
+      knot1_->pose()->backward(new_lhs, T1_, jacs);
     }
     if (knot2_->pose()->active()) {
-        const auto T2_ = std::static_pointer_cast<Node<InPoseType>>(node->at(3));
-        Eigen::MatrixXd new_lhs = lhs * w;
-        knot2_->pose()->backward(new_lhs, T2_, jacs);
+      const auto T2_ = std::static_pointer_cast<Node<InPoseType>>(node->at(3));
+      Eigen::MatrixXd new_lhs = lhs * w;
+      knot2_->pose()->backward(new_lhs, T2_, jacs);
     }
   }
   if (knot1_->velocity()->active()) {
     const auto w1_ = std::static_pointer_cast<Node<InVelType>>(node->at(1));
-    Eigen::MatrixXd new_lhs = lhs * (J_i1 * lambda_.block<6, 6>(12, 6)
-        + J_prep_2 * lambda_.block<6, 6>(6, 6)
-        + J_prep_3 * lambda_.block<6, 6>(0, 6));
+    Eigen::MatrixXd new_lhs = lhs * (J_i1 * lambda_.block<6, 6>(12, 6) +
+                                     J_prep_2 * lambda_.block<6, 6>(6, 6) +
+                                     J_prep_3 * lambda_.block<6, 6>(0, 6));
     knot1_->velocity()->backward(new_lhs, w1_, jacs);
   }
   if (knot2_->velocity()->active()) {
     const auto w2_ = std::static_pointer_cast<Node<InVelType>>(node->at(4));
-    Eigen::MatrixXd new_lhs = lhs * (J_i1 * (omega_.block<6, 6>(12, 6) * J_21_inv
-      + omega_.block<6, 6>(12, 12) * -0.5  * (lgmath::se3::curlyhat(J_21_inv * w2) - lgmath::se3::curlyhat(w2) * J_21_inv) )
-                                  + J_prep_2 * (omega_.block<6, 6>(6, 6) * J_21_inv
-      + omega_.block<6, 6>(6, 12) * -0.5  * (lgmath::se3::curlyhat(J_21_inv * w2) - lgmath::se3::curlyhat(w2) * J_21_inv) )
-                                  + J_prep_3 * (omega_.block<6, 6>(0, 6) * J_21_inv
-      + omega_.block<6, 6>(0, 12) * -0.5  * (lgmath::se3::curlyhat(J_21_inv * w2) - lgmath::se3::curlyhat(w2) * J_21_inv) )
-    );
+    Eigen::MatrixXd new_lhs =
+        lhs * (J_i1 * (omega_.block<6, 6>(12, 6) * J_21_inv +
+                       omega_.block<6, 6>(12, 12) * -0.5 *
+                           (lgmath::se3::curlyhat(J_21_inv * w2) -
+                            lgmath::se3::curlyhat(w2) * J_21_inv)) +
+               J_prep_2 * (omega_.block<6, 6>(6, 6) * J_21_inv +
+                           omega_.block<6, 6>(6, 12) * -0.5 *
+                               (lgmath::se3::curlyhat(J_21_inv * w2) -
+                                lgmath::se3::curlyhat(w2) * J_21_inv)) +
+               J_prep_3 * (omega_.block<6, 6>(0, 6) * J_21_inv +
+                           omega_.block<6, 6>(0, 12) * -0.5 *
+                               (lgmath::se3::curlyhat(J_21_inv * w2) -
+                                lgmath::se3::curlyhat(w2) * J_21_inv)));
     knot2_->velocity()->backward(new_lhs, w2_, jacs);
   }
   if (knot1_->acceleration()->active()) {
     const auto dw1_ = std::static_pointer_cast<Node<InAccType>>(node->at(2));
-    Eigen::MatrixXd new_lhs = lhs * (J_i1 * lambda_.block<6, 6>(12, 12) + J_prep_2 * lambda_.block<6, 6>(6, 12) + J_prep_3 * lambda_.block<6, 6>(0, 12));
+    Eigen::MatrixXd new_lhs = lhs * (J_i1 * lambda_.block<6, 6>(12, 12) +
+                                     J_prep_2 * lambda_.block<6, 6>(6, 12) +
+                                     J_prep_3 * lambda_.block<6, 6>(0, 12));
     knot1_->velocity()->backward(new_lhs, dw1_, jacs);
   }
   if (knot2_->acceleration()->active()) {
     const auto dw2_ = std::static_pointer_cast<Node<InAccType>>(node->at(5));
-    Eigen::MatrixXd new_lhs = lhs * (J_i1 * (omega_.block<6, 6>(12, 12) * J_21_inv)
-        + J_prep_2 * (omega_.block<6, 6>(6, 12) * J_21_inv)
-        + J_prep_3 * (omega_.block<6, 6>(0, 12) * J_21_inv)
-    );
+    Eigen::MatrixXd new_lhs =
+        lhs * (J_i1 * (omega_.block<6, 6>(12, 12) * J_21_inv) +
+               J_prep_2 * (omega_.block<6, 6>(6, 12) * J_21_inv) +
+               J_prep_3 * (omega_.block<6, 6>(0, 12) * J_21_inv));
     knot2_->velocity()->backward(new_lhs, dw2_, jacs);
   }
 }

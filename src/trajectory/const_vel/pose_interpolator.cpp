@@ -57,11 +57,10 @@ auto PoseInterpolator::value() const -> OutType {
   // Get se3 algebra of relative matrix
   const auto xi_21 = (T2 / T1).vec();
   // Calculate the 6x6 associated Jacobian
-  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   // Calculate interpolated relative se3 algebra
-  const Eigen::Matrix<double,6,1> xi_i1 = lambda12_ * w1 +
-                                    psi11_ * xi_21 +
-                                    psi12_ * J_21_inv * w2;
+  const Eigen::Matrix<double, 6, 1> xi_i1 =
+      lambda12_ * w1 + psi11_ * xi_21 + psi12_ * J_21_inv * w2;
   // Calculate interpolated relative transformation matrix
   const lgmath::se3::Transformation T_i1(xi_i1);
   OutType T_i0 = T_i1 * T1;
@@ -76,11 +75,11 @@ auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {
   // Get se3 algebra of relative matrix
   const auto xi_21 = (T2->value() / T1->value()).vec();
   // Calculate the 6x6 associated Jacobian
-  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   // Calculate interpolated relative se3 algebra
-  const Eigen::Matrix<double,6,1> xi_i1 = lambda12_ * w1->value() +
-                                    psi11_ * xi_21 +
-                                    psi12_ * J_21_inv * w2->value();
+  const Eigen::Matrix<double, 6, 1> xi_i1 = lambda12_ * w1->value() +
+                                            psi11_ * xi_21 +
+                                            psi12_ * J_21_inv * w2->value();
   // Calculate interpolated relative transformation matrix
   const lgmath::se3::Transformation T_i1(xi_i1);
   OutType T_i0 = T_i1 * T1->value();
@@ -92,7 +91,8 @@ auto PoseInterpolator::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
-// See State Estimation (2nd Ed) Section 11.1.4 / Page 116 of Sean Anderson's thesis
+// See State Estimation (2nd Ed) Section 11.1.4 / Page 116 of Sean Anderson's
+// thesis
 void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
                                 const Node<OutType>::Ptr& node,
                                 Jacobians& jacs) const {
@@ -104,30 +104,31 @@ void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
   // Get se3 algebra of relative matrix
   const auto xi_21 = (T2 / T1).vec();
   // Calculate the 6x6 associated Jacobian
-  const Eigen::Matrix<double,6,6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   // Calculate interpolated relative se3 algebra
-  const Eigen::Matrix<double,6,1> xi_i1 = lambda12_ * w1 +
-                                    psi11_ * xi_21 +
-                                    psi12_ * J_21_inv * w2;
+  const Eigen::Matrix<double, 6, 1> xi_i1 =
+      lambda12_ * w1 + psi11_ * xi_21 + psi12_ * J_21_inv * w2;
   // Calculate interpolated relative transformation matrix
   const lgmath::se3::Transformation T_21(xi_21);
   const lgmath::se3::Transformation T_i1(xi_i1);
-  // Calculate the 6x6 Jacobian associated with the interpolated relative transformation matrix
-  const Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+  // Calculate the 6x6 Jacobian associated with the interpolated relative
+  // transformation matrix
+  const Eigen::Matrix<double, 6, 6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
   if (knot1_->pose()->active() || knot2_->pose()->active()) {
     // Precompute part of jacobian matrices
-    const Eigen::Matrix<double,6,6> w = J_i1 * (psi11_ * J_21_inv +
-        psi12_ * 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv);
+    const Eigen::Matrix<double, 6, 6> w =
+        J_i1 * (psi11_ * J_21_inv +
+                psi12_ * 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv);
     if (knot1_->pose()->active()) {
-        const auto T1_ = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
-        Eigen::MatrixXd new_lhs = lhs * (-w * T_21.adjoint() + T_i1.adjoint());
-        knot1_->pose()->backward(new_lhs, T1_, jacs);
+      const auto T1_ = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
+      Eigen::MatrixXd new_lhs = lhs * (-w * T_21.adjoint() + T_i1.adjoint());
+      knot1_->pose()->backward(new_lhs, T1_, jacs);
     }
     if (knot2_->pose()->active()) {
-        const auto T2_ = std::static_pointer_cast<Node<InPoseType>>(node->at(2));
-        Eigen::MatrixXd new_lhs = lhs * w;
-        knot2_->pose()->backward(new_lhs, T2_, jacs);
+      const auto T2_ = std::static_pointer_cast<Node<InPoseType>>(node->at(2));
+      Eigen::MatrixXd new_lhs = lhs * w;
+      knot2_->pose()->backward(new_lhs, T2_, jacs);
     }
   }
   if (knot1_->velocity()->active()) {

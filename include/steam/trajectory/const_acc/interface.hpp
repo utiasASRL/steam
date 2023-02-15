@@ -53,27 +53,30 @@ class Interface : public traj::Interface {
   WeightedLeastSqCostTerm<6>::Ptr vel_prior_factor_ = nullptr;
   WeightedLeastSqCostTerm<6>::Ptr acc_prior_factor_ = nullptr;
   Eigen::Matrix<double, 18, 18> getJacKnot1_(
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
+      const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
   Eigen::Matrix<double, 18, 18> getJacKnot2_(
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
+      const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
   Eigen::Matrix<double, 18, 18> getQ_(
-    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
   Eigen::Matrix<double, 18, 18> getQinv_(
-    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
-  Evaluable<PoseType>::Ptr getPoseInterpolator_(const Time& time,
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
-  Evaluable<VelocityType>::Ptr getVelocityInterpolator_(const Time& time,
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
-  Evaluable<AccelerationType>::Ptr getAccelerationInterpolator_(const Time& time,
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
-  Evaluable<PoseType>::Ptr getPoseExtrapolator_(const Time& time,
-    const Variable::ConstPtr& knot) const;
-  Evaluable<VelocityType>::Ptr getVelocityExtrapolator_(const Time& time,
-    const Variable::ConstPtr& knot) const;
-  Evaluable<AccelerationType>::Ptr getAccelerationExtrapolator_(const Time& time,
-    const Variable::ConstPtr& knot) const;
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
+  Evaluable<PoseType>::Ptr getPoseInterpolator_(
+      const Time& time, const Variable::ConstPtr& knot1,
+      const Variable::ConstPtr& knot2) const;
+  Evaluable<VelocityType>::Ptr getVelocityInterpolator_(
+      const Time& time, const Variable::ConstPtr& knot1,
+      const Variable::ConstPtr& knot2) const;
+  Evaluable<AccelerationType>::Ptr getAccelerationInterpolator_(
+      const Time& time, const Variable::ConstPtr& knot1,
+      const Variable::ConstPtr& knot2) const;
+  Evaluable<PoseType>::Ptr getPoseExtrapolator_(
+      const Time& time, const Variable::ConstPtr& knot) const;
+  Evaluable<VelocityType>::Ptr getVelocityExtrapolator_(
+      const Time& time, const Variable::ConstPtr& knot) const;
+  Evaluable<AccelerationType>::Ptr getAccelerationExtrapolator_(
+      const Time& time, const Variable::ConstPtr& knot) const;
   Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr getPriorFactor_(
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
+      const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
 };
 
 }  // namespace const_acc

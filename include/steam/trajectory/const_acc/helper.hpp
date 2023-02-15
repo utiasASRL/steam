@@ -49,10 +49,11 @@ inline Eigen::Matrix<double, 18, 18> getQ(
 }
 
 inline Eigen::Matrix<double, 18, 18> getTran(const double& dt) {
-  Eigen::Matrix<double, 18, 18> Tran = Eigen::Matrix<double, 18, 18>::Identity();
+  Eigen::Matrix<double, 18, 18> Tran =
+      Eigen::Matrix<double, 18, 18>::Identity();
   const auto I = Eigen::Matrix<double, 6, 6>::Identity();
-      Tran.block<6, 6>(0, 6) = Tran.block<6, 6>(6, 12) = dt * I;
-    Tran.block<6, 6>(0, 12) = 0.5 * dt * dt * I;
+  Tran.block<6, 6>(0, 6) = Tran.block<6, 6>(6, 12) = dt * I;
+  Tran.block<6, 6>(0, 12) = 0.5 * dt * dt * I;
   return Tran;
 }
 
@@ -74,11 +75,10 @@ inline Eigen::Matrix<double, 18, 18> getJacKnot1(
   jacobian.setZero();
   // pose
   jacobian.block<6, 6>(0, 0) = -Jinv_12;
-  jacobian.block<6, 6>(6, 0) =
-    -0.5 * lgmath::se3::curlyhat(w2) * Jinv_12;
+  jacobian.block<6, 6>(6, 0) = -0.5 * lgmath::se3::curlyhat(w2) * Jinv_12;
   jacobian.block<6, 6>(12, 0) =
-    -0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2) * Jinv_12
-    - 0.5 * lgmath::se3::curlyhat(dw2) * Jinv_12;
+      -0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2) * Jinv_12 -
+      0.5 * lgmath::se3::curlyhat(dw2) * Jinv_12;
   // velocity
   jacobian.block<6, 6>(0, 6) = -Phi.block<6, 6>(0, 6);
   jacobian.block<6, 6>(6, 6) = -Phi.block<6, 6>(6, 6);
@@ -104,16 +104,14 @@ inline Eigen::Matrix<double, 18, 18> getJacKnot2(
   jacobian.setZero();
   // pose
   jacobian.block<6, 6>(0, 0) = J_21_inv;
-  jacobian.block<6, 6>(6, 0) =
-      0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
+  jacobian.block<6, 6>(6, 0) = 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
   jacobian.block<6, 6>(12, 0) =
-    0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2) * J_21_inv
-    + 0.5 * lgmath::se3::curlyhat(dw2) * J_21_inv;
+      0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2) * J_21_inv +
+      0.5 * lgmath::se3::curlyhat(dw2) * J_21_inv;
   // velocity
   jacobian.block<6, 6>(6, 6) = J_21_inv;
-  jacobian.block<6, 6>(12, 6) =
-    -0.5 * lgmath::se3::curlyhat(J_21_inv * w2)
-    + 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
+  jacobian.block<6, 6>(12, 6) = -0.5 * lgmath::se3::curlyhat(J_21_inv * w2) +
+                                0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
   // acceleration
   jacobian.block<6, 6>(12, 12) = J_21_inv;
   return jacobian;

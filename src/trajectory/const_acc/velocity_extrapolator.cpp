@@ -6,8 +6,7 @@ namespace traj {
 namespace const_acc {
 
 auto VelocityExtrapolator::MakeShared(const Time& time,
-                                      const Variable::ConstPtr& knot)
-    -> Ptr {
+                                      const Variable::ConstPtr& knot) -> Ptr {
   return std::make_shared<VelocityExtrapolator>(time, knot);
 }
 
@@ -28,16 +27,18 @@ void VelocityExtrapolator::getRelatedVarKeys(KeySet& keys) const {
 }
 
 auto VelocityExtrapolator::value() const -> OutType {
-  const Eigen::Matrix<double,6,1> xi_j1 = Phi_.block<6, 6>(6, 6) * knot_->velocity()->value() +
-    Phi_.block<6, 6>(6, 12) * knot_->acceleration()->value();
+  const Eigen::Matrix<double, 6, 1> xi_j1 =
+      Phi_.block<6, 6>(6, 6) * knot_->velocity()->value() +
+      Phi_.block<6, 6>(6, 12) * knot_->acceleration()->value();
   return OutType(xi_j1);  // approximation holds as long as xi_i1 is small.
 }
 
 auto VelocityExtrapolator::forward() const -> Node<OutType>::Ptr {
   const auto w = knot_->velocity()->forward();
   const auto dw = knot_->acceleration()->forward();
-  const Eigen::Matrix<double,6,1> xi_j1 = Phi_.block<6, 6>(6, 6) * w->value() +
-    Phi_.block<6, 6>(6, 12) * dw->value();
+  const Eigen::Matrix<double, 6, 1> xi_j1 =
+      Phi_.block<6, 6>(6, 6) * w->value() +
+      Phi_.block<6, 6>(6, 12) * dw->value();
   OutType w_i = xi_j1;  // approximation holds as long as xi_i1 is small.
   const auto node = Node<OutType>::MakeShared(w_i);
   node->addChild(w);
@@ -46,8 +47,8 @@ auto VelocityExtrapolator::forward() const -> Node<OutType>::Ptr {
 }
 
 void VelocityExtrapolator::backward(const Eigen::MatrixXd& lhs,
-                                const Node<OutType>::Ptr& node,
-                                Jacobians& jacs) const {
+                                    const Node<OutType>::Ptr& node,
+                                    Jacobians& jacs) const {
   if (!active()) return;
   if (knot_->velocity()->active()) {
     const auto w = std::static_pointer_cast<Node<InVelType>>(node->at(1));

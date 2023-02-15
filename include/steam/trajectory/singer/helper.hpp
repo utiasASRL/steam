@@ -74,11 +74,10 @@ inline Eigen::Matrix<double, 18, 18> getJacKnot1(
   jacobian.setZero();
   // pose
   jacobian.block<6, 6>(0, 0) = -Jinv_12;
-  jacobian.block<6, 6>(6, 0) =
-    -0.5 * lgmath::se3::curlyhat(w2) * Jinv_12;
+  jacobian.block<6, 6>(6, 0) = -0.5 * lgmath::se3::curlyhat(w2) * Jinv_12;
   jacobian.block<6, 6>(12, 0) =
-    -0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2) * Jinv_12
-    - 0.5 * lgmath::se3::curlyhat(dw2) * Jinv_12;
+      -0.25 * lgmath::se3::curlyhat(w2) * lgmath::se3::curlyhat(w2) * Jinv_12 -
+      0.5 * lgmath::se3::curlyhat(dw2) * Jinv_12;
   // velocity
   jacobian.block<6, 6>(0, 6) = -Phi.block<6, 6>(0, 6);
   jacobian.block<6, 6>(6, 6) = -Phi.block<6, 6>(6, 6);

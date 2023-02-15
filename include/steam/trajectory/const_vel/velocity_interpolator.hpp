@@ -40,7 +40,8 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
   /** \brief interpolation values **/
-  double psi11_, psi12_, psi21_, psi22_, lambda11_, lambda12_, lambda21_, lambda22_;
+  double psi11_, psi12_, psi21_, psi22_, lambda11_, lambda12_, lambda21_,
+      lambda22_;
 };
 
 }  // namespace const_vel

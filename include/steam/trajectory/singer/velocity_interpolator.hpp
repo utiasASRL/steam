@@ -2,16 +2,16 @@
 
 #include <Eigen/Core>
 
-#include "steam/trajectory/time.hpp"
-#include "steam/trajectory/const_acc/velocity_interpolator.hpp"
 #include "steam/trajectory/const_acc/variable.hpp"
-
+#include "steam/trajectory/const_acc/velocity_interpolator.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
 namespace singer {
 
-class VelocityInterpolator : public steam::traj::const_acc::VelocityInterpolator {
+class VelocityInterpolator
+    : public steam::traj::const_acc::VelocityInterpolator {
  public:
   using Ptr = std::shared_ptr<VelocityInterpolator>;
   using ConstPtr = std::shared_ptr<const VelocityInterpolator>;

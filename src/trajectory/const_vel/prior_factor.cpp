@@ -1,5 +1,5 @@
-#include <iostream>
 #include "steam/trajectory/const_vel/prior_factor.hpp"
+#include <iostream>
 
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
@@ -17,7 +17,7 @@ auto PriorFactor::MakeShared(const Variable::ConstPtr& knot1,
 
 PriorFactor::PriorFactor(const Variable::ConstPtr& knot1,
                          const Variable::ConstPtr& knot2)
-    : knot1_(knot1), knot2_(knot2) { }
+    : knot1_(knot1), knot2_(knot2) {}
 
 bool PriorFactor::active() const {
   return knot1_->pose()->active() || knot1_->velocity()->active() ||
@@ -56,7 +56,8 @@ auto PriorFactor::forward() const -> Node<OutType>::Ptr {
   const auto xi_21 = (T2->value() / T1->value()).vec();
   OutType error = OutType::Zero();
   error.block<6, 1>(0, 0) = xi_21 - dt * w1->value();
-  error.block<6, 1>(6, 0) = lgmath::se3::vec2jacinv(xi_21) * w2->value() - w1->value();
+  error.block<6, 1>(6, 0) =
+      lgmath::se3::vec2jacinv(xi_21) * w2->value() - w1->value();
 
   const auto node = Node<OutType>::MakeShared(error);
   node->addChild(T1);

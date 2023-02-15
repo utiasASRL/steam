@@ -8,8 +8,8 @@ namespace steam {
 namespace traj {
 namespace const_vel {
 
-// See State Estimation (2nd Ed) Section 11.1.4 for explanation of these Jacobians
-// "F" in SE book
+// See State Estimation (2nd Ed) Section 11.1.4 for explanation of these
+// Jacobians "F" in SE book
 inline Eigen::Matrix<double, 12, 12> getJacKnot1(
     const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) {
   // precompute
@@ -69,10 +69,10 @@ inline Eigen::Matrix<double, 12, 12> getJacKnot3(
   return gamma_inv;
 }
 
-inline Eigen::Matrix<double, 12, 12> getXi(
-    const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) {
+inline Eigen::Matrix<double, 12, 12> getXi(const Variable::ConstPtr& knot1,
+                                           const Variable::ConstPtr& knot2) {
   const auto T_21 = knot2->pose()->value() / knot1->pose()->value();
-//   const auto Tau_21 = lgmath::se3::tranAd(T_21);
+  //   const auto Tau_21 = lgmath::se3::tranAd(T_21);
   const auto Tau_21 = T_21.adjoint();
   Eigen::Matrix<double, 12, 12> Xi;
   Xi.setZero();
@@ -111,7 +111,8 @@ inline Eigen::Matrix<double, 12, 12> getQ(
 }
 
 inline Eigen::Matrix<double, 12, 12> getTran(const double& dt) {
-  Eigen::Matrix<double, 12, 12> Tran = Eigen::Matrix<double, 12, 12>::Identity();
+  Eigen::Matrix<double, 12, 12> Tran =
+      Eigen::Matrix<double, 12, 12>::Identity();
   Tran.block<6, 6>(0, 6) = Eigen::Matrix<double, 6, 6>::Identity() * dt;
   return Tran;
 }

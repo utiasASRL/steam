@@ -5,8 +5,8 @@ namespace steam {
 namespace traj {
 namespace const_acc {
 
-PoseExtrapolator::Ptr PoseExtrapolator::MakeShared(const Time& time,
-    const Variable::ConstPtr& knot) {
+PoseExtrapolator::Ptr PoseExtrapolator::MakeShared(
+    const Time& time, const Variable::ConstPtr& knot) {
   return std::make_shared<PoseExtrapolator>(time, knot);
 }
 
@@ -18,7 +18,8 @@ PoseExtrapolator::PoseExtrapolator(const Time& time,
 }
 
 bool PoseExtrapolator::active() const {
-  return knot_->pose()->active() || knot_->velocity()->active() || knot_->acceleration()->active();
+  return knot_->pose()->active() || knot_->velocity()->active() ||
+         knot_->acceleration()->active();
 }
 
 void PoseExtrapolator::getRelatedVarKeys(KeySet& keys) const {
@@ -28,9 +29,9 @@ void PoseExtrapolator::getRelatedVarKeys(KeySet& keys) const {
 }
 
 auto PoseExtrapolator::value() const -> OutType {
-  const lgmath::se3::Transformation T_i1(
-      Eigen::Matrix<double, 6, 1>(Phi_.block<6, 6>(0, 6) * knot_->velocity()->value()
-        + Phi_.block<6, 6>(0, 12) * knot_->acceleration()->value()));
+  const lgmath::se3::Transformation T_i1(Eigen::Matrix<double, 6, 1>(
+      Phi_.block<6, 6>(0, 6) * knot_->velocity()->value() +
+      Phi_.block<6, 6>(0, 12) * knot_->acceleration()->value()));
   return OutType(T_i1 * knot_->pose()->value());
 }
 
@@ -38,8 +39,9 @@ auto PoseExtrapolator::forward() const -> Node<OutType>::Ptr {
   const auto T = knot_->pose()->forward();
   const auto w = knot_->velocity()->forward();
   const auto dw = knot_->acceleration()->forward();
-  const lgmath::se3::Transformation T_i1(Eigen::Matrix<double, 6, 1>(Phi_.block<6, 6>(0, 6) * w->value()
-    + Phi_.block<6, 6>(0, 12) * dw->value()));
+  const lgmath::se3::Transformation T_i1(
+      Eigen::Matrix<double, 6, 1>(Phi_.block<6, 6>(0, 6) * w->value() +
+                                  Phi_.block<6, 6>(0, 12) * dw->value()));
   OutType T_i0 = T_i1 * T->value();
   const auto node = Node<OutType>::MakeShared(T_i0);
   node->addChild(T);
@@ -54,8 +56,9 @@ void PoseExtrapolator::backward(const Eigen::MatrixXd& lhs,
   if (!active()) return;
   const auto w = knot_->velocity()->value();
   const auto dw = knot_->acceleration()->value();
-  const Eigen::Matrix<double,6,1> xi_i1 = Phi_.block<6, 6>(0, 6) * w + Phi_.block<6, 6>(0, 12) * dw;
-  const Eigen::Matrix<double,6,6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+  const Eigen::Matrix<double, 6, 1> xi_i1 =
+      Phi_.block<6, 6>(0, 6) * w + Phi_.block<6, 6>(0, 12) * dw;
+  const Eigen::Matrix<double, 6, 6> J_i1 = lgmath::se3::vec2jac(xi_i1);
   const lgmath::se3::Transformation T_i1(xi_i1);
   if (knot_->pose()->active()) {
     const auto T_ = std::static_pointer_cast<Node<InPoseType>>(node->at(0));

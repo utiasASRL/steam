@@ -362,7 +362,7 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
 
 void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
                               const VelocityType& w_0k_ink,
-                              const Eigen::Matrix<double, 12, 12>& cov) {
+                              const CovType& cov) {
   // Only allow adding 1 prior
   if ((pose_prior_factor_ != nullptr) || (vel_prior_factor_ != nullptr))
     throw std::runtime_error("a pose/velocity prior already exists.");

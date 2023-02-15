@@ -39,7 +39,8 @@ class PriorFactor : public Evaluable<Eigen::Matrix<double, 18, 1>> {
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
   /** \brief Transition matrix */
-  Eigen::Matrix<double, 18, 18> Phi_ = Eigen::Matrix<double, 18, 18>::Identity();
+  Eigen::Matrix<double, 18, 18> Phi_ =
+      Eigen::Matrix<double, 18, 18>::Identity();
   Eigen::Matrix<double, 18, 18> getJacKnot1_() const;
   Eigen::Matrix<double, 18, 18> getJacKnot2_() const;
 };

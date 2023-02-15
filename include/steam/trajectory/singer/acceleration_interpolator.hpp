@@ -10,7 +10,8 @@ namespace steam {
 namespace traj {
 namespace singer {
 
-class AccelerationInterpolator : public steam::traj::const_acc::AccelerationInterpolator {
+class AccelerationInterpolator
+    : public steam::traj::const_acc::AccelerationInterpolator {
  public:
   using Ptr = std::shared_ptr<AccelerationInterpolator>;
   using ConstPtr = std::shared_ptr<const AccelerationInterpolator>;
@@ -23,8 +24,8 @@ class AccelerationInterpolator : public steam::traj::const_acc::AccelerationInte
   }
 
   AccelerationInterpolator(const Time& time, const Variable::ConstPtr& knot1,
-                       const Variable::ConstPtr& knot2,
-                       const Eigen::Matrix<double, 6, 1>& ad)
+                           const Variable::ConstPtr& knot2,
+                           const Eigen::Matrix<double, 6, 1>& ad)
       : steam::traj::const_acc::AccelerationInterpolator(time, knot1, knot2) {
     // Calculate time constants
     const double T = (knot2->time() - knot1->time()).seconds();

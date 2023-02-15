@@ -56,8 +56,8 @@ auto PriorFactor::value() const -> OutType {
   Eigen::Matrix<double, 18, 1> gamma2 = Eigen::Matrix<double, 18, 1>::Zero();
   gamma2.block<6, 1>(0, 0) = xi_21;
   gamma2.block<6, 1>(6, 0) = J_21_inv * w2;
-  gamma2.block<6, 1>(12, 0) = -0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2
-    + J_21_inv * dw2;
+  gamma2.block<6, 1>(12, 0) =
+      -0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2;
   error = gamma2 - Phi_ * gamma1;
   return error;
 }
@@ -69,7 +69,7 @@ auto PriorFactor::forward() const -> Node<OutType>::Ptr {
   const auto T2 = knot2_->pose()->forward();
   const auto w2 = knot2_->velocity()->forward();
   const auto dw2 = knot2_->acceleration()->forward();
-  
+
   const auto xi_21 = (T2->value() / T1->value()).vec();
   const auto J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   OutType error = OutType::Zero();
@@ -79,8 +79,9 @@ auto PriorFactor::forward() const -> Node<OutType>::Ptr {
   Eigen::Matrix<double, 18, 1> gamma2 = Eigen::Matrix<double, 18, 1>::Zero();
   gamma2.block<6, 1>(0, 0) = xi_21;
   gamma2.block<6, 1>(6, 0) = J_21_inv * w2->value();
-  gamma2.block<6, 1>(12, 0) = -0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value()
-    + J_21_inv * dw2->value();
+  gamma2.block<6, 1>(12, 0) =
+      -0.5 * lgmath::se3::curlyhat(J_21_inv * w2->value()) * w2->value() +
+      J_21_inv * dw2->value();
   error = gamma2 - Phi_ * gamma1;
   const auto node = Node<OutType>::MakeShared(error);
   node->addChild(T1);
@@ -97,7 +98,8 @@ void PriorFactor::backward(const Eigen::MatrixXd& lhs,
                            const Node<OutType>::Ptr& node,
                            Jacobians& jacs) const {
   // e \approx ebar + JAC * delta_x
-  if (knot1_->pose()->active() || knot1_->velocity()->active() || knot1_->acceleration()->active()) {
+  if (knot1_->pose()->active() || knot1_->velocity()->active() ||
+      knot1_->acceleration()->active()) {
     const auto Fk1 = getJacKnot1_();
     if (knot1_->pose()->active()) {
       const auto T1 = std::static_pointer_cast<Node<InPoseType>>(node->at(0));
@@ -115,7 +117,8 @@ void PriorFactor::backward(const Eigen::MatrixXd& lhs,
       knot1_->acceleration()->backward(new_lhs, dw1, jacs);
     }
   }
-  if (knot2_->pose()->active() || knot2_->velocity()->active() || knot2_->acceleration()->active()) {
+  if (knot2_->pose()->active() || knot2_->velocity()->active() ||
+      knot2_->acceleration()->active()) {
     const auto Ek = getJacKnot2_();
     if (knot2_->pose()->active()) {
       const auto T2 = std::static_pointer_cast<Node<InPoseType>>(node->at(3));
