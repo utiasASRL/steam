@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 
   // trajectory interface
   Eigen::Matrix<double, 6, 1> Qc_diag = Eigen::Matrix<double, 6, 1>::Ones();
-  Qc_diag.diagonal() << 1e0, 1e0, 1e0, 1e0, 1e0, 1e0;
+  Qc_diag << 1e0, 1e0, 1e0, 1e0, 1e0, 1e0;
   traj::const_vel::Interface traj(Qc_diag);
   traj.add(traj::Time(0.0), T_vi_at0_var, w_iv_inv_at0_var);
   traj.add(traj::Time(T), T_vi_atT_var, w_iv_inv_atT_var);
