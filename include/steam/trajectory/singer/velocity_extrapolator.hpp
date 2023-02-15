@@ -4,6 +4,7 @@
 
 #include "steam/trajectory/const_acc/variable.hpp"
 #include "steam/trajectory/const_acc/velocity_extrapolator.hpp"
+#include "steam/trajectory/singer/helper.hpp"
 #include "steam/trajectory/time.hpp"
 
 namespace steam {
