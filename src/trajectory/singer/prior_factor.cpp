@@ -67,7 +67,7 @@ PriorFactor::PriorFactor(const Variable::ConstPtr& knot1,
 
   // clang-format off
   // acceleration error
-  const auto dw1_ = smult<6>(const_acc::compose_curlyhat(const_vel::jinv_velocity(xi_21, dw2), dw2), -0.5);
+  const auto dw1_ = smult<6>(const_acc::compose_curlyhat(const_vel::jinv_velocity(xi_21, w2), w2), -0.5);
   const auto dw2_ = const_vel::jinv_velocity(xi_21, dw2);
   const auto dw3_ = mmult<6>(dw1, -C3);
   ea_ = add<6>(dw1_, add<6>(dw2_, dw3_));
