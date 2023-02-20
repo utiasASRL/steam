@@ -37,10 +37,6 @@ class PriorFactor : public Evaluable<Eigen::Matrix<double, 12, 1>> {
   const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
-
-  //
-  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ep_ = nullptr;
-  Evaluable<Eigen::Matrix<double, 6, 1>>::ConstPtr ev_ = nullptr;
 };
 
 }  // namespace const_vel

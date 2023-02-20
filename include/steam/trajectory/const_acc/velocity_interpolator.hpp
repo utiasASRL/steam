@@ -35,13 +35,14 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   void backward(const Eigen::MatrixXd& lhs, const Node<OutType>::Ptr& node,
                 Jacobians& jacs) const override;
 
- private:
+ protected:
   /** \brief First (earlier) knot */
   const Variable::ConstPtr knot1_;
   /** \brief Second (later) knot */
   const Variable::ConstPtr knot2_;
-  /** \brief internal auto-diff evaluator */
-  Evaluable<OutType>::ConstPtr xi_it_;
+  /** \brief interpolation values **/
+  Eigen::Matrix<double, 18, 18> omega_;
+  Eigen::Matrix<double, 18, 18> lambda_;
 };
 
 }  // namespace const_acc
