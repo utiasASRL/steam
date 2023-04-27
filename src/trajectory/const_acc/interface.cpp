@@ -61,7 +61,11 @@ auto Interface::getPoseInterpolator(const Time& time) const
   auto it2 = it1;
   --it1;
   if (time <= it1->second->time() || time >= it2->second->time())
-    throw std::runtime_error("Requested interpolation at an invalid time");
+    throw std::runtime_error(
+        "Requested interpolation at an invalid time: " +
+        std::to_string(time.seconds()) + " not in (" +
+        std::to_string(it1->second->time().seconds()) + ", " +
+        std::to_string(it2->second->time().seconds()) + ")");
 
   // Create interpolated evaluator
   return getPoseInterpolator_(time, it1->second, it2->second);
@@ -95,7 +99,11 @@ auto Interface::getVelocityInterpolator(const Time& time) const
   auto it2 = it1;
   --it1;
   if (time <= it1->second->time() || time >= it2->second->time())
-    throw std::runtime_error("Requested interpolation at an invalid time");
+    throw std::runtime_error(
+        "Requested interpolation at an invalid time: " +
+        std::to_string(time.seconds()) + " not in (" +
+        std::to_string(it1->second->time().seconds()) + ", " +
+        std::to_string(it2->second->time().seconds()) + ")");
 
   // Create interpolated evaluator
   return getVelocityInterpolator_(time, it1->second, it2->second);
@@ -129,7 +137,11 @@ auto Interface::getAccelerationInterpolator(const Time& time) const
   auto it2 = it1;
   --it1;
   if (time <= it1->second->time() || time >= it2->second->time())
-    throw std::runtime_error("Requested interpolation at an invalid time");
+    throw std::runtime_error(
+        "Requested interpolation at an invalid time: " +
+        std::to_string(time.seconds()) + " not in (" +
+        std::to_string(it1->second->time().seconds()) + ", " +
+        std::to_string(it2->second->time().seconds()) + ")");
 
   // Create interpolated evaluator
   return getAccelerationInterpolator_(time, it1->second, it2->second);
