@@ -99,7 +99,7 @@ LandmarkNoiseEvaluator::LandmarkNoiseEvaluator(const Eigen::Vector4d& landmark_m
                              const Eigen::Matrix3d& landmark_cov,
                              const Eigen::Matrix4d& meas_noise,
                              const CameraIntrinsics::ConstPtr& intrinsics,
-                             const se3::SE3StateVar::ConstPtr& T_query_map) : 
+                             const typename Evaluable<lgmath::se3::Transformation>::ConstPtr& T_query_map) : 
 intrinsics_(intrinsics),
 meas_noise_(meas_noise),
 mean_(landmark_mean),
@@ -112,18 +112,32 @@ T_query_map_(T_query_map) {
   }
 }
 
-// bool LandmarkNoiseEvaluator::active() {
-//   return true;
-// }
+bool LandmarkNoiseEvaluator::active() const {
+  return false;
+}
+
+auto LandmarkNoiseEvaluator::forward() const -> Node<Eigen::Matrix4d>::Ptr {
+  // error between measurement and point estimate projected in camera frame
+  const auto val = value();
+  const auto node = Node<Eigen::Matrix4d>::MakeShared(val);
+  return node;
+}
+
+void LandmarkNoiseEvaluator::backward(const Eigen::MatrixXd& lhs,
+                                    const Node<Eigen::Matrix4d>::Ptr& node,
+                                    Jacobians& jacs) const {}
+
+void LandmarkNoiseEvaluator::getRelatedVarKeys(KeySet& keys) const {}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 /// @brief evaluatecovariance
 //////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() {
+Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   // TODO: Check to see if we need to recaulculate (add a change flag to steam variables.)
 
   // Add the measurement noise.
-  last_computed_cov_ = meas_noise_;
+  Eigen::Matrix4d last_computed_cov_ = meas_noise_;
 
   if(!positiveDefinite<4>(meas_noise_)) {
     std::cout << "measurement noise is bad!!";
@@ -141,7 +155,7 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() {
 
   if(positiveDefinite<3>(lm_noise_l_3)) {
     // compute the camera model jacobian based on the transformed mean.
-    camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_, T_l_p*mean_);
+    Eigen::Matrix4d camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_, T_l_p*mean_);
 
     Eigen::Matrix<double,4,4> lm_noise = camera_jacobian_j_ * lm_noise_l * camera_jacobian_j_.transpose();
     Eigen::Matrix<double,3,3> lm_noise_3 = dialation_matrix.transpose() * lm_noise * dialation_matrix;

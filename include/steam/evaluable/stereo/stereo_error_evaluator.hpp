@@ -86,7 +86,7 @@ class LandmarkNoiseEvaluator : public Evaluable<Eigen::Matrix<double,4,4>> {
                          const Eigen::Matrix3d& landmark_cov,
                          const Eigen::Matrix4d& meas_noise,
                          const CameraIntrinsics::ConstPtr& intrinsics,
-                         const se3::SE3StateVar::ConstPtr& T_query_map);
+                         const typename Evaluable<lgmath::se3::Transformation>::ConstPtr& T_query_map);
 
   /// \brief Default destructor
   ~LandmarkNoiseEvaluator()=default;
@@ -94,11 +94,19 @@ class LandmarkNoiseEvaluator : public Evaluable<Eigen::Matrix<double,4,4>> {
   /// \brief Evaluates the reprojection covariance 
   /// @return the 4x4 covariance of the landmark reprojected into the query stereo
   ///         camera frame.
-  virtual Eigen::Matrix<double,4,4> value();
+  Eigen::Matrix4d value() const;
+
+  bool active() const;
+
+  void getRelatedVarKeys(KeySet& keys) const;
+  Node<Eigen::Matrix4d>::Ptr forward() const;
+  void backward(const Eigen::MatrixXd& lhs,
+                        const Node<Eigen::Matrix4d>::Ptr& node,
+                        Jacobians& jacs) const;
 
  private:
   template <int N>
-  bool positiveDefinite(const Eigen::Matrix<double,N,N> &matrix) {
+  bool positiveDefinite(const Eigen::Matrix<double,N,N> &matrix) const {
   
     // Initialize an eigen value solver
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,N,N>> 
@@ -125,17 +133,11 @@ class LandmarkNoiseEvaluator : public Evaluable<Eigen::Matrix<double,4,4>> {
 
   /// \brief The steam transform evaluator that takes points from the landmark frame
   ///        into the query frame.
-  se3::SE3StateVar::ConstPtr T_query_map_;
+  Evaluable<lgmath::se3::Transformation>::ConstPtr T_query_map_;
 
   /// \brief The 3x3 landmark covariance (phi) dialated into a 3x3 matrix.
   /// @details dialated_phi_ = D*phi*D^T, where D is a 4x3 dialation matrix.
   Eigen::Matrix4d dialated_phi_;
-
-  /// \brief The stereo camarea jacobian, evaluated at landmark mean, j.
-  Eigen::Matrix4d camera_jacobian_j_;
-
-  // \brief the last computed covariance
-  Eigen::Matrix<double,4,4> last_computed_cov_;
 };
 
 
