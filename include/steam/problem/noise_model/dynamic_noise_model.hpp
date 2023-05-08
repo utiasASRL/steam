@@ -5,6 +5,7 @@
 #pragma once
 
 #include "steam/problem/noise_model/base_noise_model.hpp"
+#include "steam/evaluable/evaluable.hpp"
 
 namespace steam {
 
@@ -14,32 +15,25 @@ namespace steam {
  * during the steam optimization problem.
  */
 template <int DIM>
-class StaticNoiseModel : public BaseNoiseModel<DIM> {
+class DynamicNoiseModel : public BaseNoiseModel<DIM> {
  public:
   /** \brief Convenience typedefs */
-  using Ptr = std::shared_ptr<StaticNoiseModel<DIM>>;
-  using ConstPtr = std::shared_ptr<const StaticNoiseModel<DIM>>;
+  using Ptr = std::shared_ptr<DynamicNoiseModel<DIM>>;
+  using ConstPtr = std::shared_ptr<const DynamicNoiseModel<DIM>>;
 
   using MatrixT = typename BaseNoiseModel<DIM>::MatrixT;
   using VectorT = typename BaseNoiseModel<DIM>::VectorT;
 
-  static Ptr MakeShared(const MatrixT& matrix,
+  static Ptr MakeShared(const Evaluable<MatrixT>& eval,
                         const NoiseType& type = NoiseType::COVARIANCE);
 
   /**
    * \brief Constructor
-   * \param[in] matrix A noise matrix, determined by the type parameter.
+   * \param[in] Evaluable<matrix> A noise matrix evaluable, determined by the type parameter.
    * \param[in] type The type of noise matrix set in the previous paramter.
    */
-  StaticNoiseModel(const MatrixT& matrix,
+  DynamicNoiseModel(const Evaluable<MatrixT>& eval,
                    const NoiseType& type = NoiseType::COVARIANCE);
-
-  /** \brief Set by covariance matrix */
-  void setByCovariance(const MatrixT& matrix);
-  /** \brief Set by information matrix */
-  void setByInformation(const MatrixT& matrix);
-  /** \brief Set by square root of information matrix */
-  void setBySqrtInformation(const MatrixT& matrix);
 
   /** \brief Get a reference to the square root information matrix */
   MatrixT getSqrtInformation() const override;
@@ -54,6 +48,13 @@ class StaticNoiseModel : public BaseNoiseModel<DIM> {
   VectorT whitenError(const VectorT& rawError) const override;
 
  private:
+  /** \brief Set by covariance matrix */
+  MatrixT setByCovariance(const MatrixT& matrix);
+  /** \brief Set by information matrix */
+  MatrixT setByInformation(const MatrixT& matrix);
+  /** \brief Set by square root of information matrix */
+  MatrixT setBySqrtInformation(const MatrixT& matrix);
+
   /** \brief Assert that the matrix is positive definite */
   void assertPositiveDefiniteMatrix(const MatrixT& matrix) const;
 
@@ -62,73 +63,71 @@ class StaticNoiseModel : public BaseNoiseModel<DIM> {
    * decomposition on the information matrix (inverse covariance matrix). This
    * triangular matrix is stored directly for faster error whitening.
    */
-  MatrixT sqrtInformation_;
+  //MatrixT sqrtInformation_;
+  const Evaluable<MatrixT> eval_;
+  const NoiseType& type_;
 };
 
 template <int DIM>
-auto StaticNoiseModel<DIM>::MakeShared(const MatrixT& matrix,
+auto DynamicNoiseModel<DIM>::MakeShared(const Evaluable<MatrixT>& eval,
                                        const NoiseType& type) -> Ptr {
-  return std::make_shared<StaticNoiseModel<DIM>>(matrix, type);
+  return std::make_shared<DynamicNoiseModel<DIM>>(eval, type);
 }
 
 template <int DIM>
-StaticNoiseModel<DIM>::StaticNoiseModel(const MatrixT& matrix,
-                                        const NoiseType& type) {
-  // Depending on the type of 'matrix', we set the internal storage
-  switch (type) {
-    case NoiseType::COVARIANCE:
-      setByCovariance(matrix);
-      break;
-    case NoiseType::INFORMATION:
-      setByInformation(matrix);
-      break;
-    case NoiseType::SQRT_INFORMATION:
-      setBySqrtInformation(matrix);
-      break;
-  }
-}
+DynamicNoiseModel<DIM>::DynamicNoiseModel(const Evaluable<MatrixT>& eval,
+                                        const NoiseType& type) : eval_(eval), type_(type) {}
 
 template <int DIM>
-void StaticNoiseModel<DIM>::setByCovariance(const MatrixT& matrix) {
+auto DynamicNoiseModel<DIM>::setByCovariance(const MatrixT& matrix) -> MatrixT {
   // Information is the inverse of covariance
-  setByInformation(matrix.inverse());
+  return setByInformation(matrix.inverse());
 }
 
 template <int DIM>
-void StaticNoiseModel<DIM>::setByInformation(const MatrixT& matrix) {
+auto DynamicNoiseModel<DIM>::setByInformation(const MatrixT& matrix) -> MatrixT{
   // Check that the matrix is positive definite
   assertPositiveDefiniteMatrix(matrix);
   // Perform an LLT decomposition
   Eigen::LLT<MatrixT> lltOfInformation(matrix);
   // Store upper triangular matrix (the square root information matrix)
-  setBySqrtInformation(lltOfInformation.matrixL().transpose());
+  return setBySqrtInformation(lltOfInformation.matrixL().transpose());
 }
 
 template <int DIM>
-void StaticNoiseModel<DIM>::setBySqrtInformation(const MatrixT& matrix) {
+auto DynamicNoiseModel<DIM>::setBySqrtInformation(const MatrixT& matrix) -> MatrixT{
   // Set internal storage matrix
-  sqrtInformation_ = matrix;  // todo: check this is upper triangular
+  return matrix;  // todo: check this is upper triangular
 }
 
 template <int DIM>
-auto StaticNoiseModel<DIM>::getSqrtInformation() const -> MatrixT {
-  return sqrtInformation_;
+auto DynamicNoiseModel<DIM>::getSqrtInformation() const -> MatrixT {
+  MatrixT matrix = eval_.value();
+  switch (type_) {
+    case NoiseType::INFORMATION:
+      return setByInformation(matrix);
+    case NoiseType::SQRT_INFORMATION:
+      return setBySqrtInformation(matrix);
+    case NoiseType::COVARIANCE:
+    default:
+      return setByCovariance(matrix);
+  }
 }
 
 template <int DIM>
-double StaticNoiseModel<DIM>::getWhitenedErrorNorm(
+double DynamicNoiseModel<DIM>::getWhitenedErrorNorm(
     const VectorT& rawError) const {
-  return (sqrtInformation_ * rawError).norm();
+  return (getSqrtInformation() * rawError).norm();
 }
 
 template <int DIM>
-auto StaticNoiseModel<DIM>::whitenError(const VectorT& rawError) const
+auto DynamicNoiseModel<DIM>::whitenError(const VectorT& rawError) const
     -> VectorT {
-  return sqrtInformation_ * rawError;
+  return getSqrtInformation() * rawError;
 }
 
 template <int DIM>
-void StaticNoiseModel<DIM>::assertPositiveDefiniteMatrix(
+void DynamicNoiseModel<DIM>::assertPositiveDefiniteMatrix(
     const MatrixT& matrix) const {
   // Initialize an eigen value solver
   Eigen::SelfAdjointEigenSolver<MatrixT> eigsolver(matrix,

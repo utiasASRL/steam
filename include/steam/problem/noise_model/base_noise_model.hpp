@@ -8,6 +8,9 @@
 
 namespace steam {
 
+/** \brief Enumeration of ways to set the noise */
+enum class NoiseType { COVARIANCE, INFORMATION, SQRT_INFORMATION };
+
 /** \brief BaseNoiseModel Base class for the steam noise models */
 template <int DIM>
 class BaseNoiseModel {
