@@ -1,6 +1,6 @@
 /**
- * \file StaticNoiseModel.hpp
- * \author Sean Anderson, ASRL
+ * \file DynamicNoiseModel.hpp
+ * \author Sean Anderson, Alec Krawciw ASRL
  */
 #pragma once
 
@@ -11,7 +11,7 @@ namespace steam {
 
 
 /**
- * \brief StaticNoiseModel Noise model for uncertainties that do not change
+ * \brief DynamicNoiseModel Noise model for uncertainties that change with the state variables
  * during the steam optimization problem.
  */
 template <int DIM>
