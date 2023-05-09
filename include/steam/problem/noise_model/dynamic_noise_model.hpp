@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include <iostream>
+
 #include "steam/problem/noise_model/base_noise_model.hpp"
 #include "steam/evaluable/evaluable.hpp"
 
@@ -26,7 +28,7 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
   using MatrixTEvalPtr = typename Evaluable<MatrixT>::ConstPtr;
 
   static Ptr MakeShared(const MatrixTEvalPtr& eval,
-                        const NoiseType& type = NoiseType::COVARIANCE);
+                        const NoiseType type = NoiseType::COVARIANCE);
 
   /**
    * \brief Constructor
@@ -34,7 +36,7 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
    * \param[in] type The type of noise matrix set in the previous paramter.
    */
   DynamicNoiseModel(const MatrixTEvalPtr& eval,
-                   const NoiseType& type = NoiseType::COVARIANCE);
+                   const NoiseType type = NoiseType::COVARIANCE);
 
   /** \brief Get a reference to the square root information matrix */
   MatrixT getSqrtInformation() const override;
@@ -65,18 +67,35 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
    * triangular matrix is stored directly for faster error whitening.
    */
   const MatrixTEvalPtr& eval_;
-  const NoiseType& type_;
+  NoiseType type_;
 };
+
+// std::ostream& operator<< (std::ostream& in, const steam::NoiseType& noise){
+//   switch (noise)
+//   {
+//   case steam::NoiseType::COVARIANCE:
+//     return in << "COVARIANCE";
+//   case steam::NoiseType::INFORMATION:
+//     return in << "INFORMATION";
+//   case steam::NoiseType::SQRT_INFORMATION:
+//     return in << "SQRT_INFORMATION";
+//   default:
+//     return in << "Unknown type for NoiseType";
+//   }
+// }
 
 template <int DIM>
 auto DynamicNoiseModel<DIM>::MakeShared(const MatrixTEvalPtr& eval,
-                                       const NoiseType& type) -> Ptr {
+                                       const NoiseType type) -> Ptr {
+  std::cout << "The noise type is " << static_cast<int>(type);
   return std::make_shared<DynamicNoiseModel<DIM>>(eval, type);
 }
 
 template <int DIM>
 DynamicNoiseModel<DIM>::DynamicNoiseModel(const MatrixTEvalPtr& eval,
-                                        const NoiseType& type) : eval_(eval), type_(type) {}
+                                        const NoiseType type) : eval_(eval) {
+                                          type_ = type;
+                                        }
 
 template <int DIM>
 auto DynamicNoiseModel<DIM>::setByCovariance(const MatrixT& matrix) const -> MatrixT {

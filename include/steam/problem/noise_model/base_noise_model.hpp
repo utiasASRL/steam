@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <iostream>
 
 namespace steam {
 
@@ -38,3 +39,4 @@ class BaseNoiseModel {
 };
 
 }  // namespace steam
+
