@@ -96,7 +96,6 @@ auto DynamicNoiseModel<DIM>::setByInformation(const MatrixT& matrix) const -> Ma
 
 template <int DIM>
 auto DynamicNoiseModel<DIM>::setBySqrtInformation(const MatrixT& matrix) const -> MatrixT{
-  // Set internal storage matrix
   return matrix;  // todo: check this is upper triangular
 }
 
