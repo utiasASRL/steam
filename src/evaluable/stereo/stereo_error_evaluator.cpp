@@ -144,6 +144,8 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   }
   // evaluate the steam transform evaluator
   const lgmath::se3::Transformation T_l_p = T_query_map_->evaluate();
+  
+  std::cout << "T_l_p" << T_l_p;
 
   // Compute the new landmark noise
   Eigen::Matrix<double,4,4> lm_noise_l = T_l_p.matrix() * dialated_phi_ * T_l_p.matrix().transpose();
@@ -156,6 +158,9 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   if(positiveDefinite<3>(lm_noise_l_3)) {
     // compute the camera model jacobian based on the transformed mean.
     Eigen::Matrix4d camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_, T_l_p*mean_);
+
+    std::cout << "Mean" << mean_ << "Cam jac" << camera_jacobian_j_;
+
 
     Eigen::Matrix<double,4,4> lm_noise = camera_jacobian_j_ * lm_noise_l * camera_jacobian_j_.transpose();
     Eigen::Matrix<double,3,3> lm_noise_3 = dialation_matrix.transpose() * lm_noise * dialation_matrix;
@@ -171,7 +176,7 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   }
 
   if (!positiveDefinite<4>(last_computed_cov_)) {
-    std::cout << "sum of noise is bad...";
+    std::cout << "sum of noise is bad..." << std::endl;
   }
   return last_computed_cov_;
 }
