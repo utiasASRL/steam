@@ -27,7 +27,7 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
   using VectorT = Eigen::Matrix<double, DIM, 1>;
   using MatrixTEvalPtr = typename Evaluable<MatrixT>::ConstPtr;
 
-  static Ptr MakeShared(const MatrixTEvalPtr& eval,
+  static Ptr MakeShared(const MatrixTEvalPtr eval,
                         const NoiseType type = NoiseType::COVARIANCE);
 
   /**
@@ -35,7 +35,7 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
    * \param[in] Evaluable<matrix> A noise matrix evaluable, determined by the type parameter.
    * \param[in] type The type of noise matrix set in the previous paramter.
    */
-  DynamicNoiseModel(const MatrixTEvalPtr& eval,
+  DynamicNoiseModel(const MatrixTEvalPtr eval,
                    const NoiseType type = NoiseType::COVARIANCE);
 
   /** \brief Get a reference to the square root information matrix */
@@ -66,7 +66,7 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
    * decomposition on the information matrix (inverse covariance matrix). This
    * triangular matrix is stored directly for faster error whitening.
    */
-  const MatrixTEvalPtr& eval_;
+  const MatrixTEvalPtr eval_;
   NoiseType type_;
 };
 
@@ -85,16 +85,18 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
 // }
 
 template <int DIM>
-auto DynamicNoiseModel<DIM>::MakeShared(const MatrixTEvalPtr& eval,
+auto DynamicNoiseModel<DIM>::MakeShared(const MatrixTEvalPtr eval,
                                        const NoiseType type) -> Ptr {
   std::cout << "The noise type is " << static_cast<int>(type);
   return std::make_shared<DynamicNoiseModel<DIM>>(eval, type);
 }
 
 template <int DIM>
-DynamicNoiseModel<DIM>::DynamicNoiseModel(const MatrixTEvalPtr& eval,
+DynamicNoiseModel<DIM>::DynamicNoiseModel(const MatrixTEvalPtr eval,
                                         const NoiseType type) : eval_(eval) {
                                           type_ = type;
+                                          if (eval_ == nullptr)
+                                            std::cout << "Evaluator initialization failed somehow";
                                         }
 
 template <int DIM>
@@ -156,7 +158,7 @@ void DynamicNoiseModel<DIM>::assertPositiveDefiniteMatrix(
     std::stringstream ss;
     ss << "Covariance \n"
        << matrix << "\n must be positive definite. "
-       << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff();
+       << "Min. eigenvalue : " << eigsolver.eigenvalues().minCoeff() << std::endl;
     throw std::invalid_argument(ss.str());
   }
 }
