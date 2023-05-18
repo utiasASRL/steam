@@ -71,6 +71,8 @@ Eigen::Vector4d cameraModel(
   return projectedMeas;
 }
 
+
+
 Eigen::Matrix4d cameraModelJacobian(
     const CameraIntrinsics::ConstPtr& intrinsics, const Eigen::Vector4d& point) {
   // Precompute values
@@ -134,8 +136,6 @@ void LandmarkNoiseEvaluator::getRelatedVarKeys(KeySet& keys) const {}
 /// @brief evaluatecovariance
 //////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
-  // TODO: Check to see if we need to recaulculate (add a change flag to steam variables.)
-
   // Add the measurement noise.
   Eigen::Matrix4d last_computed_cov_ = meas_noise_;
 
@@ -145,7 +145,6 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   // evaluate the steam transform evaluator
   const lgmath::se3::Transformation T_l_p = T_query_map_->evaluate();
   
-  std::cout << "T_l_p" << T_l_p;
 
   // Compute the new landmark noise
   Eigen::Matrix<double,4,4> lm_noise_l = T_l_p.matrix() * dialated_phi_ * T_l_p.matrix().transpose();
@@ -159,7 +158,6 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
     // compute the camera model jacobian based on the transformed mean.
     Eigen::Matrix4d camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_, T_l_p*mean_);
 
-    std::cout << "Mean" << mean_ << "Cam jac" << camera_jacobian_j_;
 
 
     Eigen::Matrix<double,4,4> lm_noise = camera_jacobian_j_ * lm_noise_l * camera_jacobian_j_.transpose();

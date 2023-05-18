@@ -8,7 +8,7 @@
 
 namespace steam {
 
-/** \brief Huber loss function class */
+/** \brief Cauchy-Schwarz Divergence loss function class */
 class DcsLossFunc : public BaseLossFunc {
  public:
   /** \brief Convenience typedefs */
