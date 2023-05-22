@@ -70,24 +70,11 @@ class DynamicNoiseModel : public BaseNoiseModel<DIM> {
   NoiseType type_;
 };
 
-// std::ostream& operator<< (std::ostream& in, const steam::NoiseType& noise){
-//   switch (noise)
-//   {
-//   case steam::NoiseType::COVARIANCE:
-//     return in << "COVARIANCE";
-//   case steam::NoiseType::INFORMATION:
-//     return in << "INFORMATION";
-//   case steam::NoiseType::SQRT_INFORMATION:
-//     return in << "SQRT_INFORMATION";
-//   default:
-//     return in << "Unknown type for NoiseType";
-//   }
-// }
+
 
 template <int DIM>
 auto DynamicNoiseModel<DIM>::MakeShared(const MatrixTEvalPtr eval,
                                        const NoiseType type) -> Ptr {
-  std::cout << "The noise type is " << static_cast<int>(type);
   return std::make_shared<DynamicNoiseModel<DIM>>(eval, type);
 }
 
