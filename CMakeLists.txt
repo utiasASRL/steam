@@ -10,8 +10,6 @@ add_compile_options(-march=native -O3 -Wall -pedantic -Wno-unused-function)
 
 # define number of threads to be used by OpenMP in steam
 add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
-add_compile_options(-g -Og)
-
 
 ## cmake flow (default)
 if (NOT USE_AMENT)

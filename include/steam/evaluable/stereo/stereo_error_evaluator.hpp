@@ -3,7 +3,6 @@
 
 #include "steam/evaluable/evaluable.hpp"
 #include "steam/evaluable/stereo/compose_landmark_evaluator.hpp"
-#include "steam/evaluable/se3/se3_state_var.hpp"
 
 namespace steam {
 namespace stereo {
