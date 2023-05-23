@@ -71,8 +71,8 @@ class StereoErrorEvaluator : public Evaluable<Eigen::Vector4d> {
 };
 
 /** \brief Evaluates the noise of an uncertain map landmark, which has been reprojected into the
-        a query coordinate frame using a steam transform evaluator. */
-class LandmarkNoiseEvaluator : public Evaluable<Eigen::Matrix<double,4,4>> {
+        a query coordinate frame into the camera pixels. */
+class LandmarkNoiseEvaluator : public Evaluable<Eigen::Matrix<double, 4, 4>> {
  public:
 
   /// \brief Constructor
@@ -88,7 +88,6 @@ class LandmarkNoiseEvaluator : public Evaluable<Eigen::Matrix<double,4,4>> {
                          const CameraIntrinsics::ConstPtr& intrinsics,
                          const typename Evaluable<lgmath::se3::Transformation>::ConstPtr& T_query_map);
 
-  /// \brief Default destructor
   ~LandmarkNoiseEvaluator()=default;
   
   /// \brief Evaluates the reprojection covariance 

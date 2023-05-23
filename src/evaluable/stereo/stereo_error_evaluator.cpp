@@ -132,9 +132,6 @@ void LandmarkNoiseEvaluator::backward(const Eigen::MatrixXd& lhs,
 void LandmarkNoiseEvaluator::getRelatedVarKeys(KeySet& keys) const {}
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/// @brief evaluatecovariance
-//////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   // Add the measurement noise.
   Eigen::Matrix4d last_computed_cov_ = meas_noise_;
@@ -157,8 +154,6 @@ Eigen::Matrix<double,4,4> LandmarkNoiseEvaluator::value() const {
   if(positiveDefinite<3>(lm_noise_l_3)) {
     // compute the camera model jacobian based on the transformed mean.
     Eigen::Matrix4d camera_jacobian_j_ = stereo::cameraModelJacobian(intrinsics_, T_l_p*mean_);
-
-
 
     Eigen::Matrix<double,4,4> lm_noise = camera_jacobian_j_ * lm_noise_l * camera_jacobian_j_.transpose();
     Eigen::Matrix<double,3,3> lm_noise_3 = dialation_matrix.transpose() * lm_noise * dialation_matrix;
