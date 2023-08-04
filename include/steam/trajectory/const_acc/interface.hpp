@@ -42,6 +42,8 @@ class Interface : public traj::Interface {
   void addPosePrior(const Time& time, const PoseType& T_k0, const Eigen::Matrix<double, 6, 6>& cov);
   void addVelocityPrior(const Time& time, const VelocityType& w_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
   void addAccelerationPrior(const Time& time, const AccelerationType& dw_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
+  void addStatePrior(const Time& time, const PoseType& T_k0,
+                     const VelocityType& w_0k_ink, const AccelerationType& dw_0k_ink, const CovType& cov);
   // clang-format on
 
   void addPriorCostTerms(Problem& problem) const;
@@ -52,6 +54,7 @@ class Interface : public traj::Interface {
   WeightedLeastSqCostTerm<6>::Ptr pose_prior_factor_ = nullptr;
   WeightedLeastSqCostTerm<6>::Ptr vel_prior_factor_ = nullptr;
   WeightedLeastSqCostTerm<6>::Ptr acc_prior_factor_ = nullptr;
+  WeightedLeastSqCostTerm<18>::Ptr state_prior_factor_ = nullptr;
   Eigen::Matrix<double, 18, 18> getJacKnot1_(
       const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
   Eigen::Matrix<double, 18, 18> getJacKnot2_(

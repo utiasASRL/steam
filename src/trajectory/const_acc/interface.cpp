@@ -390,6 +390,47 @@ void Interface::addAccelerationPrior(const Time& time,
       error_func, noise_model, loss_func);
 }
 
+void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
+                              const VelocityType& w_0k_ink,
+                              const AccelerationType& dw_0k_ink,
+                              const CovType& cov) {
+  // Only allow adding 1 prior
+  if ((pose_prior_factor_ != nullptr) || (vel_prior_factor_ != nullptr) ||
+      (acc_prior_factor_ != nullptr))
+    throw std::runtime_error("a pose/velocity prior already exists.");
+
+  if (state_prior_factor_ != nullptr)
+    throw std::runtime_error("can only add one state prior.");
+
+  // Check that map is not empty
+  if (knot_map_.empty()) throw std::runtime_error("knot map is empty.");
+
+  // Try to find knot at unprovided time
+  auto it = knot_map_.find(time);
+  if (it == knot_map_.end())
+    throw std::runtime_error("no knot at provided time.");
+
+  // Get reference
+  const auto& knot = it->second;
+
+  // Check that the pose is not locked
+  if ((!knot->pose()->active()) || (!knot->velocity()->active()) ||
+      (!knot->acceleration()->active()))
+    throw std::runtime_error("tried to add prior to locked state.");
+
+  auto pose_error = se3::se3_error(knot->pose(), T_k0);
+  auto velo_error = vspace::vspace_error<6>(knot->velocity(), w_0k_ink);
+  auto acc_error = vspace::vspace_error<6>(knot->acceleration(), dw_0k_ink);
+  auto error_temp = vspace::merge<6, 6>(pose_error, velo_error);
+  auto error_func = vspace::merge<12, 6>(error_temp, acc_error);
+  auto noise_model = StaticNoiseModel<18>::MakeShared(cov);
+  auto loss_func = L2LossFunc::MakeShared();
+
+  // Create cost term
+  state_prior_factor_ = WeightedLeastSqCostTerm<18>::MakeShared(
+      error_func, noise_model, loss_func);
+}
+
 void Interface::addPriorCostTerms(Problem& problem) const {
   // If empty, return none
   if (knot_map_.empty()) return;

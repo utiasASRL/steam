@@ -18,6 +18,7 @@
 #include "steam/evaluable/evaluable.hpp"
 #include "steam/evaluable/state_var.hpp"
 
+#include "steam/evaluable/imu/evaluables.hpp"
 #include "steam/evaluable/p2p/evaluables.hpp"
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/stereo/evaluables.hpp"
