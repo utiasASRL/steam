@@ -34,7 +34,6 @@ void SlidingWindowFilter::marginalizeVariable(
 
 void SlidingWindowFilter::marginalizeVariable(
     const std::vector<StateVarBase::Ptr> &variables) {
-  std::cout << "marginalizing" << std::endl;
   if (variables.empty()) return;
 
   ///
@@ -114,8 +113,6 @@ void SlidingWindowFilter::marginalizeVariable(
     Eigen::MatrixXd A11(A.bottomRightCorner(A.rows() - fixed_state_size, A.cols() - fixed_state_size));
     Eigen::VectorXd b0(b.head(fixed_state_size));
     Eigen::VectorXd b1(b.tail(b.size() - fixed_state_size));
-    std::cout << "fixed A shape: " << fixed_A_.rows() << " " << fixed_A_.cols() << std::endl;
-    std::cout << "fixed b shape: " << fixed_b_.rows() << " " << fixed_b_.cols() << std::endl;
     fixed_A_ = A11 - A10 * A00.inverse() * A10.transpose();
     fixed_b_ = b1 - A10 * A00.inverse() * b0;
     // clang-format on
@@ -126,7 +123,6 @@ void SlidingWindowFilter::marginalizeVariable(
 
   /// remove the fixed variables
   getStateVector();
-  std::cout << "to_remove.size() " << to_remove.size() << std::endl;
   for (const auto &key : to_remove) {
     const auto related_keys = related_var_keys_.at(key);
     for (const auto &related_key : related_keys) {
@@ -142,9 +138,7 @@ void SlidingWindowFilter::marginalizeVariable(
   getStateVector();
   for (const auto &key : variable_queue_) {
     const auto &var = variables_.at(key);
-    std::cout << var.marginalize << " ";
   }
-  std::cout << std::endl;
 }
 
 void SlidingWindowFilter::addCostTerm(const BaseCostTerm::ConstPtr &cost_term) {
@@ -204,12 +198,6 @@ StateVector::Ptr SlidingWindowFilter::getStateVector() const {
     }
     state_vector_->addStateVariable(var.variable);
   }
-  std::cout << "getStateVector()" << std::endl;
-  std::cout << "marginalize state size: "
-            << marginalize_state_vector_->getStateSize() << std::endl;
-  std::cout << "active state size: " << active_state_vector_->getStateSize()
-            << std::endl;
-  std::cout << "state size: " << state_vector_->getStateSize() << std::endl;
 
   return active_state_vector_;
 }
@@ -239,7 +227,6 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
   // marginalize the fixed variables
   const auto marginalize_state_size = marginalize_state_vector_->getStateSize();
   if (marginalize_state_size > 0) {
-    std::cout << "marginalizing within build-G-N " << std::endl;
     // clang-format off
     Eigen::MatrixXd A00(A.topLeftCorner(marginalize_state_size, marginalize_state_size));
     Eigen::MatrixXd A10(A.bottomLeftCorner(A.rows() - marginalize_state_size, marginalize_state_size));

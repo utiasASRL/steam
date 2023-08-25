@@ -1,4 +1,5 @@
 #include "steam/evaluable/imu/imu_error_evaluator.hpp"
+#include <iostream>
 #include <lgmath/so3/Operations.hpp>
 
 namespace steam {

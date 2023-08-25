@@ -1,4 +1,4 @@
-#include "steam/imu/bias_interpolator.hpp"
+#include "steam/evaluable/imu/bias_interpolator.hpp"
 
 namespace steam {
 namespace imu {
