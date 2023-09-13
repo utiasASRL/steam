@@ -54,7 +54,8 @@ auto IMUErrorEvaluator::value() const -> OutType {
   const Eigen::Matrix3d C_vm = transform_->value().C_ba();
   const Eigen::Matrix3d C_mi = transform_i_to_m_->value().C_ba();
   OutType error = Eigen::Matrix<double, 6, 1>::Zero();
-  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * acceleration_->value() + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
+  // error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * acceleration_->value() + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
+  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * acceleration_->value() - bias_->value().block<3, 1>(0, 0);
   error.block<3, 1>(3, 0) = imu_meas_.block<3, 1>(3, 0) + Dw_ * velocity_->value() - bias_->value().block<3, 1>(3, 0);
   return error;
   // clang-format on
@@ -75,7 +76,8 @@ auto IMUErrorEvaluator::forward() const -> Node<OutType>::Ptr {
 
   // clang-format off
   OutType error = Eigen::Matrix<double, 6, 1>::Zero();
-  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
+  // error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
+  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v - b.block<3, 1>(0, 0);
   error.block<3, 1>(3, 0) = imu_meas_.block<3, 1>(3, 0) + Dw_ * w_mv_in_v - b.block<3, 1>(3, 0);
   // clang-format on
 
@@ -99,11 +101,11 @@ void IMUErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   const auto child5 = std::static_pointer_cast<Node<PoseInType>>(node->at(4));
 
   // clang-format off
-  if (transform_->active()) {
-    Eigen::Matrix<double, 6, 6> jac = Eigen::Matrix<double, 6, 6>::Zero();
-    jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child5->value().C_ba() * gravity_);
-    transform_->backward(lhs * jac, child1, jacs);
-  }
+  // if (transform_->active()) {
+  //   Eigen::Matrix<double, 6, 6> jac = Eigen::Matrix<double, 6, 6>::Zero();
+  //   jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child5->value().C_ba() * gravity_);
+  //   transform_->backward(lhs * jac, child1, jacs);
+  // }
 
   if (velocity_->active()) {
     Eigen::Matrix<double, 6, 6> jac = Eigen::Matrix<double, 6, 6>::Zero();

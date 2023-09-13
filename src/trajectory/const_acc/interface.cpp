@@ -269,7 +269,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   const Eigen::Matrix<double, 18, 18> Q2t_inv = getQinv_((knot2->time() - knotq->time()).seconds(), Qc_diag_);
 
   // Covariance of knot1 and knot2
-  const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
+  const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, dw_01_in1_var, T_20_var, w_02_in2_var, dw_02_in2_var};
   const Eigen::Matrix<double, 36, 36> P_1n2 = cov.query(state_var);
 
   // Helper matrices
