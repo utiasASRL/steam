@@ -47,8 +47,8 @@ auto AccelerationErrorEvaluator::value() const -> OutType {
   // clang-format off
   const Eigen::Matrix3d C_vm = transform_->value().C_ba();
   const Eigen::Matrix3d C_mi = transform_i_to_m_->value().C_ba();
-  // OutType error = acc_meas_ + Da_ * acceleration_->value() + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
-  OutType error = acc_meas_ + Da_ * acceleration_->value() - bias_->value().block<3, 1>(0, 0);
+  OutType error = acc_meas_ + Da_ * acceleration_->value() + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
+  // OutType error = acc_meas_ + Da_ * acceleration_->value() - bias_->value().block<3, 1>(0, 0);
   return error;
   // clang-format on
 }
@@ -65,8 +65,8 @@ auto AccelerationErrorEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto C_mi = child4->value().C_ba();
 
   // clang-format off
-  // OutType error = acc_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
-  OutType error = acc_meas_ + Da_ * dw_mv_in_v - b.block<3, 1>(0, 0);
+  OutType error = acc_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
+  // OutType error = acc_meas_ + Da_ * dw_mv_in_v - b.block<3, 1>(0, 0);
   // clang-format on
 
   const auto node = Node<OutType>::MakeShared(error);
@@ -87,11 +87,11 @@ void AccelerationErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   const auto child4 = std::static_pointer_cast<Node<PoseInType>>(node->at(3));
 
   // clang-format off
-  // if (transform_->active()) {
-  //   Eigen::Matrix<double, 6, 6> jac = Eigen::Matrix<double, 6, 6>::Zero();
-  //   jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child4->value().C_ba() * gravity_);
-  //   transform_->backward(lhs * jac, child1, jacs);
-  // }
+  if (transform_->active()) {
+    Eigen::Matrix<double, 6, 6> jac = Eigen::Matrix<double, 6, 6>::Zero();
+    jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child4->value().C_ba() * gravity_);
+    transform_->backward(lhs * jac, child1, jacs);
+  }
 
   if (acceleration_->active()) {
     Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();

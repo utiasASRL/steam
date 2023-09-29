@@ -83,6 +83,10 @@ void SolverBase::iterate() {
     term_ = TERMINATE_CONVERGED_RELATIVE_CHANGE;
     solver_converged_ = true;
   }
+  // else if (curr_cost_ > prev_cost_) {
+  //   term_ = TERMINATE_COST_INCREASED;
+  //   solver_converged_ = true;
+  // }
 
   // Log on final iteration
   if (params_.verbose && solver_converged_)
@@ -147,6 +151,9 @@ std::ostream& operator<<(std::ostream& out, const SolverBase::Termination& T) {
       break;
     case SolverBase::TERMINATE_CONVERGED_ZERO_GRADIENT:
       out << "CONVERGED GRADIENT IS ZERO";
+      break;
+    case SolverBase::TERMINATE_COST_INCREASED:
+      out << "COST INCREASED";
       break;
   }
   return out;
