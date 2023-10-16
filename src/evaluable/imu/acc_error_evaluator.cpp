@@ -88,7 +88,7 @@ void AccelerationErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
 
   // clang-format off
   if (transform_->active()) {
-    Eigen::Matrix<double, 6, 6> jac = Eigen::Matrix<double, 6, 6>::Zero();
+    Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
     jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child4->value().C_ba() * gravity_);
     transform_->backward(lhs * jac, child1, jacs);
   }
