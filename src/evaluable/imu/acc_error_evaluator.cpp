@@ -48,6 +48,8 @@ auto AccelerationErrorEvaluator::value() const -> OutType {
   const Eigen::Matrix3d C_vm = transform_->value().C_ba();
   const Eigen::Matrix3d C_mi = transform_i_to_m_->value().C_ba();
   OutType error = acc_meas_ + Da_ * acceleration_->value() + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
+  // error(1, 0) = 0.0;
+  // error(2, 0) = 0.0;
   // OutType error = acc_meas_ + Da_ * acceleration_->value() - bias_->value().block<3, 1>(0, 0);
   return error;
   // clang-format on
@@ -66,6 +68,8 @@ auto AccelerationErrorEvaluator::forward() const -> Node<OutType>::Ptr {
 
   // clang-format off
   OutType error = acc_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
+  // error(1, 0) = 0.0;
+  // error(2, 0) = 0.0;
   // OutType error = acc_meas_ + Da_ * dw_mv_in_v - b.block<3, 1>(0, 0);
   // clang-format on
 
@@ -90,27 +94,63 @@ void AccelerationErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   if (transform_->active()) {
     Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
     jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child4->value().C_ba() * gravity_);
+    // jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
     transform_->backward(lhs * jac, child1, jacs);
   }
 
   if (acceleration_->active()) {
     Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
     jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
+    // jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
     acceleration_->backward(lhs * jac, child2, jacs);
   }
 
   if (bias_->active()) {
     Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
     jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
+    // jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
     bias_->backward(lhs * jac, child3, jacs);
   }
 
   if (transform_i_to_m_->active()) {
      Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
      jac.block<3, 3>(0, 3) = -1 * child1->value().C_ba() * lgmath::so3::hat(child4->value().C_ba() * gravity_);
+    //  jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
      transform_i_to_m_->backward(lhs * jac, child4, jacs);
   }
   // clang-format on
+}
+
+Eigen::Matrix<double, 3, 6> AccelerationErrorEvaluator::getJacobianPose()
+    const {
+  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+  jac.block<3, 3>(0, 3) =
+      -1 * lgmath::so3::hat(transform_->value().C_ba() *
+                            transform_i_to_m_->value().C_ba() * gravity_);
+  return jac;
+}
+
+Eigen::Matrix<double, 3, 6>
+AccelerationErrorEvaluator::getJacobianAcceleration() const {
+  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+  jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
+  return jac;
+}
+
+Eigen::Matrix<double, 3, 6> AccelerationErrorEvaluator::getJacobianBias()
+    const {
+  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+  jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
+  return jac;
+}
+
+Eigen::Matrix<double, 3, 6> AccelerationErrorEvaluator::getJacobianT_mi()
+    const {
+  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+  jac.block<3, 3>(0, 3) =
+      -1 * transform_->value().C_ba() *
+      lgmath::so3::hat(transform_i_to_m_->value().C_ba() * gravity_);
+  return jac;
 }
 
 AccelerationErrorEvaluator::Ptr AccelerationError(

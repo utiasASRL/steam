@@ -4,7 +4,8 @@
 
 #include "lgmath.hpp"
 
-#include "steam/evaluable/evaluable.hpp"
+#include "steam.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace p2p {
@@ -16,6 +17,7 @@ class P2PErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
 
   using InType = lgmath::se3::Transformation;
   using OutType = Eigen::Matrix<double, 3, 1>;
+  using Time = steam::traj::Time;
 
   static Ptr MakeShared(const Evaluable<InType>::ConstPtr &T_rq,
                         const Eigen::Vector3d &reference,
@@ -32,6 +34,19 @@ class P2PErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   void backward(const Eigen::MatrixXd &lhs, const Node<OutType>::Ptr &node,
                 Jacobians &jacs) const override;
 
+  void setTime(Time time) {
+    time_ = time;
+    time_init_ = true;
+  };
+  Time getTime() const {
+    if (time_init_)
+      return time_;
+    else
+      throw std::runtime_error("P2P measurement time was not initialized");
+  }
+
+  Eigen::Matrix<double, 3, 6> getJacobianPose() const;
+
  private:
   // evaluable
   const Evaluable<InType>::ConstPtr T_rq_;
@@ -39,6 +54,8 @@ class P2PErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   Eigen::Matrix<double, 3, 4> D_ = Eigen::Matrix<double, 3, 4>::Zero();
   Eigen::Vector4d reference_ = Eigen::Vector4d::Constant(1);
   Eigen::Vector4d query_ = Eigen::Vector4d::Constant(1);
+  bool time_init_ = false;
+  Time time_;
 };
 
 P2PErrorEvaluator::Ptr p2pError(

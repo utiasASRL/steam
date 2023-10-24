@@ -72,6 +72,18 @@ void GyroErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   // clang-format on
 }
 
+Eigen::Matrix<double, 3, 6> GyroErrorEvaluator::getJacobianVelocity() const {
+  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+  jac.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
+  return jac;
+}
+
+Eigen::Matrix<double, 3, 6> GyroErrorEvaluator::getJacobianBias() const {
+  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+  jac.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
+  return jac;
+}
+
 GyroErrorEvaluator::Ptr GyroError(
     const Evaluable<GyroErrorEvaluator::VelInType>::ConstPtr &velocity,
     const Evaluable<GyroErrorEvaluator::BiasInType>::ConstPtr &bias,

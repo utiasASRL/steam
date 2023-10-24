@@ -51,6 +51,13 @@ void P2PErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   }
 }
 
+Eigen::Matrix<double, 3, 6> P2PErrorEvaluator::getJacobianPose() const {
+  const auto T_rq = T_rq_->value();
+  Eigen::Matrix<double, 3, 1> Tq = (T_rq * query_).block<3, 1>(0, 0);
+  Eigen::Matrix<double, 3, 6> jac = -D_ * lgmath::se3::point2fs(Tq);
+  return jac;
+}
+
 P2PErrorEvaluator::Ptr p2pError(
     const Evaluable<P2PErrorEvaluator::InType>::ConstPtr &T_rq,
     const Eigen::Vector3d &reference, const Eigen::Vector3d &query) {

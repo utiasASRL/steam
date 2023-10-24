@@ -58,8 +58,9 @@ void SlidingWindowFilter::marginalizeVariable(
                     [this](const StateKey &key) {
                       return variables_.at(key).marginalize;
                     })) {
-      if (!fixed)
+      if (!fixed) {
         throw std::runtime_error("fixed variables must be at the first");
+      }
       fixed_state_vector.addStateVariable(var.variable);
       to_remove.emplace_back(key);
     } else {
@@ -136,9 +137,6 @@ void SlidingWindowFilter::marginalizeVariable(
   }
 
   getStateVector();
-  for (const auto &key : variable_queue_) {
-    const auto &var = variables_.at(key);
-  }
 }
 
 void SlidingWindowFilter::addCostTerm(const BaseCostTerm::ConstPtr &cost_term) {

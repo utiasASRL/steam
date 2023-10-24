@@ -5,6 +5,7 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace imu {
@@ -20,6 +21,7 @@ class AccelerationErrorEvaluator
   using BiasInType = Eigen::Matrix<double, 6, 1>;
   using ImuInType = Eigen::Matrix<double, 3, 1>;
   using OutType = Eigen::Matrix<double, 3, 1>;
+  using Time = steam::traj::Time;
 
   static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &transform,
                         const Evaluable<AccInType>::ConstPtr &acceleration,
@@ -43,6 +45,21 @@ class AccelerationErrorEvaluator
                 Jacobians &jacs) const override;
 
   void setGravity(double gravity) { gravity_(2, 0) = gravity; }
+  void setTime(Time time) {
+    time_ = time;
+    time_init_ = true;
+  };
+  Time getTime() const {
+    if (time_init_)
+      return time_;
+    else
+      throw std::runtime_error("Accel measurement time was not initialized");
+  }
+
+  Eigen::Matrix<double, 3, 6> getJacobianPose() const;
+  Eigen::Matrix<double, 3, 6> getJacobianAcceleration() const;
+  Eigen::Matrix<double, 3, 6> getJacobianBias() const;
+  Eigen::Matrix<double, 3, 6> getJacobianT_mi() const;
 
  private:
   // evaluable
@@ -54,6 +71,8 @@ class AccelerationErrorEvaluator
   Eigen::Matrix<double, 3, 6> Da_ = Eigen::Matrix<double, 3, 6>::Zero();
   Eigen::Matrix<double, 3, 6> Dw_ = Eigen::Matrix<double, 3, 6>::Zero();
   Eigen::Matrix<double, 3, 1> gravity_ = Eigen::Matrix<double, 3, 1>::Zero();
+  Time time_;
+  bool time_init_ = false;
 };
 
 AccelerationErrorEvaluator::Ptr AccelerationError(

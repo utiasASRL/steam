@@ -5,6 +5,7 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
+#include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace imu {
@@ -18,6 +19,7 @@ class GyroErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   using BiasInType = Eigen::Matrix<double, 6, 1>;
   using ImuInType = Eigen::Matrix<double, 3, 1>;
   using OutType = Eigen::Matrix<double, 3, 1>;
+  using Time = steam::traj::Time;
 
   static Ptr MakeShared(const Evaluable<VelInType>::ConstPtr &velocity,
                         const Evaluable<BiasInType>::ConstPtr &bias,
@@ -35,12 +37,29 @@ class GyroErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   void backward(const Eigen::MatrixXd &lhs, const Node<OutType>::Ptr &node,
                 Jacobians &jacs) const override;
 
+  void setTime(Time time) {
+    time_ = time;
+    time_init_ = true;
+  };
+
+  Time getTime() const {
+    if (time_init_)
+      return time_;
+    else
+      throw std::runtime_error("Gyro measurement time was not initialized");
+  }
+
+  Eigen::Matrix<double, 3, 6> getJacobianVelocity() const;
+  Eigen::Matrix<double, 3, 6> getJacobianBias() const;
+
  private:
   // evaluable
   const Evaluable<VelInType>::ConstPtr velocity_;
   const Evaluable<BiasInType>::ConstPtr bias_;
   const ImuInType gyro_meas_;
   Eigen::Matrix<double, 3, 6> Dw_ = Eigen::Matrix<double, 3, 6>::Zero();
+  Time time_;
+  bool time_init_ = false;
 };
 
 GyroErrorEvaluator::Ptr GyroError(

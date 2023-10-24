@@ -33,6 +33,8 @@ class Interface : public traj::Interface {
            const Evaluable<VelocityType>::Ptr& w_0k_ink,
            const Evaluable<AccelerationType>::Ptr& dw_0k_ink);
 
+  Variable::ConstPtr get(const Time& time) const;
+
   // clang-format off
   Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
   Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(const Time& time) const;
