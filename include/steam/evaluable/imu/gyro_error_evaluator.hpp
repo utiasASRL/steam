@@ -20,6 +20,7 @@ class GyroErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   using ImuInType = Eigen::Matrix<double, 3, 1>;
   using OutType = Eigen::Matrix<double, 3, 1>;
   using Time = steam::traj::Time;
+  using JacType = Eigen::Matrix<double, 3, 6>;
 
   static Ptr MakeShared(const Evaluable<VelInType>::ConstPtr &velocity,
                         const Evaluable<BiasInType>::ConstPtr &bias,
@@ -49,15 +50,16 @@ class GyroErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
       throw std::runtime_error("Gyro measurement time was not initialized");
   }
 
-  Eigen::Matrix<double, 3, 6> getJacobianVelocity() const;
-  Eigen::Matrix<double, 3, 6> getJacobianBias() const;
+  void getMeasJacobians(JacType &jac_vel, JacType &jac_bias) const;
 
  private:
   // evaluable
   const Evaluable<VelInType>::ConstPtr velocity_;
   const Evaluable<BiasInType>::ConstPtr bias_;
   const ImuInType gyro_meas_;
-  Eigen::Matrix<double, 3, 6> Dw_ = Eigen::Matrix<double, 3, 6>::Zero();
+  JacType Dw_ = JacType::Zero();
+  JacType jac_vel_ = JacType::Zero();
+  JacType jac_bias_ = JacType::Zero();
   Time time_;
   bool time_init_ = false;
 };

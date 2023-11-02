@@ -50,8 +50,19 @@ class Interface : public traj::Interface {
 
   void addPriorCostTerms(Problem& problem) const;
 
- protected:
   Eigen::Matrix<double, 6, 1> Qc_diag_;
+
+  Eigen::Matrix<double, 18, 18> getQinvPublic(
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
+
+  Eigen::Matrix<double, 18, 18> getQPublic(
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
+  Eigen::Matrix<double, 18, 18> getQinvPublic(const double& dt) const;
+
+  Eigen::Matrix<double, 18, 18> getQPublic(const double& dt) const;
+  Eigen::Matrix<double, 18, 18> getTranPublic(const double& dt) const;
+
+ protected:
   std::map<Time, Variable::Ptr> knot_map_;
   WeightedLeastSqCostTerm<6>::Ptr pose_prior_factor_ = nullptr;
   WeightedLeastSqCostTerm<6>::Ptr vel_prior_factor_ = nullptr;

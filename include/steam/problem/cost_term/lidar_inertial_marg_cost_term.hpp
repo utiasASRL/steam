@@ -126,7 +126,14 @@ class LidarInertialMarginalizedCostTerm : public BaseCostTerm {
       StaticNoiseModel<3>::MakeShared(R_acc_);
   StaticNoiseModel<3>::Ptr gyro_noise_model_ =
       StaticNoiseModel<3>::MakeShared(R_ang_);
-  ;
+
+  getMotionPriorJacobians_(const lgmath::se3::Transformation &T1,
+                           const lgmath::se3::Transformation &T2,
+                           const Eigen::Matrix<double, 6, 1> &w2,
+                           const Eigen::Matrix<double, 6, 1> &dw2,
+                           const Eigen::Matrix<double, 18, 18> &Phi,
+                           Eigen::Matrix<double, 18, 18> &F,
+                           Eigen::Matrix<double, 18, 18> &E) const;
 };
 
 }  // namespace steam

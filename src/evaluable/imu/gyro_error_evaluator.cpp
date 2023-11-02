@@ -18,6 +18,8 @@ GyroErrorEvaluator::GyroErrorEvaluator(
     : velocity_(velocity), bias_(bias), gyro_meas_(gyro_meas) {
   const Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
   Dw_ = I.block<3, 6>(3, 0);
+  jac_vel_.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
+  jac_bias_.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
 }
 
 bool GyroErrorEvaluator::active() const {
@@ -60,28 +62,18 @@ void GyroErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   const auto child2 = std::static_pointer_cast<Node<BiasInType>>(node->at(1));
 
   if (velocity_->active()) {
-    Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-    jac.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-    velocity_->backward(lhs * jac, child1, jacs);
+    velocity_->backward(lhs * jac_vel_, child1, jacs);
   }
   if (bias_->active()) {
-    Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-    jac.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
-    bias_->backward(lhs * jac, child2, jacs);
+    bias_->backward(lhs * jac_bias_, child2, jacs);
   }
   // clang-format on
 }
 
-Eigen::Matrix<double, 3, 6> GyroErrorEvaluator::getJacobianVelocity() const {
-  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-  jac.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-  return jac;
-}
-
-Eigen::Matrix<double, 3, 6> GyroErrorEvaluator::getJacobianBias() const {
-  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-  jac.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
-  return jac;
+void GyroErrorEvaluator::getMeasJacobians(JacType &jac_vel,
+                                          JacType &jac_bias) const {
+  jac_vel = jac_vel_;
+  jac_bias = jac_bias_;
 }
 
 GyroErrorEvaluator::Ptr GyroError(

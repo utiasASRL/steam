@@ -22,6 +22,7 @@ class AccelerationErrorEvaluator
   using ImuInType = Eigen::Matrix<double, 3, 1>;
   using OutType = Eigen::Matrix<double, 3, 1>;
   using Time = steam::traj::Time;
+  using JacType = Eigen::Matrix<double, 3, 6>;
 
   static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &transform,
                         const Evaluable<AccInType>::ConstPtr &acceleration,
@@ -56,10 +57,8 @@ class AccelerationErrorEvaluator
       throw std::runtime_error("Accel measurement time was not initialized");
   }
 
-  Eigen::Matrix<double, 3, 6> getJacobianPose() const;
-  Eigen::Matrix<double, 3, 6> getJacobianAcceleration() const;
-  Eigen::Matrix<double, 3, 6> getJacobianBias() const;
-  Eigen::Matrix<double, 3, 6> getJacobianT_mi() const;
+  void getMeasJacobians(JacType &jac_pose, JacType &jac_accel,
+                        JacType &jac_bias, JacType &jac_T_mi) const;
 
  private:
   // evaluable
@@ -68,8 +67,10 @@ class AccelerationErrorEvaluator
   const Evaluable<BiasInType>::ConstPtr bias_;
   const Evaluable<PoseInType>::ConstPtr transform_i_to_m_;
   const ImuInType acc_meas_;
-  Eigen::Matrix<double, 3, 6> Da_ = Eigen::Matrix<double, 3, 6>::Zero();
-  Eigen::Matrix<double, 3, 6> Dw_ = Eigen::Matrix<double, 3, 6>::Zero();
+  JacType Da_ = JacType::Zero();
+  JacType Dw_ = JacType::Zero();
+  JacType jac_accel_ = JacType::Zero();
+  JacType jac_bias_ = JacType::Zero();
   Eigen::Matrix<double, 3, 1> gravity_ = Eigen::Matrix<double, 3, 1>::Zero();
   Time time_;
   bool time_init_ = false;

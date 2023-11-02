@@ -34,7 +34,7 @@ void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
 }
 
 Variable::ConstPtr Interface::get(const Time& time) const {
-  return knot_map_.at(time)
+  return knot_map_.at(time);
 }
 
 auto Interface::getPoseInterpolator(const Time& time) const
@@ -539,6 +539,28 @@ auto Interface::getPriorFactor_(const Variable::ConstPtr& knot1,
                                 const Variable::ConstPtr& knot2) const
     -> Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr {
   return PriorFactor::MakeShared(knot1, knot2);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQinvPublic(
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+  return getQinv(dt, Qc_diag);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQinvPublic(const double& dt) const {
+  return getQinv(dt, Qc_diag_);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQPublic(const double& dt) const {
+  return getQ(dt, Qc_diag_);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQPublic(
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+  return getQ(dt, Qc_diag);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getTranPublic(const double& dt) const {
+  return getTran(dt);
 }
 
 }  // namespace const_acc

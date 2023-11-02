@@ -42,6 +42,28 @@ class Interface : public steam::traj::const_acc::Interface {
                 Eigen::Matrix<double, 6, 1>::Ones())
       : steam::traj::const_acc::Interface(Qc_diag), alpha_diag_(alpha_diag) {}
 
+  Eigen::Matrix<double, 18, 18> getQinvPublic(
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+    return getQ(dt, alpha_diag_, Qc_diag).inverse();
+  }
+
+  Eigen::Matrix<double, 18, 18> getQPublic(
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+    return getQ(dt, alpha_diag_, Qc_diag);
+  }
+
+  Eigen::Matrix<double, 18, 18> getQinvPublic(const double& dt) const {
+    return getQ(dt, alpha_diag_, Qc_diag_).inverse();
+  }
+
+  Eigen::Matrix<double, 18, 18> getQPublic(const double& dt) const {
+    return getQ(dt, alpha_diag_, Qc_diag_);
+  }
+
+  Eigen::Matrix<double, 18, 18> getTranPublic(const double& dt) const {
+    return getTran(dt, alpha_diag_);
+  }
+
  protected:
   Eigen::Matrix<double, 6, 1> alpha_diag_;
   Eigen::Matrix<double, 18, 18> getJacKnot1_(

@@ -29,6 +29,8 @@ AccelerationErrorEvaluator::AccelerationErrorEvaluator(
   const Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
   Da_ = I.block<3, 6>(0, 0);
   gravity_(2, 0) = -9.8042;
+  jac_accel_.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
+  jac_bias_.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
 }
 
 bool AccelerationErrorEvaluator::active() const {
@@ -92,65 +94,41 @@ void AccelerationErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
 
   // clang-format off
   if (transform_->active()) {
-    Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+    JacType jac = JacType::Zero();
     jac.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(child1->value().C_ba() * child4->value().C_ba() * gravity_);
-    // jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
     transform_->backward(lhs * jac, child1, jacs);
   }
 
   if (acceleration_->active()) {
-    Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-    jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
-    // jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
-    acceleration_->backward(lhs * jac, child2, jacs);
+    acceleration_->backward(lhs * jac_accel_, child2, jacs);
   }
 
   if (bias_->active()) {
-    Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-    jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
-    // jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
-    bias_->backward(lhs * jac, child3, jacs);
+    bias_->backward(lhs * jac_bias_, child3, jacs);
   }
 
   if (transform_i_to_m_->active()) {
-     Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
+     JacType jac = JacType::Zero();
      jac.block<3, 3>(0, 3) = -1 * child1->value().C_ba() * lgmath::so3::hat(child4->value().C_ba() * gravity_);
-    //  jac.block<2, 6>(1, 0) = Eigen::Matrix<double, 2, 6>::Zero();
      transform_i_to_m_->backward(lhs * jac, child4, jacs);
   }
   // clang-format on
 }
 
-Eigen::Matrix<double, 3, 6> AccelerationErrorEvaluator::getJacobianPose()
-    const {
-  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-  jac.block<3, 3>(0, 3) =
-      -1 * lgmath::so3::hat(transform_->value().C_ba() *
-                            transform_i_to_m_->value().C_ba() * gravity_);
-  return jac;
-}
-
-Eigen::Matrix<double, 3, 6>
-AccelerationErrorEvaluator::getJacobianAcceleration() const {
-  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-  jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
-  return jac;
-}
-
-Eigen::Matrix<double, 3, 6> AccelerationErrorEvaluator::getJacobianBias()
-    const {
-  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-  jac.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
-  return jac;
-}
-
-Eigen::Matrix<double, 3, 6> AccelerationErrorEvaluator::getJacobianT_mi()
-    const {
-  Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
-  jac.block<3, 3>(0, 3) =
-      -1 * transform_->value().C_ba() *
-      lgmath::so3::hat(transform_i_to_m_->value().C_ba() * gravity_);
-  return jac;
+void AccelerationErrorEvaluator::getMeasJacobians(JacType &jac_pose,
+                                                  JacType &jac_accel,
+                                                  JacType &jac_bias,
+                                                  JacType &jac_T_mi) const {
+  const Eigen::Matrix3d C_vm = transform_->value().C_ba();
+  const Eigen::Matrix3d C_mi = transform_i_to_m_->value().C_ba();
+  jac_pose.setZero();
+  jac_pose.block<3, 3>(0, 3) = -1 * lgmath::so3::hat(C_vm * C_mi * gravity_);
+  jac_accel.setZero();
+  jac_accel.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
+  jac_bias.setZero();
+  jac_bias.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
+  jac_T_mi.setZero();
+  jac_T_mi.block<3, 3>(0, 3) = -1 * C_vm * lgmath::so3::hat(C_mi * gravity_);
 }
 
 AccelerationErrorEvaluator::Ptr AccelerationError(
