@@ -13,21 +13,8 @@ class P2PSuperCostTerm : public BaseCostTerm {
   enum class LOSS_FUNC { L2, DCS, CAUCHY, GM };
 
   struct Options {
-    // bool bias_const_over_window = false;
-    // bool estimate_T_mi = true;
-    // bool T_mi_const_over_window = false;
-    // bool T_mi_init_only = false;
-    // Eigen::Matrix<double, 6, 1> Qc_bias = Eigen::Matrix<double, 6,
-    // 1>::Ones(); Eigen::Matrix<double, 6, 1> Qc_T_mi = Eigen::Matrix<double,
-    // 6, 1>::Ones(); Eigen::Matrix<double, 3, 1> r_imu_acc =
-    // Eigen::Matrix<double, 3, 1>::Zero(); Eigen::Matrix<double, 3, 1>
-    // r_imu_ang = Eigen::Matrix<double, 3, 1>::Zero();
     int num_threads = 1;
-    // LOSS_FUNC accel_loss_func = LOSS_FUNC::L2;
-    // LOSS_FUNC gyro_loss_func = LOSS_FUNC::L2;
     LOSS_FUNC p2p_loss_func = LOSS_FUNC::CAUCHY;
-    // double accel_loss_sigma = 1.0;
-    // double gyro_loss_sigma = 1.0;
     double p2p_loss_sigma = 0.1;
     Eigen::Matrix4d T_sr = Eigen::Matrix4d::Identity();
   };
@@ -87,14 +74,6 @@ class P2PSuperCostTerm : public BaseCostTerm {
   std::map<double, std::vector<int>> p2p_match_bins_;
 
   BaseLossFunc::Ptr p2p_loss_func_ = L2LossFunc::MakeShared();
-
-  void getMotionPriorJacobians_(const lgmath::se3::Transformation &T1,
-                                const lgmath::se3::Transformation &T2,
-                                const Eigen::Matrix<double, 6, 1> &w2,
-                                const Eigen::Matrix<double, 6, 1> &dw2,
-                                const Eigen::Matrix<double, 18, 18> &Phi,
-                                Eigen::Matrix<double, 18, 18> &F,
-                                Eigen::Matrix<double, 18, 18> &E) const;
 
   void initialize_interp_matrices_();
 };
