@@ -36,6 +36,8 @@ class P2PSuperCostTerm : public BaseCostTerm {
   using ConstPtr = std::shared_ptr<const P2PSuperCostTerm>;
 
   using PoseType = lgmath::se3::Transformation;
+  using VelType = Eigen::Matrix<double, 6, 1>;
+  using AccType = Eigen::Matrix<double, 6, 1>;
 
   using Interface = steam::traj::const_acc::Interface;
 
@@ -44,7 +46,7 @@ class P2PSuperCostTerm : public BaseCostTerm {
   using Time = steam::traj::Time;
 
   using Matrix18d = Eigen::Matrix<double, 18, 18>;
-  using Matrix18d = Eigen::Matrix<double, 6, 6>;
+  using Matrix6d = Eigen::Matrix<double, 6, 6>;
 
   static Ptr MakeShared(const Interface::ConstPtr &interface, const Time &time1,
                         const Time &time2, Options options);
@@ -79,10 +81,10 @@ class P2PSuperCostTerm : public BaseCostTerm {
   Options options_;
   Matrix18d Qinv_T_ = Matrix18d::Identity();
   Matrix18d Tran_T_ = Matrix18d::Identity();
-  // std::set<Time> meas_times_;
   std::map<Time, std::pair<Matrix18d, Matrix18d>> interp_mats_;
 
   std::vector<P2PMatch> p2p_matches_;
+  std::map<double, std::vector<int>> p2p_match_bins_;
 
   BaseLossFunc::Ptr p2p_loss_func_ = L2LossFunc::MakeShared();
 
