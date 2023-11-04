@@ -207,7 +207,7 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
   std::vector<unsigned int> sqSizes = state_vector_->getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
-#pragma omp parallel for num_threads(num_threads_)
+  // #pragma omp parallel for num_threads(num_threads_)
   for (unsigned int c = 0; c < cost_terms_.size(); c++) {
     cost_terms_.at(c)->buildGaussNewtonTerms(*state_vector_, &A_, &b_);
   }

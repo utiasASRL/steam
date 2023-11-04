@@ -9,6 +9,8 @@
 #include "steam/trajectory/const_acc/interface.hpp"
 #include "steam/trajectory/time.hpp"
 
+#include <iostream>
+
 namespace steam {
 
 struct P2PMatch {
@@ -53,9 +55,38 @@ class P2PSuperCostTerm : public BaseCostTerm {
   using Matrix6d = Eigen::Matrix<double, 6, 6>;
 
   static Ptr MakeShared(const Interface::ConstPtr &interface, const Time &time1,
-                        const Time &time2, Options options);
+                        const Time &time2, const Options &options);
+
   P2PSuperCostTerm(const Interface::ConstPtr &interface, const Time &time1,
-                   const Time &time2, Options options);
+                   const Time &time2, const Options &options)
+      : interface_(interface), time1_(time1), time2_(time2), options_(options) {
+    knot1_ = interface_->get(time1_);
+    knot2_ = interface_->get(time2_);
+
+    const double T = (knot2_->time() - knot1_->time()).seconds();
+    std::cout << "init" << std::endl;
+    std::cout << "T: " << T << std::endl;
+    const Eigen::Matrix<double, 6, 1> ones =
+        Eigen::Matrix<double, 6, 1>::Ones();
+    Qinv_T_ = interface_->getQinvPublic(T, ones);
+    Tran_T_ = interface_->getTranPublic(T);
+
+    const auto p2p_loss_func_ = [this]() -> BaseLossFunc::Ptr {
+      switch (options_.p2p_loss_func) {
+        case LOSS_FUNC::L2:
+          return L2LossFunc::MakeShared();
+        case LOSS_FUNC::DCS:
+          return DcsLossFunc::MakeShared(options_.p2p_loss_sigma);
+        case LOSS_FUNC::CAUCHY:
+          return CauchyLossFunc::MakeShared(options_.p2p_loss_sigma);
+        case LOSS_FUNC::GM:
+          return GemanMcClureLossFunc::MakeShared(options_.p2p_loss_sigma);
+        default:
+          return nullptr;
+      }
+      return nullptr;
+    }();
+  }
 
   /** \brief Compute the cost to the objective function */
   double cost() const override;
@@ -87,6 +118,7 @@ class P2PSuperCostTerm : public BaseCostTerm {
 
   std::vector<P2PMatch> *p2p_matches_ = nullptr;
   std::map<double, std::vector<int>> p2p_match_bins_;
+  std::vector<double> meas_times_;
 
   BaseLossFunc::Ptr p2p_loss_func_ = L2LossFunc::MakeShared();
 

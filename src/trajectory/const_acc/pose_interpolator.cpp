@@ -6,6 +6,8 @@
 #include "steam/trajectory/const_acc/helper.hpp"
 #include "steam/trajectory/const_vel/evaluable/jinv_velocity_evaluator.hpp"
 
+#include <iostream>
+
 namespace steam {
 namespace traj {
 namespace const_acc {

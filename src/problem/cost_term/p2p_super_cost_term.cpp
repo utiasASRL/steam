@@ -1,40 +1,12 @@
 #include "steam/problem/cost_term/p2p_super_cost_term.hpp"
+#include <iostream>
 
 namespace steam {
 
 P2PSuperCostTerm::Ptr P2PSuperCostTerm::MakeShared(
     const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
-    Options options) {
+    const Options &options) {
   return std::make_shared<P2PSuperCostTerm>(interface, time1, time2, options);
-}
-
-P2PSuperCostTerm::P2PSuperCostTerm(const Interface::ConstPtr &interface,
-                                   const Time &time1, const Time &time2,
-                                   Options options)
-    : interface_(interface), time1_(time1), time2_(time2), options_(options) {
-  knot1_ = interface_->get(time1_);
-  knot2_ = interface_->get(time2_);
-
-  const double T = (knot2_->time() - knot1_->time()).seconds();
-  const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
-  Matrix18d Qinv_T_ = interface_->getQinvPublic(T, ones);
-  Matrix18d Tran_T_ = interface_->getTranPublic(T);
-
-  const auto p2p_loss_func_ = [this]() -> BaseLossFunc::Ptr {
-    switch (options_.p2p_loss_func) {
-      case LOSS_FUNC::L2:
-        return L2LossFunc::MakeShared();
-      case LOSS_FUNC::DCS:
-        return DcsLossFunc::MakeShared(options_.p2p_loss_sigma);
-      case LOSS_FUNC::CAUCHY:
-        return CauchyLossFunc::MakeShared(options_.p2p_loss_sigma);
-      case LOSS_FUNC::GM:
-        return GemanMcClureLossFunc::MakeShared(options_.p2p_loss_sigma);
-      default:
-        return nullptr;
-    }
-    return nullptr;
-  }();
 }
 
 /** \brief Compute the cost to the objective function */
@@ -61,11 +33,14 @@ double P2PSuperCostTerm::cost() const {
       (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
 
   double cost = 0;
-  // #pragma omp parallel for num_threads(options_.num_threads) reduction(+ :
-  // cost)
-  for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); it++) {
-    const double &ts = it->first;
-    const std::vector<int> &bin_indices = it->second;
+#pragma omp parallel for num_threads(options_.num_threads) reduction(+ : cost)
+  // for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); it++)
+  // {
+  for (unsigned int i = 0; i < meas_times_.size(); ++i) {
+    // const double &ts = it->first;
+    // const std::vector<int> &bin_indices = it->second;
+    const double &ts = meas_times_[i];
+    const std::vector<int> &bin_indices = p2p_match_bins_.at(ts);
 
     // pose interpolation
     // const std::pair<Matrix18d, Matrix18d> &omega_lambda = interp_mats_[ts];
@@ -105,7 +80,7 @@ void P2PSuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
 void P2PSuperCostTerm::setP2PMatches(std::vector<P2PMatch> *p2p_matches) {
   p2p_matches_ = p2p_matches;
   p2p_match_bins_.clear();
-  for (unsigned int i = 0; i < p2p_matches->size(); ++i) {
+  for (int i = 0; i < (int)p2p_matches->size(); ++i) {
     const auto &p2p_match = p2p_matches->at(i);
     const auto &timestamp = p2p_match.timestamp;
     if (p2p_match_bins_.find(timestamp) == p2p_match_bins_.end()) {
@@ -114,17 +89,22 @@ void P2PSuperCostTerm::setP2PMatches(std::vector<P2PMatch> *p2p_matches) {
       p2p_match_bins_[timestamp].push_back(i);
     }
   }
+  for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); it++) {
+    meas_times_.push_back(it->first);
+  }
   initialize_interp_matrices_();
 }
 
 void P2PSuperCostTerm::initialize_interp_matrices_() {
   const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
-  for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); ++it) {
-    const auto &time = it->first;
+  // for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); ++it)
+  // {
+  for (const double &time : meas_times_) {
+    // const auto &time = it->first;
     if (interp_mats_.find(time) == interp_mats_.end()) {
       // Get Lambda, Omega for this time
       const double tau = time - time1_.seconds();
-      const double kappa = time2_.seconds() - time;
+      const double kappa = knot2_->time().seconds() - time;
       const Matrix18d Q_tau = interface_->getQPublic(tau, ones);
       const Matrix18d Tran_kappa = interface_->getTranPublic(kappa);
       const Matrix18d Tran_tau = interface_->getTranPublic(tau);
@@ -170,15 +150,19 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
   // of the A, b to update hessian, grad at the end)
   Eigen::Matrix<double, 36, 36> A = Eigen::Matrix<double, 36, 36>::Zero();
   Eigen::Matrix<double, 36, 1> b = Eigen::Matrix<double, 36, 1>::Zero();
-#pragma omp declare reduction( \
-        merge_A : Eigen::Matrix<double, 36, 36> : omp_out += omp_in)
-#pragma omp declare reduction( \
-        merge_b : Eigen::Matrix<double, 36, 1> : omp_out += omp_in)
-#pragma omp parallel for num_threads(options_.num_threads) \
-    reduction(merge_A : A) reduction(merge_b : b)
-  for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); it++) {
-    const double &ts = it->first;
-    const std::vector<int> &bin_indices = it->second;
+#pragma omp declare reduction(+ : Eigen::Matrix<double, 36, 36> : omp_out = \
+                                  omp_out + omp_in)                         \
+    initializer(omp_priv = Eigen::Matrix<double, 36, 36>::Zero())
+#pragma omp declare reduction(+ : Eigen::Matrix<double, 36, 1> : omp_out = \
+                                  omp_out + omp_in)                        \
+    initializer(omp_priv = Eigen::Matrix<double, 36, 1>::Zero())
+#pragma omp parallel for num_threads(options_.num_threads) reduction(+ : A) \
+    reduction(+ : b)
+  for (int i = 0; i < (int)meas_times_.size(); ++i) {
+    // const double &ts = it->first;
+    // const std::vector<int> &bin_indices = it->second;
+    const double &ts = meas_times_[i];
+    const std::vector<int> &bin_indices = p2p_match_bins_.at(ts);
 
     // pose interpolation
     const auto &omega = interp_mats_.at(ts).first;
@@ -221,20 +205,37 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
 
     // get measurement Jacobians
     Eigen::Matrix<double, 1, 6> Gmeas = Eigen::Matrix<double, 1, 6>::Zero();
-    double error;
+    double error = 0.0;
+    // Eigen::Matrix<double, 3, 6> Gmeas = Eigen::Matrix<double, 3, 6>::Zero();
+    // Eigen::Matrix<double, 3, 1> error = Eigen::Matrix<double, 3, 1>::Zero();
+
     for (const int &match_idx : bin_indices) {
       const auto &p2p_match = p2p_matches_->at(match_idx);
       const double raw_error =
           p2p_match.normal.transpose() *
           (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
            T_mr.block<3, 1>(0, 3));
+      // const Eigen::Matrix<double, 3, 1> raw_error =
+      //     p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
+      //     T_mr.block<3, 1>(0, 3);
+      // Eigen::Matrix3d W = (p2p_match.normal * p2p_match.normal.transpose() +
+      //                      1e-5 * Eigen::Matrix3d::Identity());
+      // Eigen::LLT<Eigen::Matrix3d> lltOfInformation(W);
+      // const Eigen::Matrix3d W_sqrt = lltOfInformation.matrixL().transpose();
+      // const Eigen::Matrix<double, 3, 1> white_error = W_sqrt * raw_error;
+      // const double sqrt_w = sqrt(p2p_loss_func_->weight(white_error.norm()));
       const double sqrt_w = sqrt(p2p_loss_func_->weight(fabs(raw_error)));
       // weight meas jacs and errors
+      // error += sqrt_w * white_error;
       error += sqrt_w * raw_error;
+      // Gmeas +=
+      //     sqrt_w * W_sqrt *
+      //     (T_mr * lgmath::se3::point2fs(p2p_match.query)).block<3, 6>(0, 0);
       Gmeas +=
           sqrt_w * p2p_match.normal.transpose() *
           (T_mr * lgmath::se3::point2fs(p2p_match.query)).block<3, 6>(0, 0);
     }
+    // const Eigen::Matrix<double, 3, 36> G = Gmeas * interp_jac;
     const Eigen::Matrix<double, 1, 36> G = Gmeas * interp_jac;
     A += G.transpose() * G;
     b += (-1) * G.transpose() * error;
@@ -323,6 +324,11 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
       keys.push_back(it->first);
     }
   }
+  std::cout << "keys:";
+  for (auto &key : keys) {
+    std::cout << state_vec.getStateBlockIndex(key) << " ";
+  }
+  std::cout << std::endl;
   active.push_back(knot1_->pose()->active());
   active.push_back(knot1_->velocity()->active());
   active.push_back(knot1_->acceleration()->active());
@@ -343,7 +349,7 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
     // Update the right-hand side (thread critical)
 
 #pragma omp critical(b_update)
-    gradient_vector->mapAt(blkIdx1) += newGradTerm;
+    { gradient_vector->mapAt(blkIdx1) += newGradTerm; }
 
     for (int j = i; j < 6; ++j) {
       if (!active[j]) continue;
