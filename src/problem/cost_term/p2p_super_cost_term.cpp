@@ -56,7 +56,7 @@ double P2PSuperCostTerm::cost() const {
     const Eigen::Matrix4d T_mr = T_i0.inverse().matrix();
 
     for (const int &match_idx : bin_indices) {
-      const auto &p2p_match = p2p_matches_->at(match_idx);
+      const auto &p2p_match = p2p_matches_.at(match_idx);
       const double raw_error =
           p2p_match.normal.transpose() *
           (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
@@ -77,11 +77,10 @@ void P2PSuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
   knot2_->acceleration()->getRelatedVarKeys(keys);
 }
 
-void P2PSuperCostTerm::setP2PMatches(std::vector<P2PMatch> *p2p_matches) {
-  p2p_matches_ = p2p_matches;
+void P2PSuperCostTerm::initP2PMatches() {
   p2p_match_bins_.clear();
-  for (int i = 0; i < (int)p2p_matches->size(); ++i) {
-    const auto &p2p_match = p2p_matches->at(i);
+  for (int i = 0; i < (int)p2p_matches_.size(); ++i) {
+    const auto &p2p_match = p2p_matches_.at(i);
     const auto &timestamp = p2p_match.timestamp;
     if (p2p_match_bins_.find(timestamp) == p2p_match_bins_.end()) {
       p2p_match_bins_[timestamp] = {i};
@@ -89,6 +88,7 @@ void P2PSuperCostTerm::setP2PMatches(std::vector<P2PMatch> *p2p_matches) {
       p2p_match_bins_[timestamp].push_back(i);
     }
   }
+  meas_times_.clear();
   for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); it++) {
     meas_times_.push_back(it->first);
   }
@@ -210,7 +210,7 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
     // Eigen::Matrix<double, 3, 1> error = Eigen::Matrix<double, 3, 1>::Zero();
 
     for (const int &match_idx : bin_indices) {
-      const auto &p2p_match = p2p_matches_->at(match_idx);
+      const auto &p2p_match = p2p_matches_.at(match_idx);
       const double raw_error =
           p2p_match.normal.transpose() *
           (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -

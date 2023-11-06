@@ -76,7 +76,11 @@ void SlidingWindowFilter::marginalizeVariable(
   const auto state_sizes = state_vector.getStateBlockSizes();
   BlockSparseMatrix A_(state_sizes, true);
   BlockVector b_(state_sizes);
-#pragma omp parallel for num_threads(num_threads_)
+#pragma omp declare reduction(                                              \
+        merge_costs : std::vector<BaseCostTerm::ConstPtr> : omp_out.insert( \
+                omp_out.end(), omp_in.begin(), omp_in.end()))
+#pragma omp parallel for num_threads(num_threads_) \
+    reduction(merge_costs : active_cost_terms)
   for (unsigned int c = 0; c < cost_terms_.size(); c++) {
     KeySet keys;
     cost_terms_.at(c)->getRelatedVarKeys(keys);
@@ -87,7 +91,7 @@ void SlidingWindowFilter::marginalizeVariable(
         })) {
       cost_terms_.at(c)->buildGaussNewtonTerms(state_vector, &A_, &b_);
     } else {
-#pragma omp critical(active_cost_terms_update)
+      // #pragma omp critical(active_cost_terms_update)
       { active_cost_terms.emplace_back(cost_terms_.at(c)); }
     }
   }
@@ -207,7 +211,7 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
   std::vector<unsigned int> sqSizes = state_vector_->getStateBlockSizes();
   BlockSparseMatrix A_(sqSizes, true);
   BlockVector b_(sqSizes);
-  // #pragma omp parallel for num_threads(num_threads_)
+#pragma omp parallel for num_threads(num_threads_)
   for (unsigned int c = 0; c < cost_terms_.size(); c++) {
     cost_terms_.at(c)->buildGaussNewtonTerms(*state_vector_, &A_, &b_);
   }

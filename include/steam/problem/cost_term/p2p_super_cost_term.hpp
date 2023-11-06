@@ -94,7 +94,16 @@ class P2PSuperCostTerm : public BaseCostTerm {
   /** \brief Get keys of variables related to this cost term */
   void getRelatedVarKeys(KeySet &keys) const override;
 
-  void setP2PMatches(std::vector<P2PMatch> *p2p_matches);
+  void initP2PMatches();
+
+  void emplace_back(P2PMatch &p2p_match) {
+    p2p_matches_.emplace_back(p2p_match);
+  }
+
+  void clear() { p2p_matches_.clear(); }
+  void reserve(unsigned int N) { p2p_matches_.reserve(N); }
+
+  std::vector<P2PMatch> &get() { return p2p_matches_; }
 
   /**
    * \brief Add the contribution of this cost term to the left-hand (Hessian)
@@ -116,7 +125,7 @@ class P2PSuperCostTerm : public BaseCostTerm {
   Matrix18d Tran_T_ = Matrix18d::Identity();
   std::map<double, std::pair<Matrix18d, Matrix18d>> interp_mats_;
 
-  std::vector<P2PMatch> *p2p_matches_ = nullptr;
+  std::vector<P2PMatch> p2p_matches_;
   std::map<double, std::vector<int>> p2p_match_bins_;
   std::vector<double> meas_times_;
 
