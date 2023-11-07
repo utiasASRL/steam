@@ -34,16 +34,11 @@ double P2PSuperCostTerm::cost() const {
 
   double cost = 0;
 #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : cost)
-  // for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); it++)
-  // {
   for (unsigned int i = 0; i < meas_times_.size(); ++i) {
-    // const double &ts = it->first;
-    // const std::vector<int> &bin_indices = it->second;
     const double &ts = meas_times_[i];
     const std::vector<int> &bin_indices = p2p_match_bins_.at(ts);
 
     // pose interpolation
-    // const std::pair<Matrix18d, Matrix18d> &omega_lambda = interp_mats_[ts];
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
@@ -97,10 +92,7 @@ void P2PSuperCostTerm::initP2PMatches() {
 
 void P2PSuperCostTerm::initialize_interp_matrices_() {
   const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
-  // for (auto it = p2p_match_bins_.begin(); it != p2p_match_bins_.end(); ++it)
-  // {
   for (const double &time : meas_times_) {
-    // const auto &time = it->first;
     if (interp_mats_.find(time) == interp_mats_.end()) {
       // Get Lambda, Omega for this time
       const double tau = time - time1_.seconds();
@@ -146,7 +138,7 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
   const auto J_21_inv_curl_dw2 =
       (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
 
-  // todo: what if some variables are not active? (simply don't use those parts
+  // If some variables are not active? (simply don't use those parts
   // of the A, b to update hessian, grad at the end)
   Eigen::Matrix<double, 36, 36> A = Eigen::Matrix<double, 36, 36>::Zero();
   Eigen::Matrix<double, 36, 1> b = Eigen::Matrix<double, 36, 1>::Zero();
@@ -159,8 +151,6 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
 #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : A) \
     reduction(+ : b)
   for (int i = 0; i < (int)meas_times_.size(); ++i) {
-    // const double &ts = it->first;
-    // const std::vector<int> &bin_indices = it->second;
     const double &ts = meas_times_[i];
     const std::vector<int> &bin_indices = p2p_match_bins_.at(ts);
 
@@ -206,8 +196,6 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
     // get measurement Jacobians
     Eigen::Matrix<double, 1, 6> Gmeas = Eigen::Matrix<double, 1, 6>::Zero();
     double error = 0.0;
-    // Eigen::Matrix<double, 3, 6> Gmeas = Eigen::Matrix<double, 3, 6>::Zero();
-    // Eigen::Matrix<double, 3, 1> error = Eigen::Matrix<double, 3, 1>::Zero();
 
     for (const int &match_idx : bin_indices) {
       const auto &p2p_match = p2p_matches_.at(match_idx);
@@ -215,49 +203,20 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
           p2p_match.normal.transpose() *
           (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
            T_mr.block<3, 1>(0, 3));
-      // const Eigen::Matrix<double, 3, 1> raw_error =
-      //     p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
-      //     T_mr.block<3, 1>(0, 3);
-      // Eigen::Matrix3d W = (p2p_match.normal * p2p_match.normal.transpose() +
-      //                      1e-5 * Eigen::Matrix3d::Identity());
-      // Eigen::LLT<Eigen::Matrix3d> lltOfInformation(W);
-      // const Eigen::Matrix3d W_sqrt = lltOfInformation.matrixL().transpose();
-      // const Eigen::Matrix<double, 3, 1> white_error = W_sqrt * raw_error;
-      // const double sqrt_w = sqrt(p2p_loss_func_->weight(white_error.norm()));
       const double sqrt_w = sqrt(p2p_loss_func_->weight(fabs(raw_error)));
-      // weight meas jacs and errors
-      // error += sqrt_w * white_error;
       error += sqrt_w * raw_error;
-      // Gmeas +=
-      //     sqrt_w * W_sqrt *
-      //     (T_mr * lgmath::se3::point2fs(p2p_match.query)).block<3, 6>(0, 0);
       Gmeas +=
           sqrt_w * p2p_match.normal.transpose() *
           (T_mr * lgmath::se3::point2fs(p2p_match.query)).block<3, 6>(0, 0);
     }
-    // const Eigen::Matrix<double, 3, 36> G = Gmeas * interp_jac;
     const Eigen::Matrix<double, 1, 36> G = Gmeas * interp_jac;
     A += G.transpose() * G;
     b += (-1) * G.transpose() * error;
   }
 
   // Update hessian and grad for only the active variables
-  // std::vector<StateVar::Ptr> vars;
-  // vars.emplace_back(std::static_pointer_cast<StateVar::Ptr>(knot1_->pose()));
-
-  // vars.emplace_back(
-  //     std::static_pointer_cast<StateVar::Ptr>(knot1_->velocity()));
-  // vars.emplace_back(
-  //     std::static_pointer_cast<StateVar::Ptr>(knot1_->acceleration()));
-  // vars.emplace_back(std::static_pointer_cast<StateVar::Ptr>(knot2_->pose()));
-  // vars.emplace_back(
-  //     std::static_pointer_cast<StateVar::Ptr>(knot2_->velocity()));
-  // vars.emplace_back(
-  //     std::static_pointer_cast<StateVar::Ptr>(knot2_->acceleration()));
-
   std::vector<StateKey> keys;
   std::vector<bool> active;
-
   {
     const auto T1node = std::static_pointer_cast<Node<PoseType>>(T1_);
     Jacobians jacs;
@@ -339,7 +298,6 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
   for (int i = 0; i < 6; ++i) {
     if (!active[i]) continue;
     // Get the key and state range affected
-    // const auto &key1 = vars[i]->key();
     const auto &key1 = keys[i];
     unsigned int blkIdx1 = state_vec.getStateBlockIndex(key1);
 
@@ -347,14 +305,12 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
     Eigen::MatrixXd newGradTerm = b.block<6, 1>(i * 6, 0);
 
     // Update the right-hand side (thread critical)
-
 #pragma omp critical(b_update)
     { gradient_vector->mapAt(blkIdx1) += newGradTerm; }
 
     for (int j = i; j < 6; ++j) {
       if (!active[j]) continue;
       // Get the key and state range affected
-      // const auto &key2 = vars[j]->key();
       const auto &key2 = keys[j];
       unsigned int blkIdx2 = state_vec.getStateBlockIndex(key2);
 

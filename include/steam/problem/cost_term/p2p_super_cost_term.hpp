@@ -59,13 +59,13 @@ class P2PSuperCostTerm : public BaseCostTerm {
 
   P2PSuperCostTerm(const Interface::ConstPtr &interface, const Time &time1,
                    const Time &time2, const Options &options)
-      : interface_(interface), time1_(time1), time2_(time2), options_(options) {
-    knot1_ = interface_->get(time1_);
-    knot2_ = interface_->get(time2_);
-
+      : interface_(interface),
+        time1_(time1),
+        time2_(time2),
+        options_(options),
+        knot1_(interface_->get(time1)),
+        knot2_(interface_->get(time2)) {
     const double T = (knot2_->time() - knot1_->time()).seconds();
-    std::cout << "init" << std::endl;
-    std::cout << "T: " << T << std::endl;
     const Eigen::Matrix<double, 6, 1> ones =
         Eigen::Matrix<double, 6, 1>::Ones();
     Qinv_T_ = interface_->getQinvPublic(T, ones);
@@ -118,9 +118,9 @@ class P2PSuperCostTerm : public BaseCostTerm {
   const Interface::ConstPtr interface_;
   const Time &time1_;
   const Time &time2_;
-  Variable::ConstPtr knot1_;
-  Variable::ConstPtr knot2_;
-  Options options_;
+  const Options options_;
+  const Variable::ConstPtr knot1_;
+  const Variable::ConstPtr knot2_;
   Matrix18d Qinv_T_ = Matrix18d::Identity();
   Matrix18d Tran_T_ = Matrix18d::Identity();
   std::map<double, std::pair<Matrix18d, Matrix18d>> interp_mats_;
