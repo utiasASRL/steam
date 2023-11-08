@@ -71,7 +71,7 @@ class P2PSuperCostTerm : public BaseCostTerm {
     Qinv_T_ = interface_->getQinvPublic(T, ones);
     Tran_T_ = interface_->getTranPublic(T);
 
-    const auto p2p_loss_func_ = [this]() -> BaseLossFunc::Ptr {
+    p2p_loss_func_ = [this]() -> BaseLossFunc::Ptr {
       switch (options_.p2p_loss_func) {
         case LOSS_FUNC::L2:
           return L2LossFunc::MakeShared();

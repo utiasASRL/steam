@@ -88,7 +88,7 @@ class IMUSuperCostTerm : public BaseCostTerm {
     Qinv_T_ = interface_->getQinvPublic(T, ones);
     Tran_T_ = interface_->getTranPublic(T);
 
-    const auto acc_loss_func_ = [this]() -> BaseLossFunc::Ptr {
+    acc_loss_func_ = [this]() -> BaseLossFunc::Ptr {
       switch (options_.acc_loss_func) {
         case LOSS_FUNC::L2:
           return L2LossFunc::MakeShared();
@@ -104,7 +104,7 @@ class IMUSuperCostTerm : public BaseCostTerm {
       return nullptr;
     }();
 
-    const auto gyro_loss_func_ = [this]() -> BaseLossFunc::Ptr {
+    gyro_loss_func_ = [this]() -> BaseLossFunc::Ptr {
       switch (options_.gyro_loss_func) {
         case LOSS_FUNC::L2:
           return L2LossFunc::MakeShared();
@@ -149,6 +149,9 @@ class IMUSuperCostTerm : public BaseCostTerm {
   void reserve(unsigned int N) { imu_data_vec_.reserve(N); }
 
   std::vector<IMUData> &get() { return imu_data_vec_; }
+  void set(const std::vector<IMUData> imu_data_vec) {
+    imu_data_vec_ = imu_data_vec;
+  }
 
   /**
    * \brief Add the contribution of this cost term to the left-hand (Hessian)
@@ -160,15 +163,15 @@ class IMUSuperCostTerm : public BaseCostTerm {
                              BlockSparseMatrix *approximate_hessian,
                              BlockVector *gradient_vector) const override;
 
-  void freeze() override {
-    frozen_ = false;
-    Eigen::Matrix<double, 60, 60> A = Eigen::Matrix<double, 60, 60>::Zero();
-    Eigen::Matrix<double, 60, 1> b = Eigen::Matrix<double, 60, 1>::Zero();
-    buildGaussNewtonTerms_(A, b);
-    A_ = A;
-    b_ = b;
-    frozen_ = true;
-  }
+  // void freeze() override {
+  //   frozen_ = false;
+  //   Eigen::Matrix<double, 60, 60> A = Eigen::Matrix<double, 60, 60>::Zero();
+  //   Eigen::Matrix<double, 60, 1> b = Eigen::Matrix<double, 60, 1>::Zero();
+  //   buildGaussNewtonTerms_(A, b);
+  //   A_ = A;
+  //   b_ = b;
+  //   frozen_ = true;
+  // }
 
  private:
   const Interface::ConstPtr interface_;
@@ -205,8 +208,8 @@ class IMUSuperCostTerm : public BaseCostTerm {
 
   void initialize_interp_matrices_();
 
-  Eigen::Matrix<double, 60, 60> A_ = Eigen::Matrix<double, 60, 60>::Zero();
-  Eigen::Matrix<double, 60, 1> b_ = Eigen::Matrix<double, 60, 1>::Zero();
+  // Eigen::Matrix<double, 60, 60> A_ = Eigen::Matrix<double, 60, 60>::Zero();
+  // Eigen::Matrix<double, 60, 1> b_ = Eigen::Matrix<double, 60, 1>::Zero();
 
   void buildGaussNewtonTerms_(Eigen::Matrix<double, 60, 60> &A,
                               Eigen::Matrix<double, 60, 1> &b) const;
