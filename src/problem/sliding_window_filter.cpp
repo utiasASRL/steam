@@ -235,7 +235,7 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
     Eigen::MatrixXd A11(A.bottomRightCorner(A.rows() - marginalize_state_size, A.cols() - marginalize_state_size));
     Eigen::VectorXd b0(b.head(marginalize_state_size));
     Eigen::VectorXd b1(b.tail(b.size() - marginalize_state_size));
-    approximate_hessian = Eigen::MatrixXd(A11 - A10 * A00.inverse() * A10.transpose()).sparseView();
+    approximate_hessian = Eigen::MatrixXd(A11 - A10 * A00.llt().solve(A10.transpose())).sparseView();
     gradient_vector = b1 - A10 * A00.inverse() * b0;
     // clang-format on
   } else {

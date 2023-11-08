@@ -155,9 +155,20 @@ class IMUSuperCostTerm : public BaseCostTerm {
    * and right-hand (gradient vector) sides of the Gauss-Newton system of
    * equations.
    */
+
   void buildGaussNewtonTerms(const StateVector &state_vec,
                              BlockSparseMatrix *approximate_hessian,
                              BlockVector *gradient_vector) const override;
+
+  void freeze() override {
+    frozen_ = false;
+    Eigen::Matrix<double, 60, 60> A = Eigen::Matrix<double, 60, 60>::Zero();
+    Eigen::Matrix<double, 60, 1> b = Eigen::Matrix<double, 60, 1>::Zero();
+    buildGaussNewtonTerms_(A, b);
+    A_ = A;
+    b_ = b;
+    frozen_ = true;
+  }
 
  private:
   const Interface::ConstPtr interface_;
@@ -193,6 +204,12 @@ class IMUSuperCostTerm : public BaseCostTerm {
       Eigen::Matrix<double, 3, 6>::Zero();
 
   void initialize_interp_matrices_();
+
+  Eigen::Matrix<double, 60, 60> A_ = Eigen::Matrix<double, 60, 60>::Zero();
+  Eigen::Matrix<double, 60, 1> b_ = Eigen::Matrix<double, 60, 1>::Zero();
+
+  void buildGaussNewtonTerms_(Eigen::Matrix<double, 60, 60> &A,
+                              Eigen::Matrix<double, 60, 1> &b) const;
 };
 
 }  // namespace steam

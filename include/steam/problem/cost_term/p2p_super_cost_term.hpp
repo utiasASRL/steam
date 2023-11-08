@@ -114,6 +114,16 @@ class P2PSuperCostTerm : public BaseCostTerm {
                              BlockSparseMatrix *approximate_hessian,
                              BlockVector *gradient_vector) const override;
 
+  void freeze() override {
+    frozen_ = false;
+    Eigen::Matrix<double, 36, 36> A = Eigen::Matrix<double, 36, 36>::Zero();
+    Eigen::Matrix<double, 36, 1> b = Eigen::Matrix<double, 36, 1>::Zero();
+    buildGaussNewtonTerms_(A, b);
+    A_ = A;
+    b_ = b;
+    frozen_ = true;
+  }
+
  private:
   const Interface::ConstPtr interface_;
   const Time &time1_;
@@ -132,6 +142,12 @@ class P2PSuperCostTerm : public BaseCostTerm {
   BaseLossFunc::Ptr p2p_loss_func_ = L2LossFunc::MakeShared();
 
   void initialize_interp_matrices_();
+
+  Eigen::Matrix<double, 36, 36> A_ = Eigen::Matrix<double, 36, 36>::Zero();
+  Eigen::Matrix<double, 36, 1> b_ = Eigen::Matrix<double, 36, 1>::Zero();
+
+  void buildGaussNewtonTerms_(Eigen::Matrix<double, 36, 36> &A,
+                              Eigen::Matrix<double, 36, 1> &b) const;
 };
 
 }  // namespace steam

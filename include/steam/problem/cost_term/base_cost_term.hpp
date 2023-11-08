@@ -34,6 +34,12 @@ class BaseCostTerm {
   virtual void buildGaussNewtonTerms(const StateVector &state_vec,
                                      BlockSparseMatrix *approximate_hessian,
                                      BlockVector *gradient_vector) const = 0;
+
+  virtual void freeze() { frozen_ = true; }
+  virtual void unfreeze() { frozen_ = false; }
+
+ protected:
+  bool frozen_ = false;
 };
 
 }  // namespace steam
