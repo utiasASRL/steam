@@ -4,6 +4,7 @@
 #include "steam/evaluable/state_var.hpp"
 #include "steam/evaluable/vspace/vspace_state_var.hpp"
 #include "steam/problem/cost_term/base_cost_term.hpp"
+#include "steam/problem/cost_term/p2p_super_cost_term.hpp"
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/problem.hpp"
 #include "steam/trajectory/const_acc/interface.hpp"
@@ -13,32 +14,20 @@
 
 namespace steam {
 
-struct P2PMatch {
-  double timestamp = 0;
-  Eigen::Vector3d reference = Eigen::Vector3d::Zero();  // map frame
-  Eigen::Vector3d normal = Eigen::Vector3d::Ones();     // map frame
-  Eigen::Vector3d query = Eigen::Vector3d::Zero();      // robot frame
-
-  P2PMatch(double timestamp_, Eigen::Vector3d reference_,
-           Eigen::Vector3d normal_, Eigen::Vector3d query_)
-      : timestamp(timestamp_),
-        reference(reference_),
-        normal(normal_),
-        query(query_) {}
-};
-
-class P2PSuperCostTerm : public BaseCostTerm {
+class P2PDopplerCASuperCostTerm : public BaseCostTerm {
  public:
-  enum class LOSS_FUNC { L2, DCS, CAUCHY, GM };
+  enum class LOSS_FUNC { L2, DCS, CAUCHY, GM, HUBER };
 
   struct Options {
     int num_threads = 1;
     LOSS_FUNC p2p_loss_func = LOSS_FUNC::CAUCHY;
     double p2p_loss_sigma = 0.1;
+    Eigen::Matrix4d T_sr = Eigen::Matrix4d::Identity();
+    double beta = 0.0535;
   };
 
-  using Ptr = std::shared_ptr<P2PSuperCostTerm>;
-  using ConstPtr = std::shared_ptr<const P2PSuperCostTerm>;
+  using Ptr = std::shared_ptr<P2PDopplerCASuperCostTerm>;
+  using ConstPtr = std::shared_ptr<const P2PDopplerCASuperCostTerm>;
 
   using PoseType = lgmath::se3::Transformation;
   using VelType = Eigen::Matrix<double, 6, 1>;
@@ -56,8 +45,9 @@ class P2PSuperCostTerm : public BaseCostTerm {
   static Ptr MakeShared(const Interface::ConstPtr &interface, const Time &time1,
                         const Time &time2, const Options &options);
 
-  P2PSuperCostTerm(const Interface::ConstPtr &interface, const Time &time1,
-                   const Time &time2, const Options &options)
+  P2PDopplerCASuperCostTerm(const Interface::ConstPtr &interface,
+                            const Time &time1, const Time &time2,
+                            const Options &options)
       : interface_(interface),
         time1_(time1),
         time2_(time2),
@@ -80,11 +70,16 @@ class P2PSuperCostTerm : public BaseCostTerm {
           return CauchyLossFunc::MakeShared(options_.p2p_loss_sigma);
         case LOSS_FUNC::GM:
           return GemanMcClureLossFunc::MakeShared(options_.p2p_loss_sigma);
+        case LOSS_FUNC::HUBER:
+          return HuberLossFunc::MakeShared(options_.p2p_loss_sigma);
         default:
           return nullptr;
       }
       return nullptr;
     }();
+
+    T_rs_ = options_.T_sr.inverse();
+    Ad_T_sr_ = lgmath::se3::tranAd(options_.T_sr);
   }
 
   /** \brief Compute the cost to the objective function */
@@ -131,6 +126,10 @@ class P2PSuperCostTerm : public BaseCostTerm {
   BaseLossFunc::Ptr p2p_loss_func_ = L2LossFunc::MakeShared();
 
   void initialize_interp_matrices_();
+
+  Eigen::Matrix4d T_rs_ = Eigen::Matrix4d::Identity();
+  Eigen::Matrix<double, 6, 6> Ad_T_sr_ =
+      Eigen::Matrix<double, 6, 6>::Identity();
 };
 
 }  // namespace steam

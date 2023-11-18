@@ -2094,6 +2094,117 @@ TEST(IMU, GyroErrorEvaluator) {
   }
 }
 
+TEST(P2P, P2PErrorDopplerEvaluator) {
+  using namespace steam;
+  using namespace steam::p2p;
+  Eigen::Matrix<double, 6, 1> w_m_v_in_v;
+  w_m_v_in_v << 1, 2, 3, 0.1, 0.2, 0.3;
+  Eigen::Matrix<double, 6, 1> xi_vm, xi_vs;
+  xi_vm << 4, 5, 6, 0.3, 0.2, 0.3;
+  xi_vs << 0.1, 0.2, 0.3, 0.03, 0.02, 0.01;
+  const auto T_vm = lgmath::se3::Transformation(xi_vm);
+  const Eigen::Matrix4d T_mv = T_vm.inverse().matrix();
+  const Eigen::Matrix4d T_vs = lgmath::se3::Transformation(xi_vs).matrix();
+  const Eigen::Matrix4d T_ms = T_mv * T_vs;
+
+  Eigen::Vector3d query;
+  query << 10, 20, 30;
+  const Eigen::Vector3d abar = query.normalized();
+  const double beta = 0.0535;
+  const Eigen::Vector3d delta_q =
+      beta * abar * abar.transpose() *
+      lgmath::se3::point2fs(query).block<3, 6>(0, 0) *
+      lgmath::se3::tranAd(T_vs.inverse()) * w_m_v_in_v;
+  const Eigen::Vector3d reference =
+      T_ms.block<3, 3>(0, 0) * (query + delta_q) + T_ms.block<3, 1>(0, 3);
+
+  const auto T_vm_var = se3::SE3StateVar::MakeShared(T_vm);
+  const auto w_mv_in_v_var = vspace::VSpaceStateVar<6>::MakeShared(w_m_v_in_v);
+
+  const auto p2p_err_eval =
+      p2pErrorDoppler(T_vm_var, w_mv_in_v_var, reference, query, beta);
+
+  // check the Jacobians by comparing against numerical Jacobians.
+  const double eps = 1.0e-5;
+  Jacobians jacs;
+  Eigen::Matrix<double, 3, 3> lhs = Eigen::Matrix<double, 3, 3>::Identity();
+  const auto node = p2p_err_eval->forward();
+  p2p_err_eval->backward(lhs, node, jacs);
+  const auto& jacmap = jacs.get();
+
+  // T_vm
+  {
+    std::cout << "T_vm:" << std::endl;
+    Eigen::Matrix<double, 3, 6> ajac = jacmap.at(T_vm_var->key());
+    std::cout << ajac << std::endl;
+    Eigen::Matrix<double, 3, 6> njac = Eigen::Matrix<double, 3, 6>::Zero();
+    for (int j = 0; j < 6; ++j) {
+      Eigen::Matrix<double, 6, 1> xi1 = Eigen::Matrix<double, 6, 1>::Zero();
+      Eigen::Matrix<double, 6, 1> xi2 = Eigen::Matrix<double, 6, 1>::Zero();
+      xi1(j, 0) = eps;
+      xi2(j, 0) = -eps;
+      const auto T_vm_var_mod1 =
+          se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi1) * T_vm);
+      const auto T_vm_var_mod2 =
+          se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi2) * T_vm);
+
+      const auto p2p_err_eval_mod1 =
+          p2pErrorDoppler(T_vm_var_mod1, w_mv_in_v_var, reference, query, beta);
+      const auto p2p_err_eval_mod2 =
+          p2pErrorDoppler(T_vm_var_mod2, w_mv_in_v_var, reference, query, beta);
+
+      njac.block<3, 1>(0, j) =
+          (p2p_err_eval_mod1->evaluate() - p2p_err_eval_mod2->evaluate()) /
+          (2 * eps);
+    }
+    std::cout << njac << std::endl;
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        if (fabs(ajac(i, j)) > 1.0e-2)
+          EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);
+        else
+          EXPECT_LT(fabs(njac(i, j) - ajac(i, j)), 1.0e-2);
+      }
+    }
+  }
+
+  // w_m_v_in_v
+  {
+    std::cout << "w_mv_in_v:" << std::endl;
+    Eigen::Matrix<double, 3, 6> ajac = jacmap.at(w_mv_in_v_var->key());
+    std::cout << ajac << std::endl;
+    Eigen::Matrix<double, 3, 6> njac = Eigen::Matrix<double, 3, 6>::Zero();
+    for (int j = 0; j < 6; ++j) {
+      Eigen::Matrix<double, 6, 1> xi1 = Eigen::Matrix<double, 6, 1>::Zero();
+      Eigen::Matrix<double, 6, 1> xi2 = Eigen::Matrix<double, 6, 1>::Zero();
+      xi1(j, 0) = eps;
+      xi2(j, 0) = -eps;
+      const auto w_mv_in_v_var_mod1 =
+          vspace::VSpaceStateVar<6>::MakeShared(w_m_v_in_v + xi1);
+      const auto w_mv_in_v_var_mod2 =
+          vspace::VSpaceStateVar<6>::MakeShared(w_m_v_in_v + xi2);
+
+      const auto p2p_err_eval_mod1 =
+          p2pErrorDoppler(T_vm_var, w_mv_in_v_var_mod1, reference, query, beta);
+      const auto p2p_err_eval_mod2 =
+          p2pErrorDoppler(T_vm_var, w_mv_in_v_var_mod2, reference, query, beta);
+
+      njac.block<3, 1>(0, j) =
+          (p2p_err_eval_mod1->evaluate() - p2p_err_eval_mod2->evaluate()) /
+          (2 * eps);
+    }
+    std::cout << njac << std::endl;
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        if (fabs(ajac(i, j)) > 1.0e-2)
+          EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);
+        else
+          EXPECT_LT(fabs(njac(i, j) - ajac(i, j)), 1.0e-2);
+      }
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

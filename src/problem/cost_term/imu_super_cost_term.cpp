@@ -18,111 +18,122 @@ IMUSuperCostTerm::Ptr IMUSuperCostTerm::MakeShared(
 /** \brief Compute the cost to the objective function */
 double IMUSuperCostTerm::cost() const {
   double cost = 0;
-  if (!frozen_) {
-    using namespace steam::se3;
-    using namespace steam::vspace;
-    const auto T1_ = knot1_->pose()->forward();
-    const auto w1_ = knot1_->velocity()->forward();
-    const auto dw1_ = knot1_->acceleration()->forward();
-    const auto T2_ = knot2_->pose()->forward();
-    const auto w2_ = knot2_->velocity()->forward();
-    const auto dw2_ = knot2_->acceleration()->forward();
-    const auto b1_ = bias1_->forward();
-    const auto b2_ = bias2_->forward();
-    const auto T_mi_1_ = transform_i_to_m_1_->forward();
-    const auto T_mi_2_ = transform_i_to_m_2_->forward();
+  using namespace steam::se3;
+  using namespace steam::vspace;
+  const auto T1_ = knot1_->pose()->forward();
+  const auto w1_ = knot1_->velocity()->forward();
+  const auto dw1_ = knot1_->acceleration()->forward();
+  const auto T2_ = knot2_->pose()->forward();
+  const auto w2_ = knot2_->velocity()->forward();
+  const auto dw2_ = knot2_->acceleration()->forward();
+  const auto b1_ = bias1_->forward();
+  const auto b2_ = bias2_->forward();
+  const auto T_mi_1_ = transform_i_to_m_1_->forward();
+  const auto T_mi_2_ = transform_i_to_m_2_->forward();
 
-    const auto T1 = T1_->value();
-    const auto w1 = w1_->value();
-    const auto dw1 = dw1_->value();
-    const auto T2 = T2_->value();
-    const auto w2 = w2_->value();
-    const auto dw2 = dw2_->value();
-    const auto b1 = b1_->value();
-    const auto b2 = b2_->value();
-    const auto T_mi_1 = T_mi_1_->value();
-    const auto T_mi_2 = T_mi_2_->value();
+  const auto T1 = T1_->value();
+  const auto w1 = w1_->value();
+  const auto dw1 = dw1_->value();
+  const auto T2 = T2_->value();
+  const auto w2 = w2_->value();
+  const auto dw2 = dw2_->value();
+  const auto b1 = b1_->value();
+  const auto b2 = b2_->value();
+  const auto T_mi_1 = T_mi_1_->value();
+  const auto T_mi_2 = T_mi_2_->value();
 
-    const auto xi_21 = (T2 / T1).vec();
-    const lgmath::se3::Transformation T_21(xi_21);
-    const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-    const auto J_21_inv_w2 = J_21_inv * w2;
-    const auto J_21_inv_curl_dw2 =
-        (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
+  const auto xi_21 = (T2 / T1).vec();
+  const lgmath::se3::Transformation T_21(xi_21);
+  const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const auto J_21_inv_w2 = J_21_inv * w2;
+  const auto J_21_inv_curl_dw2 =
+      (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
 
 #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : cost)
-    for (int i = 0; i < (int)imu_data_vec_.size(); ++i) {
-      const double &ts = imu_data_vec_[i].timestamp;
-      const IMUData &imu_data = imu_data_vec_[i];
+  for (int i = 0; i < (int)imu_data_vec_.size(); ++i) {
+    const double &ts = imu_data_vec_[i].timestamp;
+    const IMUData &imu_data = imu_data_vec_[i];
 
-      // pose, velocity, acceleration interpolation
-      const auto &omega = interp_mats_.at(ts).first;
-      const auto &lambda = interp_mats_.at(ts).second;
-      const Eigen::Matrix<double, 6, 1> xi_i1 =
-          lambda.block<6, 6>(0, 6) * w1 + lambda.block<6, 6>(0, 12) * dw1 +
-          omega.block<6, 6>(0, 0) * xi_21 +
-          omega.block<6, 6>(0, 6) * J_21_inv_w2 +
-          omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
-      const Eigen::Matrix<double, 6, 1> xi_j1 =
-          lambda.block<6, 6>(6, 6) * w1 + lambda.block<6, 6>(6, 12) * dw1 +
-          omega.block<6, 6>(6, 0) * xi_21 +
-          omega.block<6, 6>(6, 6) * J_21_inv_w2 +
-          omega.block<6, 6>(6, 12) * J_21_inv_curl_dw2;
-      const Eigen::Matrix<double, 6, 1> xi_k1 =
-          lambda.block<6, 6>(12, 6) * w1 + lambda.block<6, 6>(12, 12) * dw1 +
-          omega.block<6, 6>(12, 0) * xi_21 +
-          omega.block<6, 6>(12, 6) * J_21_inv_w2 +
-          omega.block<6, 6>(12, 12) * J_21_inv_curl_dw2;
+    // pose, velocity, acceleration interpolation
+    const auto &omega = interp_mats_.at(ts).first;
+    const auto &lambda = interp_mats_.at(ts).second;
+    const Eigen::Matrix<double, 6, 1> xi_i1 =
+        lambda.block<6, 6>(0, 6) * w1 + lambda.block<6, 6>(0, 12) * dw1 +
+        omega.block<6, 6>(0, 0) * xi_21 +
+        omega.block<6, 6>(0, 6) * J_21_inv_w2 +
+        omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+    const Eigen::Matrix<double, 6, 1> xi_j1 =
+        lambda.block<6, 6>(6, 6) * w1 + lambda.block<6, 6>(6, 12) * dw1 +
+        omega.block<6, 6>(6, 0) * xi_21 +
+        omega.block<6, 6>(6, 6) * J_21_inv_w2 +
+        omega.block<6, 6>(6, 12) * J_21_inv_curl_dw2;
+    const Eigen::Matrix<double, 6, 1> xi_k1 =
+        lambda.block<6, 6>(12, 6) * w1 + lambda.block<6, 6>(12, 12) * dw1 +
+        omega.block<6, 6>(12, 0) * xi_21 +
+        omega.block<6, 6>(12, 6) * J_21_inv_w2 +
+        omega.block<6, 6>(12, 12) * J_21_inv_curl_dw2;
 
-      // Interpolated pose
-      const lgmath::se3::Transformation T_i1(xi_i1);
-      const lgmath::se3::Transformation T_i0 = T_i1 * T1;
-      // Interpolated velocity
-      const Eigen::Matrix<double, 6, 1> w_i =
-          lgmath::se3::vec2jac(xi_i1) * xi_j1;
-      // Interpolated acceleration
-      const Eigen::Matrix<double, 6, 1> dw_i =
-          lgmath::se3::vec2jac(xi_i1) *
-          (xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
+    // Interpolated pose
+    const lgmath::se3::Transformation T_i1(xi_i1);
+    const lgmath::se3::Transformation T_i0 = T_i1 * T1;
+    // Interpolated velocity
+    const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
+    // Interpolated acceleration
+    const Eigen::Matrix<double, 6, 1> dw_i =
+        lgmath::se3::vec2jac(xi_i1) *
+        (xi_k1 + 0.5 * lgmath::se3::curlyhat(xi_j1) * w_i);
 
-      // Interpolated bias
-      Eigen::Matrix<double, 6, 1> bias_i = Eigen::Matrix<double, 6, 1>::Zero();
-      {
-        const double tau = ts - knot1_->time().seconds();
-        const double T = knot2_->time().seconds() - knot1_->time().seconds();
-        const double ratio = tau / T;
-        const double omega_ = ratio;
-        const double lambda_ = 1 - ratio;
-        bias_i = lambda_ * b1 + omega_ * b2;
-      }
-
-      // Interpolated T_mi
-      lgmath::se3::Transformation transform_i_to_m = T_mi_1;
-      if (transform_i_to_m_1_->active() || transform_i_to_m_2_->active()) {
-        const double alpha_ =
-            (ts - knot1_->time().seconds()) /
-            (knot2_->time().seconds() - knot1_->time().seconds());
-        const Eigen::Matrix<double, 6, 1> xi_i1_ =
-            alpha_ * (T_mi_2 / T_mi_1).vec();
-        transform_i_to_m = lgmath::se3::Transformation(xi_i1_) * T_mi_1;
-      }
-
-      const Eigen::Matrix3d &C_vm = T_i0.matrix().block<3, 3>(0, 0);
-      const Eigen::Matrix3d &C_mi = transform_i_to_m.matrix().block<3, 3>(0, 0);
-
-      const Eigen::Matrix<double, 3, 1> raw_error_acc =
-          imu_data.lin_acc + dw_i.block<3, 1>(0, 0) +
-          C_vm * C_mi * options_.gravity - bias_i.block<3, 1>(0, 0);
-
-      cost += acc_loss_func_->cost(
-          acc_noise_model_->getWhitenedErrorNorm(raw_error_acc));
-
-      const Eigen::Matrix<double, 3, 1> raw_error_gyro =
-          imu_data.ang_vel + w_i.block<3, 1>(3, 0) - bias_i.block<3, 1>(3, 0);
-
-      cost += gyro_loss_func_->cost(
-          gyro_noise_model_->getWhitenedErrorNorm(raw_error_gyro));
+    // Interpolated bias
+    Eigen::Matrix<double, 6, 1> bias_i = Eigen::Matrix<double, 6, 1>::Zero();
+    {
+      const double tau = ts - knot1_->time().seconds();
+      const double T = knot2_->time().seconds() - knot1_->time().seconds();
+      const double ratio = tau / T;
+      const double omega_ = ratio;
+      const double lambda_ = 1 - ratio;
+      bias_i = lambda_ * b1 + omega_ * b2;
     }
+
+    // Interpolated T_mi
+    lgmath::se3::Transformation transform_i_to_m = T_mi_1;
+    if (transform_i_to_m_1_->active() || transform_i_to_m_2_->active()) {
+      const double alpha_ =
+          (ts - knot1_->time().seconds()) /
+          (knot2_->time().seconds() - knot1_->time().seconds());
+      const Eigen::Matrix<double, 6, 1> xi_i1_ =
+          alpha_ * (T_mi_2 / T_mi_1).vec();
+      transform_i_to_m = lgmath::se3::Transformation(xi_i1_) * T_mi_1;
+    }
+
+    const Eigen::Matrix3d &C_vm = T_i0.matrix().block<3, 3>(0, 0);
+    const Eigen::Matrix3d &C_mi = transform_i_to_m.matrix().block<3, 3>(0, 0);
+
+    Eigen::Matrix<double, 3, 1> raw_error_acc =
+        Eigen::Matrix<double, 3, 1>::Zero();
+    if (options_.se2) {
+      raw_error_acc.block<2, 1>(0, 0) = imu_data.lin_acc.block<2, 1>(0, 0) +
+                                        dw_i.block<2, 1>(0, 0) -
+                                        bias_i.block<2, 1>(0, 0);
+    } else {
+      raw_error_acc = imu_data.lin_acc + dw_i.block<3, 1>(0, 0) +
+                      C_vm * C_mi * options_.gravity - bias_i.block<3, 1>(0, 0);
+    }
+
+    cost += acc_loss_func_->cost(
+        acc_noise_model_->getWhitenedErrorNorm(raw_error_acc));
+
+    Eigen::Matrix<double, 3, 1> raw_error_gyro =
+        Eigen::Matrix<double, 3, 1>::Zero();
+
+    if (options_.se2) {
+      raw_error_gyro(2, 0) = imu_data.ang_vel(2, 0) + w_i(5, 0) - bias_i(5, 0);
+    } else {
+      raw_error_gyro =
+          imu_data.ang_vel + w_i.block<3, 1>(3, 0) - bias_i.block<3, 1>(3, 0);
+    }
+
+    cost += gyro_loss_func_->cost(
+        gyro_noise_model_->getWhitenedErrorNorm(raw_error_gyro));
   }
   return cost;
 }
@@ -196,13 +207,9 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
   const auto T_mi_1 = T_mi_1_->value();
   const auto T_mi_2 = T_mi_2_->value();
 
-  // A = A_;
-  // b = b_;
-
   Eigen::Matrix<double, 60, 60> A = Eigen::Matrix<double, 60, 60>::Zero();
   Eigen::Matrix<double, 60, 1> b = Eigen::Matrix<double, 60, 1>::Zero();
 
-  // if (!frozen_) {
   const auto xi_21 = (T2 / T1).vec();
   const lgmath::se3::Transformation T_21(xi_21);
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
@@ -212,8 +219,6 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
 
   // If some variables are not active? (simply don't use those parts
   // of the A, b to update hessian, grad at the end)
-  // A = Eigen::Matrix<double, 60, 60>::Zero();
-  // b = Eigen::Matrix<double, 60, 1>::Zero();
 #pragma omp declare reduction(+ : Eigen::Matrix<double, 60, 60> : omp_out = \
                                   omp_out + omp_in)                         \
     initializer(omp_priv = Eigen::Matrix<double, 60, 60>::Zero())
@@ -303,7 +308,6 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
           Eigen::Matrix<double, 6, 6>::Identity() - A;
       interp_jac_T_m_i.block<6, 6>(0, 6) = A;
     }
-    // }
 
     // pose interpolation Jacobian
     Eigen::Matrix<double, 6, 36> interp_jac_pose =
@@ -444,9 +448,17 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
     const Eigen::Matrix3d &C_mi = transform_i_to_m.matrix().block<3, 3>(0, 0);
 
     // get measurement Jacobians
-    const Eigen::Matrix<double, 3, 1> raw_error_acc =
-        imu_data.lin_acc + dw_i.block<3, 1>(0, 0) +
-        C_vm * C_mi * options_.gravity - bias_i.block<3, 1>(0, 0);
+
+    Eigen::Matrix<double, 3, 1> raw_error_acc =
+        Eigen::Matrix<double, 3, 1>::Zero();
+    if (options_.se2) {
+      raw_error_acc.block<2, 1>(0, 0) = imu_data.lin_acc.block<2, 1>(0, 0) +
+                                        dw_i.block<2, 1>(0, 0) -
+                                        bias_i.block<2, 1>(0, 0);
+    } else {
+      raw_error_acc = imu_data.lin_acc + dw_i.block<3, 1>(0, 0) +
+                      C_vm * C_mi * options_.gravity - bias_i.block<3, 1>(0, 0);
+    }
     const Eigen::Matrix<double, 3, 1> white_error_acc =
         acc_noise_model_->whitenError(raw_error_acc);
     const double sqrt_w_acc =
@@ -457,12 +469,15 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
 
     Eigen::Matrix<double, 3, 24> Gmeas = Eigen::Matrix<double, 3, 24>::Zero();
     // Acceleration measurement Jacobians
-    Gmeas.block<3, 3>(0, 3) =
-        -1 * lgmath::so3::hat(C_vm * C_mi * options_.gravity);
+
     Gmeas.block<3, 6>(0, 6) = jac_accel_;
     Gmeas.block<3, 6>(0, 12) = jac_bias_accel_;
-    Gmeas.block<3, 3>(0, 21) =
-        -1 * C_vm * lgmath::so3::hat(C_mi * options_.gravity);
+    if (!options_.se2) {
+      Gmeas.block<3, 3>(0, 3) =
+          -1 * lgmath::so3::hat(C_vm * C_mi * options_.gravity);
+      Gmeas.block<3, 3>(0, 21) =
+          -1 * C_vm * lgmath::so3::hat(C_mi * options_.gravity);
+    }
 
     Gmeas = sqrt_w_acc * acc_noise_model_->getSqrtInformation() * Gmeas;
 
@@ -472,8 +487,15 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
     G.block<3, 12>(0, 36) = Gmeas.block<3, 6>(0, 12) * interp_jac_bias;
     G.block<3, 12>(0, 48) = Gmeas.block<3, 6>(0, 18) * interp_jac_T_m_i;
 
-    const Eigen::Matrix<double, 3, 1> raw_error_gyro =
-        imu_data.ang_vel + w_i.block<3, 1>(3, 0) - bias_i.block<3, 1>(3, 0);
+    Eigen::Matrix<double, 3, 1> raw_error_gyro =
+        Eigen::Matrix<double, 3, 1>::Zero();
+
+    if (options_.se2) {
+      raw_error_gyro(2, 0) = imu_data.ang_vel(2, 0) + w_i(5, 0) - bias_i(5, 0);
+    } else {
+      raw_error_gyro =
+          imu_data.ang_vel + w_i.block<3, 1>(3, 0) - bias_i.block<3, 1>(3, 0);
+    }
     const Eigen::Matrix<double, 3, 1> white_error_gyro =
         gyro_noise_model_->whitenError(raw_error_gyro);
     const double sqrt_w_gyro =
@@ -690,6 +712,6 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
       omp_unset_lock(&entry.lock);
     }
   }
-}  // namespace steam
+}
 
 }  // namespace steam

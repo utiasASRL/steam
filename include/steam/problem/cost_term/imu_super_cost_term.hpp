@@ -38,6 +38,7 @@ class IMUSuperCostTerm : public BaseCostTerm {
     Eigen::Matrix<double, 3, 1> gravity = Eigen::Matrix<double, 3, 1>::Zero();
     Eigen::Matrix<double, 3, 1> r_imu_acc = Eigen::Matrix<double, 3, 1>::Zero();
     Eigen::Matrix<double, 3, 1> r_imu_ang = Eigen::Matrix<double, 3, 1>::Zero();
+    bool se2 = false;
   };
 
   using Ptr = std::shared_ptr<IMUSuperCostTerm>;
@@ -163,16 +164,6 @@ class IMUSuperCostTerm : public BaseCostTerm {
                              BlockSparseMatrix *approximate_hessian,
                              BlockVector *gradient_vector) const override;
 
-  // void freeze() override {
-  //   frozen_ = false;
-  //   Eigen::Matrix<double, 60, 60> A = Eigen::Matrix<double, 60, 60>::Zero();
-  //   Eigen::Matrix<double, 60, 1> b = Eigen::Matrix<double, 60, 1>::Zero();
-  //   buildGaussNewtonTerms_(A, b);
-  //   A_ = A;
-  //   b_ = b;
-  //   frozen_ = true;
-  // }
-
  private:
   const Interface::ConstPtr interface_;
   const Time &time1_;
@@ -207,12 +198,6 @@ class IMUSuperCostTerm : public BaseCostTerm {
       Eigen::Matrix<double, 3, 6>::Zero();
 
   void initialize_interp_matrices_();
-
-  // Eigen::Matrix<double, 60, 60> A_ = Eigen::Matrix<double, 60, 60>::Zero();
-  // Eigen::Matrix<double, 60, 1> b_ = Eigen::Matrix<double, 60, 1>::Zero();
-
-  void buildGaussNewtonTerms_(Eigen::Matrix<double, 60, 60> &A,
-                              Eigen::Matrix<double, 60, 1> &b) const;
 };
 
 }  // namespace steam

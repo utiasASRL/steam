@@ -1,16 +1,17 @@
-#include "steam/problem/cost_term/p2p_super_cost_term.hpp"
+#include "steam/problem/cost_term/p2p_doppler_const_acc_super_cost_term.hpp"
 #include <iostream>
 
 namespace steam {
 
-P2PSuperCostTerm::Ptr P2PSuperCostTerm::MakeShared(
+P2PDopplerCASuperCostTerm::Ptr P2PDopplerCASuperCostTerm::MakeShared(
     const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
     const Options &options) {
-  return std::make_shared<P2PSuperCostTerm>(interface, time1, time2, options);
+  return std::make_shared<P2PDopplerCASuperCostTerm>(interface, time1, time2,
+                                                     options);
 }
 
 /** \brief Compute the cost to the objective function */
-double P2PSuperCostTerm::cost() const {
+double P2PDopplerCASuperCostTerm::cost() const {
   double cost = 0;
   const auto T1_ = knot1_->pose()->forward();
   const auto w1_ = knot1_->velocity()->forward();
@@ -46,24 +47,34 @@ double P2PSuperCostTerm::cost() const {
         omega.block<6, 6>(0, 0) * xi_21 +
         omega.block<6, 6>(0, 6) * J_21_inv_w2 +
         omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+    const Eigen::Matrix<double, 6, 1> xi_j1 =
+        lambda.block<6, 6>(6, 6) * w1 + lambda.block<6, 6>(6, 12) * dw1 +
+        omega.block<6, 6>(6, 0) * xi_21 +
+        omega.block<6, 6>(6, 6) * J_21_inv_w2 +
+        omega.block<6, 6>(6, 12) * J_21_inv_curl_dw2;
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
-    const Eigen::Matrix4d T_mr = T_i0.inverse().matrix();
+    const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
+    const Eigen::Matrix4d T_ms = T_i0.inverse().matrix() * T_rs_;
+    const Eigen::Matrix<double, 6, 1> w_ms_in_s = Ad_T_sr_ * w_i;
 
     for (const int &match_idx : bin_indices) {
       const auto &p2p_match = p2p_matches_.at(match_idx);
-      const double raw_error =
-          p2p_match.normal.transpose() *
-          (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
-           T_mr.block<3, 1>(0, 3));
-      cost += p2p_loss_func_->cost(fabs(raw_error));
+      const Eigen::Vector3d abar = p2p_match.query.normalized();
+      const Eigen::Vector3d delta_q =
+          options_.beta * abar * abar.transpose() * w_ms_in_s.block<3, 1>(0, 0);
+      const Eigen::Vector3d raw_error =
+          p2p_match.reference -
+          T_ms.block<3, 3>(0, 0) * (p2p_match.query - delta_q) -
+          T_ms.block<3, 1>(0, 3);
+      cost += p2p_loss_func_->cost(raw_error.norm());
     }
   }
   return cost;
 }
 
 /** \brief Get keys of variables related to this cost term */
-void P2PSuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
+void P2PDopplerCASuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
   knot1_->pose()->getRelatedVarKeys(keys);
   knot1_->velocity()->getRelatedVarKeys(keys);
   knot1_->acceleration()->getRelatedVarKeys(keys);
@@ -72,7 +83,7 @@ void P2PSuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
   knot2_->acceleration()->getRelatedVarKeys(keys);
 }
 
-void P2PSuperCostTerm::initP2PMatches() {
+void P2PDopplerCASuperCostTerm::initP2PMatches() {
   p2p_match_bins_.clear();
   for (int i = 0; i < (int)p2p_matches_.size(); ++i) {
     const auto &p2p_match = p2p_matches_.at(i);
@@ -90,7 +101,7 @@ void P2PSuperCostTerm::initP2PMatches() {
   initialize_interp_matrices_();
 }
 
-void P2PSuperCostTerm::initialize_interp_matrices_() {
+void P2PDopplerCASuperCostTerm::initialize_interp_matrices_() {
   const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
   for (const double &time : meas_times_) {
     if (interp_mats_.find(time) == interp_mats_.end()) {
@@ -112,7 +123,7 @@ void P2PSuperCostTerm::initialize_interp_matrices_() {
  * and right-hand (gradient vector) sides of the Gauss-Newton system of
  * equations.
  */
-void P2PSuperCostTerm::buildGaussNewtonTerms(
+void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
     const StateVector &state_vec, BlockSparseMatrix *approximate_hessian,
     BlockVector *gradient_vector) const {
   using namespace steam::se3;
@@ -163,17 +174,35 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
         omega.block<6, 6>(0, 0) * xi_21 +
         omega.block<6, 6>(0, 6) * J_21_inv_w2 +
         omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+    const Eigen::Matrix<double, 6, 1> xi_j1 =
+        lambda.block<6, 6>(6, 6) * w1 + lambda.block<6, 6>(6, 12) * dw1 +
+        omega.block<6, 6>(6, 0) * xi_21 +
+        omega.block<6, 6>(6, 6) * J_21_inv_w2 +
+        omega.block<6, 6>(6, 12) * J_21_inv_curl_dw2;
+    // Interpolated pose
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
+    // Interpolated velocity
+    const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
+
     const Eigen::Matrix4d T_mr = T_i0.inverse().matrix();
+    const Eigen::Matrix4d T_ms = T_mr * T_rs_;
+    const Eigen::Matrix<double, 6, 1> w_ms_in_s = Ad_T_sr_ * w_i;
 
     // pose interpolation Jacobian
-    Eigen::Matrix<double, 6, 36> interp_jac =
+    Eigen::Matrix<double, 6, 36> interp_jac_pose =
+        Eigen::Matrix<double, 6, 36>::Zero();
+    // velocity interpolation Jacobian
+    Eigen::Matrix<double, 6, 36> interp_jac_vel =
         Eigen::Matrix<double, 6, 36>::Zero();
 
     const Eigen::Matrix<double, 6, 6> J_i1 = lgmath::se3::vec2jac(xi_i1);
 
-    const Eigen::Matrix<double, 6, 6> w =
+    const Eigen::Matrix<double, 6, 6> xi_j1_ch =
+        -0.5 * lgmath::se3::curlyhat(xi_j1);
+
+    // pose interpolation Jacobian
+    Eigen::Matrix<double, 6, 6> w =
         J_i1 *
         (omega.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
          omega.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
@@ -182,35 +211,92 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
          omega.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
         J_21_inv;
 
-    interp_jac.block<6, 6>(0, 0) = -w * T_21.adjoint() + T_i1.adjoint();  // T1
-    interp_jac.block<6, 6>(0, 6) = lambda.block<6, 6>(0, 6) * J_i1;       // w1
-    interp_jac.block<6, 6>(0, 12) = lambda.block<6, 6>(0, 12) * J_i1;     // dw1
-    interp_jac.block<6, 6>(0, 18) = w;                                    // T2
-    interp_jac.block<6, 6>(0, 24) =
+    interp_jac_pose.block<6, 6>(0, 0) =
+        -w * T_21.adjoint() + T_i1.adjoint();                             // T1
+    interp_jac_pose.block<6, 6>(0, 6) = lambda.block<6, 6>(0, 6) * J_i1;  // w1
+    interp_jac_pose.block<6, 6>(0, 12) =
+        lambda.block<6, 6>(0, 12) * J_i1;    // dw1
+    interp_jac_pose.block<6, 6>(0, 18) = w;  // T2
+    interp_jac_pose.block<6, 6>(0, 24) =
         omega.block<6, 6>(0, 6) * J_i1 * J_21_inv +
         omega.block<6, 6>(0, 12) * -0.5 * J_i1 *
             (lgmath::se3::curlyhat(J_21_inv * w2) -
              lgmath::se3::curlyhat(w2) * J_21_inv);  // w2
-    interp_jac.block<6, 6>(0, 30) =
+    interp_jac_pose.block<6, 6>(0, 30) =
         omega.block<6, 6>(0, 12) * J_i1 * J_21_inv;  // dw2
 
+    // velocity interpolation Jacobian
+    w = J_i1 *
+            (omega.block<6, 6>(6, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
+             omega.block<6, 6>(6, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
+             omega.block<6, 6>(6, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
+                 lgmath::se3::curlyhat(w2) +
+             omega.block<6, 6>(6, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
+            J_21_inv +
+        xi_j1_ch *
+            (omega.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
+             omega.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
+             omega.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
+                 lgmath::se3::curlyhat(w2) +
+             omega.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
+            J_21_inv;
+
+    interp_jac_vel.block<6, 6>(0, 0) = -w * T_21.adjoint();  // T1
+    interp_jac_vel.block<6, 6>(0, 6) =
+        J_i1 * lambda.block<6, 6>(6, 6) +
+        xi_j1_ch * lambda.block<6, 6>(0, 6);  // w1
+    interp_jac_vel.block<6, 6>(0, 12) =
+        J_i1 * lambda.block<6, 6>(6, 12) +
+        xi_j1_ch * lambda.block<6, 6>(0, 12);  // dw1
+    interp_jac_vel.block<6, 6>(0, 18) = w;     // T2
+    interp_jac_vel.block<6, 6>(0, 24) =
+        J_i1 * (omega.block<6, 6>(6, 6) * J_21_inv +
+                omega.block<6, 6>(6, 12) * -0.5 *
+                    (lgmath::se3::curlyhat(J_21_inv * w2) -
+                     lgmath::se3::curlyhat(w2) * J_21_inv)) +
+        xi_j1_ch * (omega.block<6, 6>(0, 6) * J_21_inv +
+                    omega.block<6, 6>(0, 12) * -0.5 *
+                        (lgmath::se3::curlyhat(J_21_inv * w2) -
+                         lgmath::se3::curlyhat(w2) * J_21_inv));  // w2
+    interp_jac_vel.block<6, 6>(0, 30) =
+        J_i1 * (omega.block<6, 6>(6, 12) * J_21_inv) +
+        xi_j1_ch * (omega.block<6, 6>(0, 12) * J_21_inv);  // dw2
+
     // get measurement Jacobians
-    Eigen::Matrix<double, 1, 6> Gmeas = Eigen::Matrix<double, 1, 6>::Zero();
-    double error = 0.0;
+    Eigen::Matrix<double, 3, 12> Gmeas = Eigen::Matrix<double, 3, 12>::Zero();
+    Eigen::Vector3d error = Eigen::Vector3d::Zero();
 
     for (const int &match_idx : bin_indices) {
       const auto &p2p_match = p2p_matches_.at(match_idx);
-      const double raw_error =
-          p2p_match.normal.transpose() *
-          (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
-           T_mr.block<3, 1>(0, 3));
-      const double sqrt_w = sqrt(p2p_loss_func_->weight(fabs(raw_error)));
+      const Eigen::Vector3d abar = p2p_match.query.normalized();
+      const Eigen::Vector3d delta_q =
+          options_.beta * abar * abar.transpose() * w_ms_in_s.block<3, 1>(0, 0);
+      const Eigen::Vector3d Tq =
+          T_ms.block<3, 3>(0, 0) * (p2p_match.query - delta_q) +
+          T_ms.block<3, 1>(0, 3);
+      const Eigen::Vector3d raw_error = p2p_match.reference - Tq;
+      const double sqrt_w = sqrt(p2p_loss_func_->weight(raw_error.norm()));
       error += sqrt_w * raw_error;
-      Gmeas +=
-          sqrt_w * p2p_match.normal.transpose() *
-          (T_mr * lgmath::se3::point2fs(p2p_match.query)).block<3, 6>(0, 0);
+      // Gmeas.block<3, 6>(0, 0) +=
+      //     sqrt_w * (-1) * lgmath::se3::point2fs(Tq).block<3, 6>(0, 0);
+      Gmeas.block<3, 6>(0, 0) +=
+          sqrt_w *
+          (T_mr * lgmath::se3::point2fs(T_rs_.block<3, 3>(0, 0) *
+                                            (p2p_match.query - delta_q) +
+                                        T_rs_.block<3, 1>(0, 3)))
+              .block<3, 6>(0, 0);
+      // Gmeas.block<3, 6>(0, 6) +=
+      //     sqrt_w * T_ms.block<3, 3>(0, 0) * options_.beta * abar *
+      //     abar.transpose() *
+      //     lgmath::se3::point2fs(p2p_match.query).block<3, 6>(0, 0) *
+      //     Ad_T_sr_;
+      Gmeas.block<3, 3>(0, 6) += sqrt_w * T_ms.block<3, 3>(0, 0) *
+                                 options_.beta * abar * abar.transpose() *
+                                 options_.T_sr.block<3, 3>(0, 0);
     }
-    const Eigen::Matrix<double, 1, 36> G = Gmeas * interp_jac;
+    const Eigen::Matrix<double, 3, 36> G =
+        Gmeas.block<3, 6>(0, 0) * interp_jac_pose +
+        Gmeas.block<3, 6>(0, 6) * interp_jac_vel;
     A += G.transpose() * G;
     b += (-1) * G.transpose() * error;
   }
