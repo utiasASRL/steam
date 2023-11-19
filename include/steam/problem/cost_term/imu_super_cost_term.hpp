@@ -128,6 +128,13 @@ class IMUSuperCostTerm : public BaseCostTerm {
     jac_bias_gyro_.block<3, 3>(0, 3) =
         Eigen::Matrix<double, 3, 3>::Identity() * -1;
 
+    if (options_.se2) {
+      jac_vel_.block<2, 2>(1, 4).setZero();
+      jac_accel_(2, 2) = 0.;
+      jac_bias_accel_(2, 2) = 0.;
+      jac_bias_gyro_.block<2, 2>(1, 4).setZero();
+    }
+
     Eigen::Matrix3d R_acc = Eigen::Matrix3d::Zero();
     R_acc.diagonal() = options_.r_imu_acc;
     Eigen::Matrix3d R_gyro = Eigen::Matrix3d::Zero();

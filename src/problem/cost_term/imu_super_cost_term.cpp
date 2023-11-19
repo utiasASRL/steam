@@ -472,6 +472,9 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
 
     Gmeas.block<3, 6>(0, 6) = jac_accel_;
     Gmeas.block<3, 6>(0, 12) = jac_bias_accel_;
+    if (options_.se2) {
+      Gmeas.block<1, 24>(2, 0).setZero();
+    }
     if (!options_.se2) {
       Gmeas.block<3, 3>(0, 3) =
           -1 * lgmath::so3::hat(C_vm * C_mi * options_.gravity);
