@@ -12,6 +12,7 @@ namespace steam {
 class Problem {
  public:
   virtual ~Problem() = default;
+  using Ptr = std::shared_ptr<Problem>;
 
   /** \brief Get the total number of cost terms */
   virtual unsigned int getNumberOfCostTerms() const = 0;

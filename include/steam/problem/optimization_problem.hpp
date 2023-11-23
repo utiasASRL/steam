@@ -7,6 +7,8 @@ namespace steam {
 /** \brief A standard optimization problem */
 class OptimizationProblem : public Problem {
  public:
+  using Ptr = std::shared_ptr<OptimizationProblem>;
+  static Ptr MakeShared(unsigned int num_threads = 1);
   OptimizationProblem(unsigned int num_threads = 1);
 
   /** \brief Adds a state variable */
