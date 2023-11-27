@@ -31,6 +31,8 @@ class Interface : public traj::Interface {
   void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
            const Evaluable<VelocityType>::Ptr& w_0k_ink);
 
+  Variable::ConstPtr get(const Time& time) const;
+
   Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
   Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(
       const Time& time) const;

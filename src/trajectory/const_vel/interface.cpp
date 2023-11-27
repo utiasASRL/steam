@@ -31,6 +31,10 @@ void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
   knot_map_.insert(knot_map_.end(), std::pair<Time, Variable::Ptr>(time, knot));
 }
 
+Variable::ConstPtr Interface::get(const Time& time) const {
+  return knot_map_.at(time);
+}
+
 auto Interface::getPoseInterpolator(const Time& time) const
     -> Evaluable<PoseType>::ConstPtr {
   // Check that map is not empty

@@ -1,38 +1,33 @@
-#include "steam/problem/cost_term/p2p_doppler_const_acc_super_cost_term.hpp"
 #include <iostream>
+
+#include "steam/problem/cost_term/p2p_doppler_const_vel_super_cost_term.hpp"
 
 namespace steam {
 
-P2PDopplerCASuperCostTerm::Ptr P2PDopplerCASuperCostTerm::MakeShared(
+P2PDopplerCVSuperCostTerm::Ptr P2PDopplerCVSuperCostTerm::MakeShared(
     const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
     const Options &options) {
-  return std::make_shared<P2PDopplerCASuperCostTerm>(interface, time1, time2,
+  return std::make_shared<P2PDopplerCVSuperCostTerm>(interface, time1, time2,
                                                      options);
 }
 
 /** \brief Compute the cost to the objective function */
-double P2PDopplerCASuperCostTerm::cost() const {
+double P2PDopplerCVSuperCostTerm::cost() const {
   double cost = 0;
   const auto T1_ = knot1_->pose()->forward();
   const auto w1_ = knot1_->velocity()->forward();
-  const auto dw1_ = knot1_->acceleration()->forward();
   const auto T2_ = knot2_->pose()->forward();
   const auto w2_ = knot2_->velocity()->forward();
-  const auto dw2_ = knot2_->acceleration()->forward();
 
   const auto T1 = T1_->value();
   const auto w1 = w1_->value();
-  const auto dw1 = dw1_->value();
   const auto T2 = T2_->value();
   const auto w2 = w2_->value();
-  const auto dw2 = dw2_->value();
 
   const auto xi_21 = (T2 / T1).vec();
   const lgmath::se3::Transformation T_21(xi_21);
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   const auto J_21_inv_w2 = J_21_inv * w2;
-  const auto J_21_inv_curl_dw2 =
-      (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
 
 #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : cost)
   for (unsigned int i = 0; i < meas_times_.size(); ++i) {
@@ -43,15 +38,11 @@ double P2PDopplerCASuperCostTerm::cost() const {
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + lambda.block<6, 6>(0, 12) * dw1 +
-        omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2 +
-        omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+        lambda.block<6, 6>(0, 6) * w1 + omega.block<6, 6>(0, 0) * xi_21 +
+        omega.block<6, 6>(0, 6) * J_21_inv_w2;
     const Eigen::Matrix<double, 6, 1> xi_j1 =
-        lambda.block<6, 6>(6, 6) * w1 + lambda.block<6, 6>(6, 12) * dw1 +
-        omega.block<6, 6>(6, 0) * xi_21 +
-        omega.block<6, 6>(6, 6) * J_21_inv_w2 +
-        omega.block<6, 6>(6, 12) * J_21_inv_curl_dw2;
+        lambda.block<6, 6>(6, 6) * w1 + omega.block<6, 6>(6, 0) * xi_21 +
+        omega.block<6, 6>(6, 6) * J_21_inv_w2;
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
     const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
@@ -74,16 +65,14 @@ double P2PDopplerCASuperCostTerm::cost() const {
 }
 
 /** \brief Get keys of variables related to this cost term */
-void P2PDopplerCASuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
+void P2PDopplerCVSuperCostTerm::getRelatedVarKeys(KeySet &keys) const {
   knot1_->pose()->getRelatedVarKeys(keys);
   knot1_->velocity()->getRelatedVarKeys(keys);
-  knot1_->acceleration()->getRelatedVarKeys(keys);
   knot2_->pose()->getRelatedVarKeys(keys);
   knot2_->velocity()->getRelatedVarKeys(keys);
-  knot2_->acceleration()->getRelatedVarKeys(keys);
 }
 
-void P2PDopplerCASuperCostTerm::initP2PMatches() {
+void P2PDopplerCVSuperCostTerm::initP2PMatches() {
   p2p_match_bins_.clear();
   for (int i = 0; i < (int)p2p_matches_.size(); ++i) {
     const auto &p2p_match = p2p_matches_.at(i);
@@ -101,18 +90,18 @@ void P2PDopplerCASuperCostTerm::initP2PMatches() {
   initialize_interp_matrices_();
 }
 
-void P2PDopplerCASuperCostTerm::initialize_interp_matrices_() {
+void P2PDopplerCVSuperCostTerm::initialize_interp_matrices_() {
   const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
   for (const double &time : meas_times_) {
     if (interp_mats_.find(time) == interp_mats_.end()) {
       // Get Lambda, Omega for this time
       const double tau = time - time1_.seconds();
       const double kappa = knot2_->time().seconds() - time;
-      const Matrix18d Q_tau = interface_->getQPublic(tau, ones);
-      const Matrix18d Tran_kappa = interface_->getTranPublic(kappa);
-      const Matrix18d Tran_tau = interface_->getTranPublic(tau);
-      const Matrix18d omega = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
-      const Matrix18d lambda = (Tran_tau - omega * Tran_T_);
+      const Matrix12d Q_tau = steam::traj::const_vel::getQ(tau, ones);
+      const Matrix12d Tran_kappa = steam::traj::const_vel::getTran(kappa);
+      const Matrix12d Tran_tau = steam::traj::const_vel::getTran(tau);
+      const Matrix12d omega = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
+      const Matrix12d lambda = (Tran_tau - omega * Tran_T_);
       interp_mats_.emplace(time, std::make_pair(omega, lambda));
     }
   }
@@ -123,43 +112,39 @@ void P2PDopplerCASuperCostTerm::initialize_interp_matrices_() {
  * and right-hand (gradient vector) sides of the Gauss-Newton system of
  * equations.
  */
-void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
+void P2PDopplerCVSuperCostTerm::buildGaussNewtonTerms(
     const StateVector &state_vec, BlockSparseMatrix *approximate_hessian,
     BlockVector *gradient_vector) const {
   using namespace steam::se3;
   using namespace steam::vspace;
   const auto T1_ = knot1_->pose()->forward();
   const auto w1_ = knot1_->velocity()->forward();
-  const auto dw1_ = knot1_->acceleration()->forward();
   const auto T2_ = knot2_->pose()->forward();
   const auto w2_ = knot2_->velocity()->forward();
-  const auto dw2_ = knot2_->acceleration()->forward();
 
   const auto T1 = T1_->value();
   const auto w1 = w1_->value();
-  const auto dw1 = dw1_->value();
   const auto T2 = T2_->value();
   const auto w2 = w2_->value();
-  const auto dw2 = dw2_->value();
 
-  Eigen::Matrix<double, 36, 36> A = Eigen::Matrix<double, 36, 36>::Zero();
-  Eigen::Matrix<double, 36, 1> b = Eigen::Matrix<double, 36, 1>::Zero();
+  Eigen::Matrix<double, 24, 24> A = Eigen::Matrix<double, 24, 24>::Zero();
+  Eigen::Matrix<double, 24, 1> b = Eigen::Matrix<double, 24, 1>::Zero();
 
   const auto xi_21 = (T2 / T1).vec();
   const lgmath::se3::Transformation T_21(xi_21);
+  const auto Ad_T_21 = lgmath::se3::tranAd(T_21.matrix());
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const auto w2_j_21_inv = 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
   const auto J_21_inv_w2 = J_21_inv * w2;
-  const auto J_21_inv_curl_dw2 =
-      (-0.5 * lgmath::se3::curlyhat(J_21_inv * w2) * w2 + J_21_inv * dw2);
 
   // If some variables are not active? (simply don't use those parts
   // of the A, b to update hessian, grad at the end)
-#pragma omp declare reduction(+ : Eigen::Matrix<double, 36, 36> : omp_out = \
+#pragma omp declare reduction(+ : Eigen::Matrix<double, 24, 24> : omp_out = \
                                   omp_out + omp_in)                         \
-    initializer(omp_priv = Eigen::Matrix<double, 36, 36>::Zero())
-#pragma omp declare reduction(+ : Eigen::Matrix<double, 36, 1> : omp_out = \
+    initializer(omp_priv = Eigen::Matrix<double, 24, 24>::Zero())
+#pragma omp declare reduction(+ : Eigen::Matrix<double, 24, 1> : omp_out = \
                                   omp_out + omp_in)                        \
-    initializer(omp_priv = Eigen::Matrix<double, 36, 1>::Zero())
+    initializer(omp_priv = Eigen::Matrix<double, 24, 1>::Zero())
 #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : A) \
     reduction(+ : b)
   for (int i = 0; i < (int)meas_times_.size(); ++i) {
@@ -170,99 +155,57 @@ void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + lambda.block<6, 6>(0, 12) * dw1 +
-        omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2 +
-        omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+        lambda.block<6, 6>(0, 6) * w1 + omega.block<6, 6>(0, 0) * xi_21 +
+        omega.block<6, 6>(0, 6) * J_21_inv_w2;
     const Eigen::Matrix<double, 6, 1> xi_j1 =
-        lambda.block<6, 6>(6, 6) * w1 + lambda.block<6, 6>(6, 12) * dw1 +
-        omega.block<6, 6>(6, 0) * xi_21 +
-        omega.block<6, 6>(6, 6) * J_21_inv_w2 +
-        omega.block<6, 6>(6, 12) * J_21_inv_curl_dw2;
+        lambda.block<6, 6>(6, 6) * w1 + omega.block<6, 6>(6, 0) * xi_21 +
+        omega.block<6, 6>(6, 6) * J_21_inv_w2;
     // Interpolated pose
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
-    // Interpolated velocity
-    const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
-
     const Eigen::Matrix4d T_mr = T_i0.inverse().matrix();
     const Eigen::Matrix4d T_ms = T_mr * T_rs_;
+    // Interpolated velocity
+    const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
     const Eigen::Matrix<double, 6, 1> w_ms_in_s = Ad_T_sr_ * w_i;
 
-    // pose interpolation Jacobian
-    Eigen::Matrix<double, 6, 36> interp_jac_pose =
-        Eigen::Matrix<double, 6, 36>::Zero();
-    // velocity interpolation Jacobian
-    Eigen::Matrix<double, 6, 36> interp_jac_vel =
-        Eigen::Matrix<double, 6, 36>::Zero();
+    // pose interpolation Jacobians
+    Eigen::Matrix<double, 6, 24> interp_jac_pose =
+        Eigen::Matrix<double, 6, 24>::Zero();
+    // velocity interpolation Jacobians
+    Eigen::Matrix<double, 6, 24> interp_jac_vel =
+        Eigen::Matrix<double, 6, 24>::Zero();
 
     const Eigen::Matrix<double, 6, 6> J_i1 = lgmath::se3::vec2jac(xi_i1);
+
+    Eigen::Matrix<double, 6, 6> w =
+        J_i1 * (omega.block<6, 6>(0, 0) * J_21_inv +
+                omega.block<6, 6>(0, 6) * w2_j_21_inv);
+
+    interp_jac_pose.block<6, 6>(0, 0) = -w * Ad_T_21 + T_i1.adjoint();    // T1
+    interp_jac_pose.block<6, 6>(0, 6) = lambda.block<6, 6>(0, 6) * J_i1;  // w1
+    interp_jac_pose.block<6, 6>(0, 12) = w;                               // T2
+    interp_jac_pose.block<6, 6>(0, 18) =
+        omega.block<6, 6>(0, 6) * J_i1 * J_21_inv;  // w2
 
     const Eigen::Matrix<double, 6, 6> xi_j1_ch =
         -0.5 * lgmath::se3::curlyhat(xi_j1);
 
-    // pose interpolation Jacobian
-    Eigen::Matrix<double, 6, 6> w =
-        J_i1 *
-        (omega.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
-         omega.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
-         omega.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
-             lgmath::se3::curlyhat(w2) +
-         omega.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
-        J_21_inv;
+    w = J_i1 * (omega.block<6, 6>(6, 0) * J_21_inv +
+                omega.block<6, 6>(6, 6) * w2_j_21_inv) +
+        xi_j1_ch * (omega.block<6, 6>(0, 0) * J_21_inv +
+                    omega.block<6, 6>(0, 6) * w2_j_21_inv);
 
-    interp_jac_pose.block<6, 6>(0, 0) =
-        -w * T_21.adjoint() + T_i1.adjoint();                             // T1
-    interp_jac_pose.block<6, 6>(0, 6) = lambda.block<6, 6>(0, 6) * J_i1;  // w1
-    interp_jac_pose.block<6, 6>(0, 12) =
-        lambda.block<6, 6>(0, 12) * J_i1;    // dw1
-    interp_jac_pose.block<6, 6>(0, 18) = w;  // T2
-    interp_jac_pose.block<6, 6>(0, 24) =
-        omega.block<6, 6>(0, 6) * J_i1 * J_21_inv +
-        omega.block<6, 6>(0, 12) * -0.5 * J_i1 *
-            (lgmath::se3::curlyhat(J_21_inv * w2) -
-             lgmath::se3::curlyhat(w2) * J_21_inv);  // w2
-    interp_jac_pose.block<6, 6>(0, 30) =
-        omega.block<6, 6>(0, 12) * J_i1 * J_21_inv;  // dw2
-
-    // velocity interpolation Jacobian
-    w = J_i1 *
-            (omega.block<6, 6>(6, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
-             omega.block<6, 6>(6, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
-             omega.block<6, 6>(6, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
-                 lgmath::se3::curlyhat(w2) +
-             omega.block<6, 6>(6, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
-            J_21_inv +
-        xi_j1_ch *
-            (omega.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
-             omega.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
-             omega.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
-                 lgmath::se3::curlyhat(w2) +
-             omega.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
-            J_21_inv;
-
-    interp_jac_vel.block<6, 6>(0, 0) = -w * T_21.adjoint();  // T1
+    interp_jac_vel.block<6, 6>(0, 0) = -w * Ad_T_21;  // T1
     interp_jac_vel.block<6, 6>(0, 6) =
-        J_i1 * lambda.block<6, 6>(6, 6) +
-        xi_j1_ch * lambda.block<6, 6>(0, 6);  // w1
-    interp_jac_vel.block<6, 6>(0, 12) =
-        J_i1 * lambda.block<6, 6>(6, 12) +
-        xi_j1_ch * lambda.block<6, 6>(0, 12);  // dw1
-    interp_jac_vel.block<6, 6>(0, 18) = w;     // T2
-    interp_jac_vel.block<6, 6>(0, 24) =
-        J_i1 * (omega.block<6, 6>(6, 6) * J_21_inv +
-                omega.block<6, 6>(6, 12) * -0.5 *
-                    (lgmath::se3::curlyhat(J_21_inv * w2) -
-                     lgmath::se3::curlyhat(w2) * J_21_inv)) +
-        xi_j1_ch * (omega.block<6, 6>(0, 6) * J_21_inv +
-                    omega.block<6, 6>(0, 12) * -0.5 *
-                        (lgmath::se3::curlyhat(J_21_inv * w2) -
-                         lgmath::se3::curlyhat(w2) * J_21_inv));  // w2
-    interp_jac_vel.block<6, 6>(0, 30) =
-        J_i1 * (omega.block<6, 6>(6, 12) * J_21_inv) +
-        xi_j1_ch * (omega.block<6, 6>(0, 12) * J_21_inv);  // dw2
+        (lambda.block<6, 6>(6, 6) * J_i1 +
+         lambda.block<6, 6>(0, 6) * xi_j1_ch);  // w1
+    interp_jac_vel.block<6, 6>(0, 12) = w;      // T2
+    interp_jac_vel.block<6, 6>(0, 18) =
+        omega.block<6, 6>(6, 6) * J_i1 * J_21_inv +
+        omega.block<6, 6>(0, 6) * xi_j1_ch * J_21_inv;  // w2
 
-    // get measurement Jacobians
+    // measurement Jacobians
     Eigen::Matrix<double, 3, 12> Gmeas = Eigen::Matrix<double, 3, 12>::Zero();
     Eigen::Vector3d error = Eigen::Vector3d::Zero();
 
@@ -287,7 +230,7 @@ void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
                                  options_.beta * abar * abar.transpose() *
                                  options_.T_sr.block<3, 3>(0, 0);
     }
-    const Eigen::Matrix<double, 3, 36> G =
+    const Eigen::Matrix<double, 3, 24> G =
         Gmeas.block<3, 6>(0, 0) * interp_jac_pose +
         Gmeas.block<3, 6>(0, 6) * interp_jac_vel;
     A += G.transpose() * G;
@@ -320,17 +263,6 @@ void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
     }
   }
   {
-    const auto dw1node = std::static_pointer_cast<Node<AccType>>(dw1_);
-    Jacobians jacs;
-    Eigen::Matrix<double, 1, 1> lhs = Eigen::Matrix<double, 1, 1>::Zero();
-    knot1_->acceleration()->backward(lhs, dw1node, jacs);
-    const auto jacmap = jacs.get();
-    assert(jacmap.size() == 1);
-    for (auto it = jacmap.begin(); it != jacmap.end(); it++) {
-      keys.push_back(it->first);
-    }
-  }
-  {
     const auto T2node = std::static_pointer_cast<Node<PoseType>>(T2_);
     Jacobians jacs;
     Eigen::Matrix<double, 1, 1> lhs = Eigen::Matrix<double, 1, 1>::Zero();
@@ -352,17 +284,6 @@ void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
       keys.push_back(it->first);
     }
   }
-  {
-    const auto dw2node = std::static_pointer_cast<Node<AccType>>(dw2_);
-    Jacobians jacs;
-    Eigen::Matrix<double, 1, 1> lhs = Eigen::Matrix<double, 1, 1>::Zero();
-    knot2_->acceleration()->backward(lhs, dw2node, jacs);
-    const auto jacmap = jacs.get();
-    assert(jacmap.size() == 1);
-    for (auto it = jacmap.begin(); it != jacmap.end(); it++) {
-      keys.push_back(it->first);
-    }
-  }
   // std::cout << "keys:";
   // for (auto &key : keys) {
   //   std::cout << state_vec.getStateBlockIndex(key) << " ";
@@ -370,12 +291,10 @@ void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
   // std::cout << std::endl;
   active.push_back(knot1_->pose()->active());
   active.push_back(knot1_->velocity()->active());
-  active.push_back(knot1_->acceleration()->active());
   active.push_back(knot2_->pose()->active());
   active.push_back(knot2_->velocity()->active());
-  active.push_back(knot2_->acceleration()->active());
 
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 4; ++i) {
     if (!active[i]) continue;
     // Get the key and state range affected
     const auto &key1 = keys[i];
@@ -388,7 +307,7 @@ void P2PDopplerCASuperCostTerm::buildGaussNewtonTerms(
 #pragma omp critical(b_update)
     { gradient_vector->mapAt(blkIdx1) += newGradTerm; }
 
-    for (int j = i; j < 6; ++j) {
+    for (int j = i; j < 4; ++j) {
       if (!active[j]) continue;
       // Get the key and state range affected
       const auto &key2 = keys[j];

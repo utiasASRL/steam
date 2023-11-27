@@ -17,7 +17,6 @@ GyroErrorEvaluator::GyroErrorEvaluator(
     const Evaluable<BiasInType>::ConstPtr &bias, const ImuInType &gyro_meas)
     : velocity_(velocity), bias_(bias), gyro_meas_(gyro_meas) {
   const Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
-  Dw_ = I.block<3, 6>(3, 0);
   jac_vel_.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
   jac_bias_.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
 }
@@ -33,7 +32,7 @@ void GyroErrorEvaluator::getRelatedVarKeys(KeySet &keys) const {
 
 auto GyroErrorEvaluator::value() const -> OutType {
   // clang-format off
-  OutType error = gyro_meas_ + Dw_ * velocity_->value() - bias_->value().block<3, 1>(3, 0);
+  OutType error = gyro_meas_ + velocity_->value().block<3, 1>(3, 0) - bias_->value().block<3, 1>(3, 0);
   return error;
   // clang-format on
 }
@@ -45,7 +44,7 @@ auto GyroErrorEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto b = child2->value();
 
   // clang-format off
-  OutType error = gyro_meas_ + Dw_ * w_mv_in_v - b.block<3, 1>(3, 0);
+  OutType error = gyro_meas_ + w_mv_in_v.block<3, 1>(3, 0) - b.block<3, 1>(3, 0);
   // clang-format on
 
   const auto node = Node<OutType>::MakeShared(error);
