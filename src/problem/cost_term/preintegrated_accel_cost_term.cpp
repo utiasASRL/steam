@@ -40,7 +40,6 @@ double PreintAccCostTerm::cost() const {
   const auto xi_21 = (T2 / T1).vec();
   const lgmath::se3::Transformation T_21(xi_21);
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  const auto w2_j_21_inv = 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
   const auto J_21_inv_w2 = J_21_inv * w2;
 
   Eigen::Vector3d preint_delta_v = Eigen::Vector3d::Zero();
@@ -201,6 +200,7 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
   const lgmath::se3::Transformation T_21(xi_21);
   const auto Ad_T_21 = lgmath::se3::tranAd(T_21.matrix());
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
+  const auto w2_j_21_inv = 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
   const auto J_21_inv_w2 = J_21_inv * w2;
 
   Eigen::Vector3d preint_delta_v = Eigen::Vector3d::Zero();

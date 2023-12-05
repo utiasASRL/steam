@@ -23,7 +23,7 @@ class PreintAccCostTerm : public BaseCostTerm {
   struct Options {
     int num_threads = 1;
     LOSS_FUNC loss_func = LOSS_FUNC::L2;
-    double loss_sigma = 0.1;
+    double loss_sigma = 1.0;
     Eigen::Matrix<double, 3, 1> gravity = Eigen::Matrix<double, 3, 1>::Zero();
     Eigen::Matrix<double, 3, 1> r_imu_acc = Eigen::Matrix<double, 3, 1>::Zero();
     bool se2 = false;

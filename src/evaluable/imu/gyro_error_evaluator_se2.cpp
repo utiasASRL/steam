@@ -17,6 +17,7 @@ GyroErrorEvaluatorSE2::GyroErrorEvaluatorSE2(
     const Evaluable<BiasInType>::ConstPtr &bias, const ImuInType &gyro_meas)
     : velocity_(velocity), bias_(bias), gyro_meas_(gyro_meas) {
   jac_vel_(0, 5) = 1;
+  jac_bias_(0, 5) = -1;
 }
 
 bool GyroErrorEvaluatorSE2::active() const {
@@ -30,7 +31,7 @@ void GyroErrorEvaluatorSE2::getRelatedVarKeys(KeySet &keys) const {
 
 auto GyroErrorEvaluatorSE2::value() const -> OutType {
   // clang-format off
-  OutType error(gyro_meas_(2, 0) + (velocity_->value())(5, 0) - bias_->value()(0, 0));
+  OutType error(gyro_meas_(2, 0) + (velocity_->value())(5, 0) - bias_->value()(5, 0));
   return error;
   // clang-format on
 }
@@ -42,7 +43,7 @@ auto GyroErrorEvaluatorSE2::forward() const -> Node<OutType>::Ptr {
   const auto b = child2->value();
 
   // clang-format off
-  OutType error(gyro_meas_(2, 0) + w_mv_in_v(5, 0) - b(0, 0));
+  OutType error(gyro_meas_(2, 0) + w_mv_in_v(5, 0) - b(5, 0));
   // clang-format on
 
   const auto node = Node<OutType>::MakeShared(error);

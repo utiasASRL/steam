@@ -16,7 +16,7 @@ class GyroErrorEvaluatorSE2 : public Evaluable<Eigen::Matrix<double, 1, 1>> {
   using ConstPtr = std::shared_ptr<const GyroErrorEvaluatorSE2>;
 
   using VelInType = Eigen::Matrix<double, 6, 1>;
-  using BiasInType = Eigen::Matrix<double, 1, 1>;
+  using BiasInType = Eigen::Matrix<double, 6, 1>;
   using ImuInType = Eigen::Matrix<double, 3, 1>;
   using OutType = Eigen::Matrix<double, 1, 1>;
   using Time = steam::traj::Time;
@@ -56,8 +56,7 @@ class GyroErrorEvaluatorSE2 : public Evaluable<Eigen::Matrix<double, 1, 1>> {
   const Evaluable<BiasInType>::ConstPtr bias_;
   const ImuInType gyro_meas_;
   JacType jac_vel_ = JacType::Zero();
-  Eigen::Matrix<double, 1, 1> jac_bias_ =
-      Eigen::Matrix<double, 1, 1>::Ones() * -1;
+  JacType jac_bias_ = JacType::Zero();
   Time time_;
   bool time_init_ = false;
 };
