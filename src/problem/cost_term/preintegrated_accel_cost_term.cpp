@@ -109,13 +109,25 @@ double PreintAccCostTerm::cost() const {
     } else {
       delta_ts = knot2_->time().seconds() - imu_data_vec_[i].timestamp;
     }
-    preint_delta_v += (imu_data.lin_acc + C_vm * C_mi * options_.gravity -
-                       bias_i.block<3, 1>(0, 0)) *
-                      delta_ts;
+    if (options_.se2) {
+      preint_delta_v.block<2, 1>(0, 0) +=
+          (imu_data.lin_acc.block<2, 1>(0, 0) - bias_i.block<2, 1>(0, 0)) *
+          delta_ts;
+    } else {
+      preint_delta_v += (imu_data.lin_acc + C_vm * C_mi * options_.gravity -
+                         bias_i.block<3, 1>(0, 0)) *
+                        delta_ts;
+    }
     R += R_acc_ * delta_ts * delta_ts;
   }
 
-  const Eigen::Vector3d raw_error = w2.block<3, 1>(0, 0) - v1 + preint_delta_v;
+  Eigen::Vector3d raw_error = Eigen::Vector3d::Zero();
+  if (options_.se2) {
+    raw_error.block<2, 1>(0, 0) = w2.block<2, 1>(0, 0) - v1.block<2, 1>(0, 0) +
+                                  preint_delta_v.block<2, 1>(0, 0);
+  } else {
+    raw_error = w2.block<3, 1>(0, 0) - v1 + preint_delta_v;
+  }
   StaticNoiseModel<3>::Ptr noise_model = StaticNoiseModel<3>::MakeShared(R);
   return loss_func_->cost(noise_model->getWhitenedErrorNorm(raw_error));
 }
@@ -189,7 +201,6 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
   const lgmath::se3::Transformation T_21(xi_21);
   const auto Ad_T_21 = lgmath::se3::tranAd(T_21.matrix());
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
-  const auto w2_j_21_inv = 0.5 * lgmath::se3::curlyhat(w2) * J_21_inv;
   const auto J_21_inv_w2 = J_21_inv * w2;
 
   Eigen::Vector3d preint_delta_v = Eigen::Vector3d::Zero();
@@ -324,24 +335,41 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
     } else {
       delta_ts = knot2_->time().seconds() - imu_data_vec_[i].timestamp;
     }
-    preint_delta_v += (imu_data.lin_acc + C_vm * C_mi * options_.gravity -
-                       bias_i.block<3, 1>(0, 0)) *
-                      delta_ts;
+    if (options_.se2) {
+      preint_delta_v.block<2, 1>(0, 0) +=
+          (imu_data.lin_acc.block<2, 1>(0, 0) - bias_i.block<2, 1>(0, 0)) *
+          delta_ts;
+    } else {
+      preint_delta_v += (imu_data.lin_acc + C_vm * C_mi * options_.gravity -
+                         bias_i.block<3, 1>(0, 0)) *
+                        delta_ts;
+    }
 
     R += R_acc_ * delta_ts * delta_ts;
 
-    G.block<3, 24>(0, 0) +=
-        delta_ts * (-1 * lgmath::so3::hat(C_vm * C_mi * options_.gravity)) *
-        interp_jac_pose.block<3, 24>(3, 0);
     G.block<3, 12>(0, 24) += delta_ts * jac_bias_accel_ * interp_jac_bias;
-    G.block<3, 12>(0, 36) +=
-        delta_ts * (-1 * C_vm * lgmath::so3::hat(C_mi * options_.gravity)) *
-        interp_jac_T_m_i.block<3, 12>(3, 0);
+    if (!options_.se2) {
+      G.block<3, 24>(0, 0) +=
+          delta_ts * (-1 * lgmath::so3::hat(C_vm * C_mi * options_.gravity)) *
+          interp_jac_pose.block<3, 24>(3, 0);
+      G.block<3, 12>(0, 36) +=
+          delta_ts * (-1 * C_vm * lgmath::so3::hat(C_mi * options_.gravity)) *
+          interp_jac_T_m_i.block<3, 12>(3, 0);
+    }
   }
 
-  const Eigen::Vector3d raw_error = w2.block<3, 1>(0, 0) - v1 + preint_delta_v;
   G.block<3, 24>(0, 0) += (-1) * interp_jac_v1;
   G.block<3, 3>(0, 18) += Eigen::Matrix3d::Identity();
+
+  Eigen::Vector3d raw_error = Eigen::Vector3d::Zero();
+  if (options_.se2) {
+    raw_error.block<2, 1>(0, 0) = w2.block<2, 1>(0, 0) - v1.block<2, 1>(0, 0) +
+                                  preint_delta_v.block<2, 1>(0, 0);
+    G.block<1, 48>(2, 0).setZero();
+  } else {
+    raw_error = w2.block<3, 1>(0, 0) - v1 + preint_delta_v;
+  }
+
   StaticNoiseModel<3>::Ptr noise_model = StaticNoiseModel<3>::MakeShared(R);
   const Eigen::Vector3d white_error = noise_model->whitenError(raw_error);
   const double sqrt_w = sqrt(loss_func_->weight(white_error.norm()));
