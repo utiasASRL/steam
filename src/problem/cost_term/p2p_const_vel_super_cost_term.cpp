@@ -28,6 +28,9 @@ double P2PCVSuperCostTerm::cost() const {
   const Eigen::Matrix<double, 6, 6> J_21_inv = lgmath::se3::vec2jacinv(xi_21);
   const auto J_21_inv_w2 = J_21_inv * w2;
 
+  const double rinv = 1.0 / options_.r_p2p;
+  const double sqrt_rinv = sqrt(rinv);
+
 #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : cost)
   for (unsigned int i = 0; i < meas_times_.size(); ++i) {
     const double &ts = meas_times_[i];
@@ -49,7 +52,7 @@ double P2PCVSuperCostTerm::cost() const {
           p2p_match.normal.transpose() *
           (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
            T_mr.block<3, 1>(0, 3));
-      cost += p2p_loss_func_->cost(fabs(raw_error));
+      cost += p2p_loss_func_->cost(sqrt_rinv * fabs(raw_error));
     }
   }
   return cost;
@@ -118,6 +121,9 @@ void P2PCVSuperCostTerm::buildGaussNewtonTerms(
   const auto T2 = T2_->value();
   const auto w2 = w2_->value();
 
+  const double rinv = 1.0 / options_.r_p2p;
+  const double sqrt_rinv = sqrt(rinv);
+
   Eigen::Matrix<double, 24, 24> A = Eigen::Matrix<double, 24, 24>::Zero();
   Eigen::Matrix<double, 24, 1> b = Eigen::Matrix<double, 24, 1>::Zero();
 
@@ -179,9 +185,9 @@ void P2PCVSuperCostTerm::buildGaussNewtonTerms(
           (p2p_match.reference - T_mr.block<3, 3>(0, 0) * p2p_match.query -
            T_mr.block<3, 1>(0, 3));
       const double sqrt_w = sqrt(p2p_loss_func_->weight(fabs(raw_error)));
-      error += sqrt_w * raw_error;
+      error += sqrt_w * sqrt_rinv * raw_error;
       Gmeas +=
-          sqrt_w * p2p_match.normal.transpose() *
+          sqrt_w * sqrt_rinv * p2p_match.normal.transpose() *
           (T_mr * lgmath::se3::point2fs(p2p_match.query)).block<3, 6>(0, 0);
     }
     const Eigen::Matrix<double, 1, 24> G = Gmeas * interp_jac;

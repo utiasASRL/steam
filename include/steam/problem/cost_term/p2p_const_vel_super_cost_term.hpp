@@ -23,6 +23,7 @@ class P2PCVSuperCostTerm : public BaseCostTerm {
     int num_threads = 1;
     LOSS_FUNC p2p_loss_func = LOSS_FUNC::CAUCHY;
     double p2p_loss_sigma = 0.1;
+    double r_p2p = 1.0;
   };
 
   using Ptr = std::shared_ptr<P2PCVSuperCostTerm>;
