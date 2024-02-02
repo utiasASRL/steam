@@ -52,12 +52,15 @@ void SlidingWindowFilter::marginalizeVariable(
   for (const auto &key : variable_queue_) {
     const auto &var = variables_.at(key);
     const auto &related_keys = related_var_keys_.at(key);
+    // If all of a variable's related keys are also variables to be
+    // marginalized, then add the key to to_remove
     if (std::all_of(related_keys.begin(), related_keys.end(),
                     [this](const StateKey &key) {
                       return variables_.at(key).marginalize;
                     })) {
-      if (!fixed)
+      if (!fixed) {
         throw std::runtime_error("fixed variables must be at the first");
+      }
       fixed_state_vector.addStateVariable(var.variable);
       to_remove.emplace_back(key);
     } else {
@@ -73,16 +76,22 @@ void SlidingWindowFilter::marginalizeVariable(
   const auto state_sizes = state_vector.getStateBlockSizes();
   BlockSparseMatrix A_(state_sizes, true);
   BlockVector b_(state_sizes);
-#pragma omp parallel for num_threads(num_threads_)
+#pragma omp declare reduction(                                              \
+        merge_costs : std::vector<BaseCostTerm::ConstPtr> : omp_out.insert( \
+                omp_out.end(), omp_in.begin(), omp_in.end()))
+#pragma omp parallel for num_threads(num_threads_) \
+    reduction(merge_costs : active_cost_terms)
   for (unsigned int c = 0; c < cost_terms_.size(); c++) {
     KeySet keys;
     cost_terms_.at(c)->getRelatedVarKeys(keys);
+    // build A-b using only the cost terms where all the variables
+    // involved are to be marginalized.
     if (std::all_of(keys.begin(), keys.end(), [this](const StateKey &key) {
           return variables_.at(key).marginalize;
         })) {
       cost_terms_.at(c)->buildGaussNewtonTerms(state_vector, &A_, &b_);
     } else {
-#pragma omp critical(active_cost_terms_update)
+      // #pragma omp critical(active_cost_terms_update)
       { active_cost_terms.emplace_back(cost_terms_.at(c)); }
     }
   }
@@ -118,6 +127,7 @@ void SlidingWindowFilter::marginalizeVariable(
   }
 
   /// remove the fixed variables
+  getStateVector();
   for (const auto &key : to_remove) {
     const auto related_keys = related_var_keys_.at(key);
     for (const auto &related_key : related_keys) {
@@ -129,6 +139,8 @@ void SlidingWindowFilter::marginalizeVariable(
       throw std::runtime_error("variable queue is not consistent");
     variable_queue_.pop_front();
   }
+
+  getStateVector();
 }
 
 void SlidingWindowFilter::addCostTerm(const BaseCostTerm::ConstPtr &cost_term) {
@@ -172,6 +184,9 @@ StateVector::Ptr SlidingWindowFilter::getStateVector() const {
   *active_state_vector_ = StateVector();
   *state_vector_ = StateVector();
 
+  // variables_ is an unordered map, retrieval should be O(1)
+  // however, if we simply stored the variables as a vector or deque to begin
+  // with, this would be faster...
   bool marginalize = true;
   for (const auto &key : variable_queue_) {
     const auto &var = variables_.at(key);
@@ -220,7 +235,7 @@ void SlidingWindowFilter::buildGaussNewtonTerms(
     Eigen::MatrixXd A11(A.bottomRightCorner(A.rows() - marginalize_state_size, A.cols() - marginalize_state_size));
     Eigen::VectorXd b0(b.head(marginalize_state_size));
     Eigen::VectorXd b1(b.tail(b.size() - marginalize_state_size));
-    approximate_hessian = Eigen::MatrixXd(A11 - A10 * A00.inverse() * A10.transpose()).sparseView();
+    approximate_hessian = Eigen::MatrixXd(A11 - A10 * A00.llt().solve(A10.transpose())).sparseView();
     gradient_vector = b1 - A10 * A00.inverse() * b0;
     // clang-format on
   } else {

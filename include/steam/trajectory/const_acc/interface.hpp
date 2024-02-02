@@ -33,6 +33,8 @@ class Interface : public traj::Interface {
            const Evaluable<VelocityType>::Ptr& w_0k_ink,
            const Evaluable<AccelerationType>::Ptr& dw_0k_ink);
 
+  Variable::ConstPtr get(const Time& time) const;
+
   // clang-format off
   Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
   Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(const Time& time) const;
@@ -42,16 +44,30 @@ class Interface : public traj::Interface {
   void addPosePrior(const Time& time, const PoseType& T_k0, const Eigen::Matrix<double, 6, 6>& cov);
   void addVelocityPrior(const Time& time, const VelocityType& w_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
   void addAccelerationPrior(const Time& time, const AccelerationType& dw_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
+  void addStatePrior(const Time& time, const PoseType& T_k0,
+                     const VelocityType& w_0k_ink, const AccelerationType& dw_0k_ink, const CovType& cov);
   // clang-format on
 
   void addPriorCostTerms(Problem& problem) const;
 
- protected:
   Eigen::Matrix<double, 6, 1> Qc_diag_;
+
+  Eigen::Matrix<double, 18, 18> getQinvPublic(
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
+
+  Eigen::Matrix<double, 18, 18> getQPublic(
+      const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
+  Eigen::Matrix<double, 18, 18> getQinvPublic(const double& dt) const;
+
+  Eigen::Matrix<double, 18, 18> getQPublic(const double& dt) const;
+  Eigen::Matrix<double, 18, 18> getTranPublic(const double& dt) const;
+
+ protected:
   std::map<Time, Variable::Ptr> knot_map_;
   WeightedLeastSqCostTerm<6>::Ptr pose_prior_factor_ = nullptr;
   WeightedLeastSqCostTerm<6>::Ptr vel_prior_factor_ = nullptr;
   WeightedLeastSqCostTerm<6>::Ptr acc_prior_factor_ = nullptr;
+  WeightedLeastSqCostTerm<18>::Ptr state_prior_factor_ = nullptr;
   Eigen::Matrix<double, 18, 18> getJacKnot1_(
       const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
   Eigen::Matrix<double, 18, 18> getJacKnot2_(

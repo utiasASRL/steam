@@ -252,7 +252,7 @@ void AccelerationInterpolator::backward(const Eigen::MatrixXd& lhs,
     Eigen::MatrixXd new_lhs = lhs * (J_i1 * lambda_.block<6, 6>(12, 12) +
                                      J_prep_2 * lambda_.block<6, 6>(6, 12) +
                                      J_prep_3 * lambda_.block<6, 6>(0, 12));
-    knot1_->velocity()->backward(new_lhs, dw1_, jacs);
+    knot1_->acceleration()->backward(new_lhs, dw1_, jacs);
   }
   if (knot2_->acceleration()->active()) {
     const auto dw2_ = std::static_pointer_cast<Node<InAccType>>(node->at(5));
@@ -260,7 +260,7 @@ void AccelerationInterpolator::backward(const Eigen::MatrixXd& lhs,
         lhs * (J_i1 * (omega_.block<6, 6>(12, 12) * J_21_inv) +
                J_prep_2 * (omega_.block<6, 6>(6, 12) * J_21_inv) +
                J_prep_3 * (omega_.block<6, 6>(0, 12) * J_21_inv));
-    knot2_->velocity()->backward(new_lhs, dw2_, jacs);
+    knot2_->acceleration()->backward(new_lhs, dw2_, jacs);
   }
 }
 

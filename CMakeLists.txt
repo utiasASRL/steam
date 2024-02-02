@@ -2,10 +2,19 @@ cmake_minimum_required(VERSION 3.16)
 project(steam)
 
 option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." ON)
+option(BUILD_TESTING "build tests for steam" OFF)
 
 # Compiler setup (assumed to be GNU)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+FetchContent_MakeAvailable(googletest)
+
 add_compile_options(-march=native -O3 -Wall -pedantic -Wno-unused-function)
 
 # define number of threads to be used by OpenMP in steam
@@ -91,6 +100,20 @@ install(
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
   DESTINATION lib/cmake/${PROJECT_NAME}
 )
+
+if (BUILD_TESTING)
+  enable_testing()
+  add_executable(pattern_test tests/pattern_test.cpp)
+  add_executable(time_test tests/time_test.cpp)
+  add_executable(jacobian_test tests/jacobian_test.cpp)
+  target_link_libraries(pattern_test ${PROJECT_NAME} GTest::gtest_main)
+  target_link_libraries(time_test ${PROJECT_NAME} GTest::gtest_main)
+  target_link_libraries(jacobian_test ${PROJECT_NAME} GTest::gtest_main)
+  include(GoogleTest)
+  gtest_discover_tests(pattern_test)
+  gtest_discover_tests(time_test)
+  gtest_discover_tests(jacobian_test)
+endif()
 
 ## ROS2 ament_cmake flow
 else()
@@ -193,6 +216,8 @@ if(BUILD_TESTING)
   target_link_libraries(time_test ${PROJECT_NAME})
   ament_add_gtest(pattern_test tests/pattern_test.cpp)
   target_link_libraries(pattern_test ${PROJECT_NAME})
+  ament_add_gtest(jacobian_test tests/jacobian_test.cpp)
+  target_link_libraries(jacobian_test ${PROJECT_NAME})
 
   # Linting
   find_package(ament_lint_auto REQUIRED)

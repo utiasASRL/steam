@@ -6,6 +6,8 @@
 #include "steam/trajectory/const_acc/helper.hpp"
 #include "steam/trajectory/const_vel/evaluable/jinv_velocity_evaluator.hpp"
 
+#include <iostream>
+
 namespace steam {
 namespace traj {
 namespace const_acc {
@@ -174,12 +176,12 @@ void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
   if (knot1_->acceleration()->active()) {
     const auto dw1_ = std::static_pointer_cast<Node<InAccType>>(node->at(2));
     Eigen::MatrixXd new_lhs = lhs * lambda_.block<6, 6>(0, 12) * J_i1;
-    knot1_->velocity()->backward(new_lhs, dw1_, jacs);
+    knot1_->acceleration()->backward(new_lhs, dw1_, jacs);
   }
   if (knot2_->acceleration()->active()) {
     const auto dw2_ = std::static_pointer_cast<Node<InAccType>>(node->at(5));
     Eigen::MatrixXd new_lhs = lhs * omega_.block<6, 6>(0, 12) * J_i1 * J_21_inv;
-    knot2_->velocity()->backward(new_lhs, dw2_, jacs);
+    knot2_->acceleration()->backward(new_lhs, dw2_, jacs);
   }
 }
 

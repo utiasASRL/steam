@@ -5,6 +5,11 @@
 
 namespace steam {
 
+auto OptimizationProblem::MakeShared(unsigned int num_threads)
+    -> OptimizationProblem::Ptr {
+  return std::make_shared<OptimizationProblem>(num_threads);
+}
+
 OptimizationProblem::OptimizationProblem(unsigned int num_threads)
     : num_threads_(num_threads) {}
 

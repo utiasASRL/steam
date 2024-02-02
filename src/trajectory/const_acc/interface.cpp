@@ -33,6 +33,10 @@ void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
   knot_map_.insert(knot_map_.end(), std::pair<Time, Variable::Ptr>(time, knot));
 }
 
+Variable::ConstPtr Interface::get(const Time& time) const {
+  return knot_map_.at(time);
+}
+
 auto Interface::getPoseInterpolator(const Time& time) const
     -> Evaluable<PoseType>::ConstPtr {
   // Check that map is not empty
@@ -269,7 +273,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   const Eigen::Matrix<double, 18, 18> Q2t_inv = getQinv_((knot2->time() - knotq->time()).seconds(), Qc_diag_);
 
   // Covariance of knot1 and knot2
-  const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
+  const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, dw_01_in1_var, T_20_var, w_02_in2_var, dw_02_in2_var};
   const Eigen::Matrix<double, 36, 36> P_1n2 = cov.query(state_var);
 
   // Helper matrices
@@ -390,6 +394,47 @@ void Interface::addAccelerationPrior(const Time& time,
       error_func, noise_model, loss_func);
 }
 
+void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
+                              const VelocityType& w_0k_ink,
+                              const AccelerationType& dw_0k_ink,
+                              const CovType& cov) {
+  // Only allow adding 1 prior
+  if ((pose_prior_factor_ != nullptr) || (vel_prior_factor_ != nullptr) ||
+      (acc_prior_factor_ != nullptr))
+    throw std::runtime_error("a pose/velocity prior already exists.");
+
+  if (state_prior_factor_ != nullptr)
+    throw std::runtime_error("can only add one state prior.");
+
+  // Check that map is not empty
+  if (knot_map_.empty()) throw std::runtime_error("knot map is empty.");
+
+  // Try to find knot at unprovided time
+  auto it = knot_map_.find(time);
+  if (it == knot_map_.end())
+    throw std::runtime_error("no knot at provided time.");
+
+  // Get reference
+  const auto& knot = it->second;
+
+  // Check that the pose is not locked
+  if ((!knot->pose()->active()) || (!knot->velocity()->active()) ||
+      (!knot->acceleration()->active()))
+    throw std::runtime_error("tried to add prior to locked state.");
+
+  auto pose_error = se3::se3_error(knot->pose(), T_k0);
+  auto velo_error = vspace::vspace_error<6>(knot->velocity(), w_0k_ink);
+  auto acc_error = vspace::vspace_error<6>(knot->acceleration(), dw_0k_ink);
+  auto error_temp = vspace::merge<6, 6>(pose_error, velo_error);
+  auto error_func = vspace::merge<12, 6>(error_temp, acc_error);
+  auto noise_model = StaticNoiseModel<18>::MakeShared(cov);
+  auto loss_func = L2LossFunc::MakeShared();
+
+  // Create cost term
+  state_prior_factor_ = WeightedLeastSqCostTerm<18>::MakeShared(
+      error_func, noise_model, loss_func);
+}
+
 void Interface::addPriorCostTerms(Problem& problem) const {
   // If empty, return none
   if (knot_map_.empty()) return;
@@ -494,6 +539,28 @@ auto Interface::getPriorFactor_(const Variable::ConstPtr& knot1,
                                 const Variable::ConstPtr& knot2) const
     -> Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr {
   return PriorFactor::MakeShared(knot1, knot2);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQinvPublic(
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+  return getQinv(dt, Qc_diag);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQinvPublic(const double& dt) const {
+  return getQinv(dt, Qc_diag_);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQPublic(const double& dt) const {
+  return getQ(dt, Qc_diag_);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getQPublic(
+    const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const {
+  return getQ(dt, Qc_diag);
+}
+
+Eigen::Matrix<double, 18, 18> Interface::getTranPublic(const double& dt) const {
+  return getTran(dt);
 }
 
 }  // namespace const_acc

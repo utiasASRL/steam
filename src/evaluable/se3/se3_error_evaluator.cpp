@@ -35,9 +35,13 @@ void SE3ErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
                                  Jacobians &jacs) const {
   if (T_ab_->active()) {
     const auto child = std::static_pointer_cast<Node<InType>>(node->at(0));
-    Eigen::MatrixXd new_lhs = lhs * lgmath::se3::vec2jacinv(node->value()) *
-                              (-1.0) *
-                              (T_ab_meas_ * child->value().inverse()).adjoint();
+    // Eigen::MatrixXd new_lhs = lhs * lgmath::se3::vec2jacinv(node->value()) *
+    //                           (-1.0) *
+    //                           (T_ab_meas_ *
+    //                           child->value().inverse()).adjoint();
+    Eigen::MatrixXd new_lhs =
+        lhs * (-1.0) * lgmath::se3::vec2jac(node->value());
+
     T_ab_->backward(new_lhs, child, jacs);
   }
 }
