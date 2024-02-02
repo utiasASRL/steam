@@ -39,6 +39,7 @@ class IMUSuperCostTerm : public BaseCostTerm {
     Eigen::Matrix<double, 3, 1> r_imu_acc = Eigen::Matrix<double, 3, 1>::Zero();
     Eigen::Matrix<double, 3, 1> r_imu_ang = Eigen::Matrix<double, 3, 1>::Zero();
     bool se2 = false;
+    bool use_accel = true;
   };
 
   using Ptr = std::shared_ptr<IMUSuperCostTerm>;

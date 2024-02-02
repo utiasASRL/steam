@@ -119,8 +119,9 @@ double IMUSuperCostTerm::cost() const {
                       C_vm * C_mi * options_.gravity - bias_i.block<3, 1>(0, 0);
     }
 
-    cost += acc_loss_func_->cost(
-        acc_noise_model_->getWhitenedErrorNorm(raw_error_acc));
+    if (options_.use_accel)
+      cost += acc_loss_func_->cost(
+          acc_noise_model_->getWhitenedErrorNorm(raw_error_acc));
 
     Eigen::Matrix<double, 3, 1> raw_error_gyro =
         Eigen::Matrix<double, 3, 1>::Zero();
@@ -475,7 +476,7 @@ void IMUSuperCostTerm::buildGaussNewtonTerms(
     if (options_.se2) {
       Gmeas.block<1, 24>(2, 0).setZero();
     }
-    if (!options_.se2) {
+    if (!options_.se2 && options_.use_accel) {
       Gmeas.block<3, 3>(0, 3) =
           -1 * lgmath::so3::hat(C_vm * C_mi * options_.gravity);
       Gmeas.block<3, 3>(0, 21) =
