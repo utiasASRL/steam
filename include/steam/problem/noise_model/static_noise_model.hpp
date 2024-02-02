@@ -8,8 +8,6 @@
 
 namespace steam {
 
-/** \brief Enumeration of ways to set the noise */
-enum class NoiseType { COVARIANCE, INFORMATION, SQRT_INFORMATION };
 
 /**
  * \brief StaticNoiseModel Noise model for uncertainties that do not change
