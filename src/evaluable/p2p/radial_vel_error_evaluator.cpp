@@ -16,8 +16,8 @@ RadialVelErrorEvaluator::RadialVelErrorEvaluator(
   D_.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
   // also want a projecton matrix that just picks off forward velocity
   P_ = Eigen::Matrix<double, 6, 6>::Identity();
-  P_(1, 1) = 0.0;  // Remove this to have the full velocity be relevant
-  P_(2, 2) = 0.0;  // Remove this to have the full velocity be relevant
+  // P_(1, 1) = 0.0;  // Remove this to have the full velocity be relevant
+  // P_(2, 2) = 0.0;  // Remove this to have the full velocity be relevant
 }
 
 bool RadialVelErrorEvaluator::active() const { return w_iv_inv_->active(); }
