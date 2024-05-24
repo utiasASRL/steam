@@ -192,7 +192,10 @@ int main(int argc, char** argv) {
     const Eigen::Vector2d V_MAX {1.0, 1.0};
     const Eigen::Vector2d V_MIN {-1.0, -1.0};
 
-    const Eigen::Matrix<double, 1, 2> A {1.0, 1.0};
+    const Eigen::Vector2d ACC_MAX {0.1, 0.2};
+    const Eigen::Vector2d ACC_MIN {-0.1, -0.2};
+
+    const Eigen::Matrix<double, 1, 2> A {2.0, 1.0};
     const Eigen::Matrix<double, 1, 1> b {1.0};
 
     // Setup shared loss functions and noise models for all cost terms
@@ -202,8 +205,11 @@ int main(int argc, char** argv) {
 
 
     std::vector<vspace::VSpaceStateVar<2>::Ptr> vel_state_vars;
+    vel_state_vars.push_back(vspace::VSpaceStateVar<2>::MakeShared(Eigen::Vector2d::Zero())); 
+    vel_state_vars.front()->locked() = true;
+
     for (unsigned i = 0; i < rollout_window; i++) {
-        vel_state_vars.push_back(vspace::VSpaceStateVar<2>::MakeShared(0.5*Eigen::Vector2d::Random())); 
+        vel_state_vars.push_back(vspace::VSpaceStateVar<2>::MakeShared(0.0*Eigen::Vector2d::Random())); 
         std::cout << "Initial velo " << vel_state_vars.back()->value() << std::endl;
     }
 
@@ -217,16 +223,22 @@ int main(int argc, char** argv) {
         for (const auto &vel_var : vel_state_vars)
         {
             opt_problem.addStateVariable(vel_var);
-            const auto vel_cost_term = steam::WeightedLeastSqCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var, V_REF), sharedVelNoiseModel, l2Loss);
+            const auto vel_cost_term = WeightedLeastSqCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var, V_REF), sharedVelNoiseModel, l2Loss);
             opt_problem.addCostTerm(vel_cost_term);
 
-            opt_problem.addCostTerm(steam::vspace::LogBarrierCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var, V_MAX), weight));
-            opt_problem.addCostTerm(steam::vspace::LogBarrierCostTerm<1>::MakeShared(
+            opt_problem.addCostTerm(vspace::LogBarrierCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var, V_MAX), weight));
+            opt_problem.addCostTerm(vspace::LogBarrierCostTerm<1>::MakeShared(
               vspace::vspace_error<1>(vspace::MatrixMultEvaluator<1, 2>::MakeShared(vel_var, A), b)
             , weight));
-            opt_problem.addCostTerm(steam::vspace::LogBarrierCostTerm<2>::MakeShared(vspace::neg<2>(vspace::vspace_error<2>(vel_var, V_MIN)), weight));
+            opt_problem.addCostTerm(vspace::LogBarrierCostTerm<2>::MakeShared(vspace::neg<2>(vspace::vspace_error<2>(vel_var, V_MIN)), weight));
         }
 
+        for (unsigned i = 1; i < vel_state_vars.size(); i++)
+        {
+          const auto accel_term = vspace::add<2>(vel_state_vars[i], vspace::neg<2>(vel_state_vars[i-1]));
+          opt_problem.addCostTerm(vspace::LogBarrierCostTerm<2>::MakeShared(vspace::vspace_error<2>(accel_term, ACC_MAX), weight));
+          opt_problem.addCostTerm(vspace::LogBarrierCostTerm<2>::MakeShared(vspace::neg<2>(vspace::vspace_error<2>(accel_term, ACC_MIN)), weight));
+        }
 
 
         // Solve the optimization problem with GaussNewton solver
@@ -236,9 +248,9 @@ int main(int argc, char** argv) {
 
         // Initialize solver parameters
         SolverType::Params params;
-        params.verbose = true; // Makes the output display for debug when true
+        params.verbose = false; // Makes the output display for debug when true
         params.max_iterations = 100;
-        params.absolute_cost_change_threshold = 1e-2;
+        params.absolute_cost_change_threshold = 1e-3;
 
         SolverType solver(opt_problem, params);
 
