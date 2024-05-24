@@ -2,6 +2,7 @@
 
 #include <lgmath.hpp>
 #include <steam.hpp>
+#include <vector>
 
 using namespace steam;
 
@@ -63,7 +64,12 @@ LogBarrierCostTerm<DIM>::LogBarrierCostTerm(
     const typename Evaluable<ErrorType>::ConstPtr &error_function,
     const double weight)
     : error_function_(error_function),
-      t_(weight){}
+      t_(weight){
+    if ((error_function_->evaluate().array() <= 0).any()) {
+      std::cerr << "Error function val: " << error_function_->evaluate();
+      throw std::logic_error("value of error is less than 0. Violation of barrier Please init with a feasible point");
+    }
+  }
 
 template <int DIM>
 double LogBarrierCostTerm<DIM>::cost() const {
@@ -84,9 +90,12 @@ void LogBarrierCostTerm<DIM>::buildGaussNewtonTerms(
   Jacobians jacobian_container;
   const auto &jacobians = jacobian_container.get();
   ErrorType error = error_function_->evaluate(Eigen::Matrix<double, DIM, DIM>::Identity(), jacobian_container);
-  const ErrorType inv_err_vec = {1.0 / error.array()};
 
-  // std::cout << "Inv err: " << inv_err_vec << " t: " << t_ << std::endl;
+  if ((error.array() <= 0).any()) {
+    throw std::logic_error("value of error is less than 0. Violation of barrier");
+  }
+
+  const ErrorType inv_err_vec = {1.0 / error.array()};
 
 
   // Get map keys into a vector for sorting
@@ -107,8 +116,20 @@ void LogBarrierCostTerm<DIM>::buildGaussNewtonTerms(
     unsigned int blkIdx1 = state_vec.getStateBlockIndex(key1);
 
 
-    Eigen::MatrixXd newGradTermMat {jac1.transpose().array().colwise() * inv_err_vec.array()};
-    ErrorType newGradTerm = newGradTermMat.rowwise().sum();
+    const auto gradTermMatFunc = [&](const Eigen::MatrixXd &jac) -> Eigen::MatrixXd {
+      Eigen::MatrixXd newGradTermMat;
+      newGradTermMat.resize(jac.cols(), jac.rows());
+      newGradTermMat.setZero();
+      for (u_int row = 0; row < jac.rows(); ++row) 
+      {
+        newGradTermMat.col(row) = jac.row(row).transpose() * inv_err_vec(row);
+      }
+      return newGradTermMat;
+    };
+    
+    Eigen::MatrixXd gradTermMat1 = gradTermMatFunc(jac1);
+
+    Eigen::VectorXd newGradTerm = gradTermMat1.rowwise().sum();
 
     // Calculate terms needed to update the right-hand-side
     
@@ -131,17 +152,17 @@ void LogBarrierCostTerm<DIM>::buildGaussNewtonTerms(
       // Calculate terms needed to update the Gauss-Newton left-hand side
       unsigned int row, col;
       const Eigen::MatrixXd newHessianTerm = [&]() -> Eigen::MatrixXd {
-        Eigen::MatrixXd gradTermMat1 {jac1.transpose().array().colwise() * inv_err_vec.array()};
-        Eigen::MatrixXd gradTermMat2 {jac2.transpose().array().colwise() * inv_err_vec.array()};
+        
+        Eigen::MatrixXd gradTermMat2 = gradTermMatFunc(jac2);
         if (blkIdx1 <= blkIdx2) {
           row = blkIdx1;
           col = blkIdx2;
 
-          return t_ * gradTermMat2.transpose() * gradTermMat1;
+          return t_ * gradTermMat1 * gradTermMat2.transpose();
         } else {
           row = blkIdx2;
           col = blkIdx1;
-          return t_ * gradTermMat1.transpose() * gradTermMat2;
+          return t_ * gradTermMat2 * gradTermMat1.transpose();
         }
       }();
 
@@ -166,10 +187,13 @@ int main(int argc, char** argv) {
 
     const unsigned rollout_window = 5;
 
-    const Eigen::Vector2d V_REF {1.2, -1.10};
+    const Eigen::Vector2d V_REF {1.2, 1.10};
 
     const Eigen::Vector2d V_MAX {1.0, 1.0};
     const Eigen::Vector2d V_MIN {-1.0, -1.0};
+
+    const Eigen::Matrix<double, 1, 2> A {1.0, 1.0};
+    const Eigen::Matrix<double, 1, 1> b {1.0};
 
     // Setup shared loss functions and noise models for all cost terms
     const auto l1Loss = L1LossFunc::MakeShared();
@@ -179,12 +203,12 @@ int main(int argc, char** argv) {
 
     std::vector<vspace::VSpaceStateVar<2>::Ptr> vel_state_vars;
     for (unsigned i = 0; i < rollout_window; i++) {
-        vel_state_vars.push_back(vspace::VSpaceStateVar<2>::MakeShared(Eigen::Vector2d::Random())); 
+        vel_state_vars.push_back(vspace::VSpaceStateVar<2>::MakeShared(0.5*Eigen::Vector2d::Random())); 
         std::cout << "Initial velo " << vel_state_vars.back()->value() << std::endl;
     }
 
     steam::Timer timer;
-    for (double weight = 0.1; weight > 5e-6; weight *= 0.75) {
+    for (double weight = 1.0; weight > 5e-5; weight *= 0.8) {
 
         // Setup the optimization problem
         OptimizationProblem opt_problem;
@@ -196,8 +220,10 @@ int main(int argc, char** argv) {
             const auto vel_cost_term = steam::WeightedLeastSqCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var, V_REF), sharedVelNoiseModel, l2Loss);
             opt_problem.addCostTerm(vel_cost_term);
 
-
             opt_problem.addCostTerm(steam::vspace::LogBarrierCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var, V_MAX), weight));
+            opt_problem.addCostTerm(steam::vspace::LogBarrierCostTerm<1>::MakeShared(
+              vspace::vspace_error<1>(vspace::MatrixMultEvaluator<1, 2>::MakeShared(vel_var, A), b)
+            , weight));
             opt_problem.addCostTerm(steam::vspace::LogBarrierCostTerm<2>::MakeShared(vspace::neg<2>(vspace::vspace_error<2>(vel_var, V_MIN)), weight));
         }
 
@@ -206,7 +232,7 @@ int main(int argc, char** argv) {
         // Solve the optimization problem with GaussNewton solver
         //using SolverType = steam::GaussNewtonSolver; // Old solver, does not have back stepping capability
         //using SolverType = steam::LineSearchGaussNewtonSolver;
-        using SolverType = DoglegGaussNewtonSolver;
+        using SolverType = LevMarqGaussNewtonSolver;
 
         // Initialize solver parameters
         SolverType::Params params;
