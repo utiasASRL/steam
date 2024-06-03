@@ -26,6 +26,7 @@
 
 // problem
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
+#include "steam/problem/cost_term/log_barrier_cost_temp.hpp"
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/noise_model/static_noise_model.hpp"
 #include "steam/problem/noise_model/dynamic_noise_model.hpp"
