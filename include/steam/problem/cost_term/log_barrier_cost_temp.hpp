@@ -93,9 +93,10 @@ void LogBarrierCostTerm<DIM>::buildGaussNewtonTerms(
   ErrorType error = error_function_->evaluate(Eigen::Matrix<double, DIM, DIM>::Identity(), jacobian_container);
 
   if ((error.array() <= 0).any()) {
-    throw std::logic_error("value of error is less than 0. Violation of barrier");
+    std::cerr << "value of error is less than 0. Violation of barrier";
   }
 
+  error = (error.array() <= 0).select(1e-4, error);
   const ErrorType inv_err_vec = {1.0 / error.array()};
 
 
