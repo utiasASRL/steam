@@ -155,7 +155,7 @@ PathInterpolator::Ptr PathInterpolator::MakeShared(
 bool PathInterpolator::active() const { return false; }
 
 PathInterpolator::OutType PathInterpolator::value() const {
-  Transformation edge = seq_start_.inverse() * seq_end_;
+  Transformation edge = seq_start_ * seq_end_.inverse();
   const auto& [coc, roc] = CurvatureInfo::fromTransform(edge);
   Eigen::Vector4d coc_h{0, 0, 0, 1};
   coc_h.head<3>() = coc;
@@ -163,15 +163,15 @@ PathInterpolator::OutType PathInterpolator::value() const {
   coc_h = seq_start_.inverse().matrix() * coc_h;
 
   const auto interp_ang =
-      acos((tf_->value().r_ab_inb() - coc_h.head<3>())
+      acos((tf_->value().r_ba_ina() - coc_h.head<3>())
                .normalized()
-               .dot((seq_start_.r_ab_inb() - coc_h.head<3>()).normalized()));
+               .dot((seq_start_.r_ba_ina() - coc_h.head<3>()).normalized()));
   const auto interp_full =
-      acos((seq_end_.r_ab_inb() - coc_h.head<3>())
+      acos((seq_end_.r_ba_ina() - coc_h.head<3>())
                .normalized()
-               .dot((seq_start_.r_ab_inb() - coc_h.head<3>()).normalized()));
+               .dot((seq_start_.r_ba_ina() - coc_h.head<3>()).normalized()));
   const double interp = interp_ang / interp_full;
-  const auto val = seq_start_ * Transformation(interp * edge.vec(), 0);
+  const auto val = Transformation(-interp * edge.vec(), 0) * seq_start_;
   // std::cout << "Interp: " << interp << std::endl;
   // std::cout << "TF: " << val << std::endl;
   return val;
@@ -186,16 +186,16 @@ typename steam::Node<PathInterpolator::OutType>::Ptr PathInterpolator::forward()
 CurvatureInfo CurvatureInfo::fromTransform(const Transformation& T) {
   // Note that this is only along a relative path with an origin at 0,0
   // Using the base tf is still required to move into the world frame
-  auto aang = lgmath::so3::rot2vec(T.inverse().C_ba());
+  auto aang = lgmath::so3::rot2vec(T.C_ba());
   double roc = T.r_ba_ina().norm() / 2 / (sin(aang(2) / 2) + 1e-6);
 
   static Eigen::Matrix3d rotm_perp;
   rotm_perp << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
 
-  auto dist = T.r_ba_ina().norm();
-  auto lin_dir = T.r_ba_ina() / dist;
+  auto dist = T.r_ab_inb().norm();
+  auto lin_dir = T.r_ab_inb().normalized();;
 
-  Eigen::Vector3d coc = T.r_ba_ina() / 2 + sqrt(roc * roc - dist * dist / 4) *
+  Eigen::Vector3d coc = T.r_ab_inb() / 2 + sqrt(roc * roc - dist * dist / 4) *
                                                sgn(roc) * rotm_perp * lin_dir;
   return {coc, roc};
 }
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
                            double theta) -> lgmath::se3::Transformation {
     auto rotm = lgmath::so3::vec2rot({0, 0, theta});
     Eigen::Vector3d final_pose{x, y, 0};
-    return lgmath::se3::Transformation(rotm, -rotm.transpose() * final_pose);
+    return lgmath::se3::Transformation(rotm, -rotm.transpose() * final_pose).inverse();
   };
 
   // Setup shared loss functions and noise models for all cost terms
@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
       auto path_interp = vtr::steam_extension::PathInterpolator::MakeShared(
           Tf_acc, seq_start, seq_end);
       const auto interp_state =
-          se3::SE3StateVar::MakeShared(path_interp->value());
+          se3::SE3StateVar::MakeShared(path_interp->value().inverse());
       interp_state->locked() = true;
       path_vars.push_back(interp_state);
 
@@ -302,11 +302,11 @@ int main(int argc, char** argv) {
 
       // opt_problem.addCostTerm(vspace::LogBarrierCostTerm<2>::MakeShared(vspace::vspace_error<2>(vel_var,
       // V_MAX), weight));
-      const auto path_cost = WeightedLeastSqCostTerm<6>::MakeShared(se3::se3_error(Tf_acc,
-        interp_state->value()), finalPoseNoiseModel, l2Loss);
-      // const auto path_cost = WeightedLeastSqCostTerm<6>::MakeShared(
-      //             se3::compose_rinv(Tf_acc, interp_state),
-          // positionNoiseModel, l2Loss);
+      // const auto path_cost = WeightedLeastSqCostTerm<6>::MakeShared(se3::se3_error(Tf_acc,
+      //   interp_state->value()), finalPoseNoiseModel, l2Loss);
+      const auto path_cost = WeightedLeastSqCostTerm<6>::MakeShared(
+                  se3::tran2vec(se3::compose(interp_state, Tf_acc)),
+          finalPoseNoiseModel, l2Loss);
       opt_problem.addCostTerm(path_cost);
 
       // opt_problem.addCostTerm(vspace::LogBarrierCostTerm<2>::MakeShared(vspace::neg<2>(vspace::vspace_error<2>(vel_var,
@@ -349,12 +349,12 @@ int main(int argc, char** argv) {
       solver.optimize();
     } catch (...) {
       for (const auto& pose_var : pose_vars) {
-        std::cout << pose_var->value().r_ab_inb().transpose().head<2>()
+        std::cout << pose_var->value().r_ba_ina().transpose().head<2>()
                   << std::endl;
       }
       std::cout << std::endl;
       for (const auto& pose_var : path_vars) {
-        std::cout << pose_var->value().r_ab_inb().transpose().head<2>()
+        std::cout << pose_var->value().r_ba_ina().transpose().head<2>()
                   << std::endl;
       }
 
@@ -375,13 +375,13 @@ int main(int argc, char** argv) {
     }
   }
   for (const auto& pose_var : pose_vars) {
-    std::cout << pose_var->value().r_ab_inb().transpose().head<2>()
+    std::cout << pose_var->value().r_ba_ina().transpose().head<2>()
              // << " " << pose_var->value().vec().tail<1>()
               << std::endl;
   }
   std::cout << std::endl;
   for (const auto& pose_var : path_vars) {
-    std::cout << pose_var->value().r_ab_inb().transpose().head<2>()
+    std::cout << pose_var->value().r_ba_ina().transpose().head<2>()
               << std::endl;
   }
 
