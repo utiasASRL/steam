@@ -67,7 +67,7 @@ void SolverBase::iterate() {
         "The steam solver terminated due to being unable to produce a "
         "'successful' step. If this occurs, it is likely that your problem "
         "is very nonlinear and poorly initialized, or is using incorrect "
-        "analytical Jacobians.");
+        "analytical Jacobians. Grad norm was " + std::to_string(fabs(grad_norm)));
   } else if (curr_iteration_ >= params_.max_iterations) {
     term_ = TERMINATE_MAX_ITERATIONS;
     solver_converged_ = true;

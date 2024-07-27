@@ -35,7 +35,7 @@ double OptimizationProblem::cost() const {
     try {
       double cost_i = cost_terms_.at(i)->cost();
       if (std::isnan(cost_i)) {
-        std::cout << "NaN cost term is ignored!" << std::endl;
+        std::cout << "NaN cost term is ignored! " << i << std::endl;
       } else {
         cost += cost_i;
       }

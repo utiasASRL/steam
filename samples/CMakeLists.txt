@@ -29,3 +29,4 @@ link_libraries(steam)  # link to all targets below, no need to specify include d
 # add_executable(SimpleP2PandCATrajPrior SimpleP2PandCATrajPrior.cpp)
 
 add_executable(MPCSimpleConstraints MPCSimpleConstraints.cpp)
+add_executable(MPCFirstOrderLag MPCFirstOrderLag.cpp)
