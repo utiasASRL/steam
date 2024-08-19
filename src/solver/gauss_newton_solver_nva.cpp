@@ -41,11 +41,39 @@ bool GaussNewtonSolverNVA::linearizeSolveAndUpdate(double& cost,
       solveGaussNewton(approximate_hessian, gradient_vector);
   solve_time = timer.milliseconds();
 
-  // Apply update
-  timer.reset();
-  cost = proposeUpdate(perturbation);
-  acceptProposedState();
-  update_time = timer.milliseconds();
+  if (params_.line_search) {
+    const double expected_delta_cost = 0.5 * gradient_vector.transpose() * perturbation;
+    if (expected_delta_cost < 0.0) {
+      throw std::runtime_error("Expected delta cost must be >= 0.0");
+    }
+    if (expected_delta_cost < 1.0e-5 || fabs(expected_delta_cost / cost) < 1.0e-7) {
+      solver_converged_ = true;
+      term_ = TERMINATE_EXPECTED_DELTA_COST_CONVERGED;
+    } else {
+      double alpha = 1.0;
+      for (uint j = 0; j < 3; ++j) {
+        timer.reset();
+        // Apply update
+        cost = proposeUpdate(alpha * perturbation);
+        update_time += timer.milliseconds();  
+        std::cout << "line search it: " << j << " prev_cost: " << prev_cost_ << " new_cost: " << cost << " alpha: " << alpha << std::endl;
+        if (cost <= prev_cost_) {
+          acceptProposedState();
+          break;
+        } else {
+          cost = prev_cost_;
+          rejectProposedState();
+        }
+        alpha *= 0.5;
+      }
+    }
+  } else {
+    // Apply update
+    timer.reset();
+    cost = proposeUpdate(perturbation);
+    acceptProposedState();
+    update_time = timer.milliseconds();
+  }
 
   // Print report line if verbose option enabled
   if (params_.verbose) {

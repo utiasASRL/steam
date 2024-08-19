@@ -47,13 +47,13 @@ double PreintAccCostTerm::cost() const {
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
 
   // #pragma omp declare reduction(+ : Eigen::Vector3d : omp_out = \
-//                                   omp_out + omp_in)           \
-//     initializer(omp_priv = Eigen::Vector3d::Zero())
+  //                                 omp_out + omp_in)           \
+  //   initializer(omp_priv = Eigen::Vector3d::Zero())
   // #pragma omp declare reduction(+ : Eigen::Matrix3d : omp_out = \
-//                                   omp_out + omp_in)           \
-//     initializer(omp_priv = Eigen::Matrix3d::Zero())
+  //                                 omp_out + omp_in)           \
+  //   initializer(omp_priv = Eigen::Matrix3d::Zero())
   // #pragma omp parallel for num_threads(options_.num_threads) \
-//     reduction(+ : preint_delta_v) reduction(+ : R)
+  //   reduction(+ : preint_delta_v) reduction(+ : R)
   for (int i = 0; i < (int)imu_data_vec_.size(); ++i) {
     const double &ts = imu_data_vec_[i].timestamp;
     const IMUData &imu_data = imu_data_vec_[i];
@@ -62,8 +62,8 @@ double PreintAccCostTerm::cost() const {
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2;
+        lambda(0, 1) * w1 + omega(0, 0) * xi_21 +
+        omega(0, 1) * J_21_inv_w2;
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
 
@@ -71,8 +71,8 @@ double PreintAccCostTerm::cost() const {
 
     if (i == 0) {
       const Eigen::Matrix<double, 6, 1> xi_j1 =
-          lambda.block<6, 6>(6, 6) * w1 + omega.block<6, 6>(6, 0) * xi_21 +
-          omega.block<6, 6>(6, 6) * J_21_inv_w2;
+          lambda(1, 1) * w1 + omega(1, 0) * xi_21 +
+          omega(1, 1) * J_21_inv_w2;
       const Eigen::Matrix<double, 6, 1> w_i = J_i1 * xi_j1;
       v1 = w_i.block<3, 1>(0, 0);
     }
@@ -90,13 +90,17 @@ double PreintAccCostTerm::cost() const {
 
     // Interpolated T_mi
     lgmath::se3::Transformation transform_i_to_m = T_mi_1;
-    if (transform_i_to_m_1_->active() || transform_i_to_m_2_->active()) {
+    if (transform_i_to_m_1_->active() && transform_i_to_m_2_->active()) {
       const double alpha_ =
           (ts - knot1_->time().seconds()) /
           (knot2_->time().seconds() - knot1_->time().seconds());
       const Eigen::Matrix<double, 6, 1> xi_i1_ =
           alpha_ * (T_mi_2 / T_mi_1).vec();
       transform_i_to_m = lgmath::se3::Transformation(xi_i1_) * T_mi_1;
+    } else if (transform_i_to_m_1_->active() && !transform_i_to_m_2_->active()) {
+      transform_i_to_m = T_mi_1;
+    } else if (!transform_i_to_m_1_->active() && transform_i_to_m_2_->active()) {
+      std::runtime_error("either (T_mi_1 and T_mi_2) need to be active or just T_mi_1");
     }
 
     const Eigen::Matrix3d &C_vm = T_i0.matrix().block<3, 3>(0, 0);
@@ -128,7 +132,8 @@ double PreintAccCostTerm::cost() const {
     raw_error = w2.block<3, 1>(0, 0) - v1 + preint_delta_v;
   }
   StaticNoiseModel<3>::Ptr noise_model = StaticNoiseModel<3>::MakeShared(R);
-  return loss_func_->cost(noise_model->getWhitenedErrorNorm(raw_error));
+  const auto cost = loss_func_->cost(noise_model->getWhitenedErrorNorm(raw_error));
+  return cost;
 }
 
 /** \brief Get keys of variables related to this cost term */
@@ -147,20 +152,44 @@ void PreintAccCostTerm::init() { initialize_interp_matrices_(); }
 
 void PreintAccCostTerm::initialize_interp_matrices_() {
   const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
-#pragma omp parallel for num_threads(options_.num_threads)
+// #pragma omp parallel for num_threads(options_.num_threads)
   for (const IMUData &imu_data : imu_data_vec_) {
     const double &time = imu_data.timestamp;
-    // Get Lambda, Omega for this time
-    const double tau = time - time1_.seconds();
-    const double kappa = knot2_->time().seconds() - time;
-    const Matrix12d Q_tau = steam::traj::const_vel::getQ(tau, ones);
-    const Matrix12d Tran_kappa = steam::traj::const_vel::getTran(kappa);
-    const Matrix12d Tran_tau = steam::traj::const_vel::getTran(tau);
-    const Matrix12d omega = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
-    const Matrix12d lambda = (Tran_tau - omega * Tran_T_);
-    const auto omega_lambda = std::make_pair(omega, lambda);
-#pragma omp critical
-    interp_mats_.emplace(time, omega_lambda);
+    if (interp_mats_.find(time) == interp_mats_.end()) {
+      const double tau = (Time(time) - time1_).seconds();
+      // const double T = (time2_ - time1_).seconds();
+      // const double ratio = tau / T;
+      // const double ratio2 = ratio * ratio;
+      // const double ratio3 = ratio2 * ratio;
+      // Calculate 'omega' interpolation values
+      Eigen::Matrix4d omega = Eigen::Matrix4d::Zero();
+      // omega(0, 0) = 3.0 * ratio2 - 2.0 * ratio3;
+      // omega(0, 1) = tau * (ratio2 - ratio);
+      // omega(1, 0) = 6.0 * (ratio - ratio2) / T;
+      // omega(1, 1) = 3.0 * ratio2 - 2.0 * ratio;
+      // Calculate 'lambda' interpolation values
+      Eigen::Matrix4d lambda = Eigen::Matrix4d::Zero();
+      // lambda(0, 0) = 1.0 - omega(0, 0);
+      // lambda(0, 1) = tau - T * omega(0, 0) - omega(0, 1);
+      // lambda(1, 0) = -omega(1, 0);
+      // lambda(1, 1) = 1.0 - T * omega(1, 0) - omega(1, 1);
+      const double kappa = knot2_->time().seconds() - time;
+      const Matrix12d Q_tau = steam::traj::const_vel::getQ(tau, ones);
+      const Matrix12d Tran_kappa = steam::traj::const_vel::getTran(kappa);
+      const Matrix12d Tran_tau = steam::traj::const_vel::getTran(tau);
+      const Matrix12d omega12 = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
+      const Matrix12d lambda12 = (Tran_tau - omega12 * Tran_T_);
+      omega(0, 0) = omega12(0, 0);
+      omega(1, 0) = omega12(6, 0);
+      omega(0, 1) = omega12(0, 6);
+      omega(1, 1) = omega12(6, 6);
+      lambda(0, 0) = lambda12(0, 0);
+      lambda(1, 0) = lambda12(6, 0);
+      lambda(0, 1) = lambda12(0, 6);
+      lambda(1, 1) = lambda12(6, 6);
+      
+      interp_mats_.emplace(time, std::make_pair(omega, lambda));
+    }
   }
 }
 
@@ -211,16 +240,16 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
 
   // #pragma omp declare reduction(+ : Eigen::Matrix<double, 3, 48> : omp_out = \
-//                                   omp_out + omp_in)                        \
-//     initializer(omp_priv = Eigen::Matrix<double, 3, 48>::Zero())
+  //                                 omp_out + omp_in)                        \
+  //   initializer(omp_priv = Eigen::Matrix<double, 3, 48>::Zero())
   // #pragma omp declare reduction(+ : Eigen::Vector3d : omp_out = \
-//                                   omp_out + omp_in)           \
-//     initializer(omp_priv = Eigen::Vector3d::Zero())
+  //                                 omp_out + omp_in)           \
+  //   initializer(omp_priv = Eigen::Vector3d::Zero())
   // #pragma omp declare reduction(+ : Eigen::Matrix3d : omp_out = \
-//                                   omp_out + omp_in)           \
-//     initializer(omp_priv = Eigen::Matrix3d::Zero())
+  //                                 omp_out + omp_in)           \
+  //   initializer(omp_priv = Eigen::Matrix3d::Zero())
   // #pragma omp parallel for num_threads(options_.num_threads) reduction(+ : G) \
-//     reduction(+ : preint_delta_v) reduction(+ : R)
+  //   reduction(+ : preint_delta_v) reduction(+ : R)
   for (int i = 0; i < (int)imu_data_vec_.size(); ++i) {
     const double &ts = imu_data_vec_[i].timestamp;
     const IMUData &imu_data = imu_data_vec_[i];
@@ -229,8 +258,8 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2;
+        lambda(0, 1) * w1 + omega(0, 0) * xi_21 +
+        omega(0, 1) * J_21_inv_w2;
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
 
@@ -238,44 +267,44 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
 
     if (i == 0) {
       const Eigen::Matrix<double, 6, 1> xi_j1 =
-          lambda.block<6, 6>(6, 6) * w1 + omega.block<6, 6>(6, 0) * xi_21 +
-          omega.block<6, 6>(6, 6) * J_21_inv_w2;
+          lambda(1, 1) * w1 + omega(1, 0) * xi_21 +
+          omega(1, 1) * J_21_inv_w2;
       const Eigen::Matrix<double, 6, 1> w_i = J_i1 * xi_j1;
       v1 = w_i.block<3, 1>(0, 0);
       const Eigen::Matrix<double, 6, 6> xi_j1_ch =
           -0.5 * lgmath::se3::curlyhat(xi_j1);
       const Eigen::Matrix<double, 6, 6> w =
-          J_i1 * (omega.block<6, 6>(6, 0) * J_21_inv +
-                  omega.block<6, 6>(6, 6) * w2_j_21_inv) +
-          xi_j1_ch * (omega.block<6, 6>(0, 0) * J_21_inv +
-                      omega.block<6, 6>(0, 6) * w2_j_21_inv);
+          J_i1 * (omega(1, 0) * J_21_inv +
+                  omega(1, 1) * w2_j_21_inv) +
+          xi_j1_ch * (omega(0, 0) * J_21_inv +
+                      omega(0, 1) * w2_j_21_inv);
 
       Eigen::Matrix<double, 6, 24> interp_jac_vel =
           Eigen::Matrix<double, 6, 24>::Zero();
       interp_jac_vel.block<6, 6>(0, 0) = -w * Ad_T_21;  // T1
       interp_jac_vel.block<6, 6>(0, 6) =
-          (lambda.block<6, 6>(6, 6) * J_i1 +
-           lambda.block<6, 6>(0, 6) * xi_j1_ch);  // w1
+          (lambda(1, 1) * J_i1 +
+           lambda(0, 1) * xi_j1_ch);  // w1
       interp_jac_vel.block<6, 6>(0, 12) = w;      // T2
       interp_jac_vel.block<6, 6>(0, 18) =
-          omega.block<6, 6>(6, 6) * J_i1 * J_21_inv +
-          omega.block<6, 6>(0, 6) * xi_j1_ch * J_21_inv;  // w2
+          omega(1, 1) * J_i1 * J_21_inv +
+          omega(0, 1) * xi_j1_ch * J_21_inv;  // w2
       interp_jac_v1 = interp_jac_vel.block<3, 24>(0, 0);
     }
 
     const Eigen::Matrix<double, 6, 6> w =
-        J_i1 * (omega.block<6, 6>(0, 0) * J_21_inv +
-                omega.block<6, 6>(0, 6) * w2_j_21_inv);
+        J_i1 * (omega(0, 0) * J_21_inv +
+                omega(0, 1) * w2_j_21_inv);
 
     // pose interpolation Jacobians
     Eigen::Matrix<double, 6, 24> interp_jac_pose =
         Eigen::Matrix<double, 6, 24>::Zero();
 
     interp_jac_pose.block<6, 6>(0, 0) = -w * Ad_T_21 + T_i1.adjoint();    // T1
-    interp_jac_pose.block<6, 6>(0, 6) = lambda.block<6, 6>(0, 6) * J_i1;  // w1
+    interp_jac_pose.block<6, 6>(0, 6) = lambda(0, 1) * J_i1;  // w1
     interp_jac_pose.block<6, 6>(0, 12) = w;                               // T2
     interp_jac_pose.block<6, 6>(0, 18) =
-        omega.block<6, 6>(0, 6) * J_i1 * J_21_inv;  // w2
+        omega(0, 1) * J_i1 * J_21_inv;  // w2
 
     // Interpolated bias
     Eigen::Matrix<double, 6, 1> bias_i = Eigen::Matrix<double, 6, 1>::Zero();
@@ -324,6 +353,11 @@ void PreintAccCostTerm::buildGaussNewtonTerms(
       interp_jac_T_m_i.block<6, 6>(0, 0) =
           Eigen::Matrix<double, 6, 6>::Identity() - A;
       interp_jac_T_m_i.block<6, 6>(0, 6) = A;
+    } else if (transform_i_to_m_1_->active() && !transform_i_to_m_2_->active()) {
+      transform_i_to_m = T_mi_1;
+      interp_jac_T_m_i.block<6, 6>(0, 0) = Eigen::Matrix<double, 6, 6>::Identity();
+    } else if (!transform_i_to_m_1_->active() && transform_i_to_m_2_->active()) {
+      throw std::runtime_error("either (T_mi_1 and T_mi_2) need to be active or just T_mi_1");
     }
 
     const Eigen::Matrix3d &C_vm = T_i0.matrix().block<3, 3>(0, 0);
