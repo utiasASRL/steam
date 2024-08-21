@@ -185,7 +185,7 @@ class IMUSuperCostTerm : public BaseCostTerm {
   const Variable::ConstPtr knot2_;
   Matrix18d Qinv_T_ = Matrix18d::Identity();
   Matrix18d Tran_T_ = Matrix18d::Identity();
-  std::map<double, std::pair<Matrix18d, Matrix18d>> interp_mats_;
+  std::map<double, std::pair<Eigen::Matrix3d, Eigen::Matrix3d>> interp_mats_;
 
   std::vector<IMUData> imu_data_vec_;
   std::vector<double> meas_times_;

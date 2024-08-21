@@ -5,6 +5,15 @@
 #include "lgmath.hpp"
 #include "steam.hpp"
 
+#include "steam/trajectory/const_acc/acceleration_interpolator.hpp"
+#include "steam/trajectory/const_acc/pose_interpolator.hpp"
+#include "steam/trajectory/const_acc/velocity_interpolator.hpp"
+#include "steam/trajectory/const_vel/pose_interpolator.hpp"
+#include "steam/trajectory/const_vel/velocity_interpolator.hpp"
+#include "steam/trajectory/singer/acceleration_interpolator.hpp"
+#include "steam/trajectory/singer/pose_interpolator.hpp"
+#include "steam/trajectory/singer/velocity_interpolator.hpp"
+
 TEST(ConstAcc, PoseInterpolator) {
   using namespace steam::traj::const_acc;
   using namespace steam;
@@ -2195,6 +2204,215 @@ TEST(P2P, P2PErrorDopplerEvaluator) {
     }
     std::cout << njac << std::endl;
     for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        if (fabs(ajac(i, j)) > 1.0e-2)
+          EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);
+        else
+          EXPECT_LT(fabs(njac(i, j) - ajac(i, j)), 1.0e-2);
+      }
+    }
+  }
+}
+
+TEST(ConstVel, VelocityInterpolator) {
+  using namespace steam::traj::const_vel;
+  using namespace steam;
+
+  Eigen::Matrix<double, 6, 1> w_01_in1 = Eigen::Matrix<double, 6, 1>::Ones();
+  Eigen::Matrix<double, 6, 1> w_02_in2 = Eigen::Matrix<double, 6, 1>::Ones();
+  lgmath::se3::Transformation T_10;
+
+  const double dt = 0.1;
+  const auto accel = (w_02_in2 - w_01_in1) / dt;
+
+  // TODO: try different values of tau between 0 and dt
+  steam::traj::Time t1(0.);
+  steam::traj::Time t2(dt);
+  steam::traj::Time tau(dt / 2);
+
+  lgmath::se3::Transformation T_20 =
+      lgmath::se3::Transformation(Eigen::Matrix<double, 6, 1>(
+          w_01_in1 * dt + 0.5 * accel * pow(dt, 2) +
+          (1 / 12) * lgmath::se3::curlyhat(accel) * w_01_in1 * pow(dt, 3) +
+          (1 / 240) * lgmath::se3::curlyhat(accel) *
+              lgmath::se3::curlyhat(accel) * w_01_in1 * pow(dt, 5))) *
+      T_10;
+
+  const auto T_10_var = se3::SE3StateVar::MakeShared(T_10);
+  const auto w_01_in1_var = vspace::VSpaceStateVar<6>::MakeShared(w_01_in1);
+  const auto T_20_var = se3::SE3StateVar::MakeShared(T_20);
+  const auto w_02_in2_var = vspace::VSpaceStateVar<6>::MakeShared(w_02_in2);
+
+  const auto knot1 = std::make_shared<Variable>(t1, T_10_var, w_01_in1_var);
+  const auto knot2 = std::make_shared<Variable>(t2, T_20_var, w_02_in2_var);
+
+  const auto w_0q_inq_eval =
+      VelocityInterpolator::MakeShared(tau, knot1, knot2);
+
+  // check the forward pass is what we expect
+  {
+    std::cout << w_0q_inq_eval->evaluate().transpose() << std::endl;
+    Eigen::Matrix<double, 6, 1> w_0q_inq_expected = w_01_in1 + accel * dt / 2;
+    // std::cout << dw_01_in1.transpose() << std::endl;
+    EXPECT_LT((w_0q_inq_eval->evaluate() - w_0q_inq_expected).norm(), 1e-6);
+  }
+
+  // check the Jacobians by comparing against numerical Jacobians.
+  const double eps = 1.0e-5;
+  Jacobians jacs;
+  Eigen::Matrix<double, 6, 6> lhs = Eigen::Matrix<double, 6, 6>::Identity();
+  const auto node = w_0q_inq_eval->forward();
+  w_0q_inq_eval->backward(lhs, node, jacs);
+  const auto& jacmap = jacs.get();
+  // T1
+  {
+    std::cout << "T1:" << std::endl;
+    Eigen::Matrix<double, 6, 6> ajac = jacmap.at(T_10_var->key());
+    std::cout << ajac << std::endl;
+    Eigen::Matrix<double, 6, 6> njac = Eigen::Matrix<double, 6, 6>::Zero();
+    for (int j = 0; j < 6; ++j) {
+      Eigen::Matrix<double, 6, 1> xi1 = Eigen::Matrix<double, 6, 1>::Zero();
+      Eigen::Matrix<double, 6, 1> xi2 = Eigen::Matrix<double, 6, 1>::Zero();
+      xi1(j, 0) = eps;
+      xi2(j, 0) = -eps;
+      const auto T_10_var_mod1 =
+          se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi1) * T_10);
+      const auto T_10_var_mod2 =
+          se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi2) * T_10);
+      const auto knot1_mod1 =
+          std::make_shared<Variable>(t1, T_10_var_mod1, w_01_in1_var);
+      const auto knot1_mod2 =
+          std::make_shared<Variable>(t1, T_10_var_mod2, w_01_in1_var);
+
+      const auto w_0q_inq_eval_mod1 =
+          VelocityInterpolator::MakeShared(tau, knot1_mod1, knot2);
+      const auto w_0q_inq_eval_mod2 =
+          VelocityInterpolator::MakeShared(tau, knot1_mod2, knot2);
+      njac.block<6, 1>(0, j) =
+          (w_0q_inq_eval_mod1->evaluate() - w_0q_inq_eval_mod2->evaluate()) /
+          (2 * eps);
+    }
+    std::cout << njac << std::endl;
+    // EXPECT_LT((njac - ajac).norm(), 1e-2);
+    for (int i = 0; i < 6; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        if (fabs(ajac(i, j)) > 1.0e-2)
+          EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);
+        else
+          EXPECT_LT(fabs(njac(i, j) - ajac(i, j)), 1.0e-2);
+      }
+    }
+  }
+
+  // w1
+  {
+    std::cout << "w1:" << std::endl;
+    Eigen::Matrix<double, 6, 6> ajac = jacmap.at(w_01_in1_var->key());
+    std::cout << ajac << std::endl;
+    Eigen::Matrix<double, 6, 6> njac = Eigen::Matrix<double, 6, 6>::Zero();
+    for (int j = 0; j < 6; ++j) {
+      Eigen::Matrix<double, 6, 1> xi1 = Eigen::Matrix<double, 6, 1>::Zero();
+      Eigen::Matrix<double, 6, 1> xi2 = Eigen::Matrix<double, 6, 1>::Zero();
+      xi1(j, 0) = eps;
+      xi2(j, 0) = -eps;
+      const auto w_01_in1_var_mod1 =
+          vspace::VSpaceStateVar<6>::MakeShared(w_01_in1 + xi1);
+      const auto w_01_in1_var_mod2 =
+          vspace::VSpaceStateVar<6>::MakeShared(w_01_in1 + xi2);
+      const auto knot1_mod1 =
+          std::make_shared<Variable>(t1, T_10_var, w_01_in1_var_mod1);
+      const auto knot1_mod2 =
+          std::make_shared<Variable>(t1, T_10_var, w_01_in1_var_mod2);
+
+      const auto w_0q_inq_eval_mod1 =
+          VelocityInterpolator::MakeShared(tau, knot1_mod1, knot2);
+      const auto w_0q_inq_eval_mod2 =
+          VelocityInterpolator::MakeShared(tau, knot1_mod2, knot2);
+      njac.block<6, 1>(0, j) =
+          (w_0q_inq_eval_mod1->evaluate() - w_0q_inq_eval_mod2->evaluate()) /
+          (2 * eps);
+    }
+    std::cout << njac << std::endl;
+    for (int i = 0; i < 6; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        if (fabs(ajac(i, j)) > 1.0e-2)
+          EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);
+        else
+          EXPECT_LT(fabs(njac(i, j) - ajac(i, j)), 1.0e-2);
+      }
+    }
+  }
+
+  // T2
+  {
+    std::cout << "T2:" << std::endl;
+    Eigen::Matrix<double, 6, 6> ajac = jacmap.at(T_20_var->key());
+    std::cout << ajac << std::endl;
+    Eigen::Matrix<double, 6, 6> njac = Eigen::Matrix<double, 6, 6>::Zero();
+    for (int j = 0; j < 6; ++j) {
+      Eigen::Matrix<double, 6, 1> xi1 = Eigen::Matrix<double, 6, 1>::Zero();
+      Eigen::Matrix<double, 6, 1> xi2 = Eigen::Matrix<double, 6, 1>::Zero();
+      xi1(j, 0) = eps;
+      xi2(j, 0) = -eps;
+      const auto T_20_var_mod1 =
+          se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi1) * T_20);
+      const auto T_20_var_mod2 =
+          se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi2) * T_20);
+      const auto knot2_mod1 =
+          std::make_shared<Variable>(t2, T_20_var_mod1, w_02_in2_var);
+      const auto knot2_mod2 =
+          std::make_shared<Variable>(t2, T_20_var_mod2, w_02_in2_var);
+
+      const auto w_0q_inq_eval_mod1 =
+          VelocityInterpolator::MakeShared(tau, knot1, knot2_mod1);
+      const auto w_0q_inq_eval_mod2 =
+          VelocityInterpolator::MakeShared(tau, knot1, knot2_mod2);
+      njac.block<6, 1>(0, j) =
+          (w_0q_inq_eval_mod1->evaluate() - w_0q_inq_eval_mod2->evaluate()) /
+          (2 * eps);
+    }
+    std::cout << njac << std::endl;
+    // EXPECT_LT((njac - ajac).norm(), 1e-2);
+    for (int i = 0; i < 6; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        if (fabs(ajac(i, j)) > 1.0e-2)
+          EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);
+        else
+          EXPECT_LT(fabs(njac(i, j) - ajac(i, j)), 1.0e-2);
+      }
+    }
+  }
+
+  // w2
+  {
+    std::cout << "w2:" << std::endl;
+    Eigen::Matrix<double, 6, 6> ajac = jacmap.at(w_02_in2_var->key());
+    std::cout << ajac << std::endl;
+    Eigen::Matrix<double, 6, 6> njac = Eigen::Matrix<double, 6, 6>::Zero();
+    for (int j = 0; j < 6; ++j) {
+      Eigen::Matrix<double, 6, 1> xi1 = Eigen::Matrix<double, 6, 1>::Zero();
+      Eigen::Matrix<double, 6, 1> xi2 = Eigen::Matrix<double, 6, 1>::Zero();
+      xi1(j, 0) = eps;
+      xi2(j, 0) = -eps;
+      const auto w_02_in2_var_mod1 =
+          vspace::VSpaceStateVar<6>::MakeShared(w_02_in2 + xi1);
+      const auto w_02_in2_var_mod2 =
+          vspace::VSpaceStateVar<6>::MakeShared(w_02_in2 + xi2);
+      const auto knot2_mod1 =
+          std::make_shared<Variable>(t2, T_20_var, w_02_in2_var_mod1);
+      const auto knot2_mod2 =
+          std::make_shared<Variable>(t2, T_20_var, w_02_in2_var_mod2);
+
+      const auto w_0q_inq_eval_mod1 =
+          VelocityInterpolator::MakeShared(tau, knot1, knot2_mod1);
+      const auto w_0q_inq_eval_mod2 =
+          VelocityInterpolator::MakeShared(tau, knot1, knot2_mod2);
+      njac.block<6, 1>(0, j) =
+          (w_0q_inq_eval_mod1->evaluate() - w_0q_inq_eval_mod2->evaluate()) /
+          (2 * eps);
+    }
+    std::cout << njac << std::endl;
+    for (int i = 0; i < 6; ++i) {
       for (int j = 0; j < 6; ++j) {
         if (fabs(ajac(i, j)) > 1.0e-2)
           EXPECT_LT(fabs((njac(i, j) - ajac(i, j)) / ajac(i, j)), 0.02);

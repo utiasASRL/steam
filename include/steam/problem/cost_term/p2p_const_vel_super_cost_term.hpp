@@ -109,7 +109,7 @@ class P2PCVSuperCostTerm : public BaseCostTerm {
   const Variable::ConstPtr knot2_;
   Matrix12d Qinv_T_ = Matrix12d::Identity();
   Matrix12d Tran_T_ = Matrix12d::Identity();
-  std::map<double, std::pair<Matrix12d, Matrix12d>> interp_mats_;
+  std::map<double, std::pair<Eigen::Matrix4d, Eigen::Matrix4d>> interp_mats_;
 
   std::vector<P2PMatch> p2p_matches_;
   std::map<double, std::vector<int>> p2p_match_bins_;

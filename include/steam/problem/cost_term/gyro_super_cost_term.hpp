@@ -137,7 +137,7 @@ class GyroSuperCostTerm : public BaseCostTerm {
   const Variable::ConstPtr knot2_;
   Matrix12d Qinv_T_ = Matrix12d::Identity();
   Matrix12d Tran_T_ = Matrix12d::Identity();
-  std::map<double, std::pair<Matrix12d, Matrix12d>> interp_mats_;
+  std::map<double, std::pair<Eigen::Matrix4d, Eigen::Matrix4d>> interp_mats_;
 
   std::vector<IMUData> imu_data_vec_;
   std::vector<double> meas_times_;

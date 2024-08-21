@@ -12,7 +12,10 @@ namespace steam {
 
 class GaussNewtonSolverNVA : public GaussNewtonSolver {
  public:
-  struct Params : public GaussNewtonSolver::Params {};
+    struct Params : public GaussNewtonSolver::Params {
+    ///
+    bool line_search = false;
+  };
 
   GaussNewtonSolverNVA(Problem& problem, const Params& params);
 

@@ -44,11 +44,11 @@ double GyroSuperCostTerm::cost() const {
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2;
+        lambda(0, 1) * w1 + omega(0, 0) * xi_21 +
+        omega(0, 1) * J_21_inv_w2;
     const Eigen::Matrix<double, 6, 1> xi_j1 =
-        lambda.block<6, 6>(6, 6) * w1 + omega.block<6, 6>(6, 0) * xi_21 +
-        omega.block<6, 6>(6, 6) * J_21_inv_w2;
+        lambda(1, 1) * w1 + omega(1, 0) * xi_21 +
+        omega(1, 1) * J_21_inv_w2;
     // Interpolated velocity
     const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
 
@@ -93,22 +93,44 @@ void GyroSuperCostTerm::init() { initialize_interp_matrices_(); }
 
 void GyroSuperCostTerm::initialize_interp_matrices_() {
   const Eigen::Matrix<double, 6, 1> ones = Eigen::Matrix<double, 6, 1>::Ones();
-#pragma omp parallel for num_threads(options_.num_threads)
+// #pragma omp parallel for num_threads(options_.num_threads)
   for (const IMUData &imu_data : imu_data_vec_) {
-    const double &time = imu_data.timestamp;
-    // if (interp_mats_.find(time) == interp_mats_.end()) {
-    // Get Lambda, Omega for this time
-    const double tau = time - time1_.seconds();
-    const double kappa = knot2_->time().seconds() - time;
-    const Matrix12d Q_tau = steam::traj::const_vel::getQ(tau, ones);
-    const Matrix12d Tran_kappa = steam::traj::const_vel::getTran(kappa);
-    const Matrix12d Tran_tau = steam::traj::const_vel::getTran(tau);
-    const Matrix12d omega = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
-    const Matrix12d lambda = (Tran_tau - omega * Tran_T_);
-    const auto omega_lambda = std::make_pair(omega, lambda);
-#pragma omp critical
-    interp_mats_.emplace(time, omega_lambda);
-    // }
+      const auto time = imu_data.timestamp;
+      if (interp_mats_.find(time) == interp_mats_.end()) {
+      const double tau = (Time(time) - time1_).seconds();
+      // const double T = (time2_ - time1_).seconds();
+      // const double ratio = tau / T;
+      // const double ratio2 = ratio * ratio;
+      // const double ratio3 = ratio2 * ratio;
+      // Calculate 'omega' interpolation values
+      Eigen::Matrix4d omega = Eigen::Matrix4d::Zero();
+      // omega(0, 0) = 3.0 * ratio2 - 2.0 * ratio3;
+      // omega(0, 1) = tau * (ratio2 - ratio);
+      // omega(1, 0) = 6.0 * (ratio - ratio2) / T;
+      // omega(1, 1) = 3.0 * ratio2 - 2.0 * ratio;
+      // Calculate 'lambda' interpolation values
+      Eigen::Matrix4d lambda = Eigen::Matrix4d::Zero();
+      // lambda(0, 0) = 1.0 - omega(0, 0);
+      // lambda(0, 1) = tau - T * omega(0, 0) - omega(0, 1);
+      // lambda(1, 0) = -omega(1, 0);
+      // lambda(1, 1) = 1.0 - T * omega(1, 0) - omega(1, 1);
+      const double kappa = knot2_->time().seconds() - time;
+      const Matrix12d Q_tau = steam::traj::const_vel::getQ(tau, ones);
+      const Matrix12d Tran_kappa = steam::traj::const_vel::getTran(kappa);
+      const Matrix12d Tran_tau = steam::traj::const_vel::getTran(tau);
+      const Matrix12d omega12 = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
+      const Matrix12d lambda12 = (Tran_tau - omega12 * Tran_T_);
+      omega(0, 0) = omega12(0, 0);
+      omega(1, 0) = omega12(6, 0);
+      omega(0, 1) = omega12(0, 6);
+      omega(1, 1) = omega12(6, 6);
+      lambda(0, 0) = lambda12(0, 0);
+      lambda(1, 0) = lambda12(6, 0);
+      lambda(0, 1) = lambda12(0, 6);
+      lambda(1, 1) = lambda12(6, 6);
+      
+      interp_mats_.emplace(time, std::make_pair(omega, lambda));
+    }
   }
 }
 
@@ -164,11 +186,11 @@ void GyroSuperCostTerm::buildGaussNewtonTerms(
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2;
+        lambda(0, 1) * w1 + omega(0, 0) * xi_21 +
+        omega(0, 1) * J_21_inv_w2;
     const Eigen::Matrix<double, 6, 1> xi_j1 =
-        lambda.block<6, 6>(6, 6) * w1 + omega.block<6, 6>(6, 0) * xi_21 +
-        omega.block<6, 6>(6, 6) * J_21_inv_w2;
+        lambda(1, 1) * w1 + omega(1, 0) * xi_21 +
+        omega(1, 1) * J_21_inv_w2;
     // Interpolated velocity
     const Eigen::Matrix<double, 6, 1> w_i = lgmath::se3::vec2jac(xi_i1) * xi_j1;
 
@@ -199,19 +221,19 @@ void GyroSuperCostTerm::buildGaussNewtonTerms(
         -0.5 * lgmath::se3::curlyhat(xi_j1);
 
     Eigen::Matrix<double, 6, 6> w =
-        J_i1 * (omega.block<6, 6>(6, 0) * J_21_inv +
-                omega.block<6, 6>(6, 6) * w2_j_21_inv) +
-        xi_j1_ch * (omega.block<6, 6>(0, 0) * J_21_inv +
-                    omega.block<6, 6>(0, 6) * w2_j_21_inv);
+        J_i1 * (omega(1, 0) * J_21_inv +
+                omega(1, 1) * w2_j_21_inv) +
+        xi_j1_ch * (omega(0, 0) * J_21_inv +
+                    omega(0, 1) * w2_j_21_inv);
 
     interp_jac_vel.block<6, 6>(0, 0) = -w * Ad_T_21;  // T1
     interp_jac_vel.block<6, 6>(0, 6) =
-        (lambda.block<6, 6>(6, 6) * J_i1 +
-         lambda.block<6, 6>(0, 6) * xi_j1_ch);  // w1
+        (lambda(1, 1) * J_i1 +
+         lambda(0, 1) * xi_j1_ch);  // w1
     interp_jac_vel.block<6, 6>(0, 12) = w;      // T2
     interp_jac_vel.block<6, 6>(0, 18) =
-        omega.block<6, 6>(6, 6) * J_i1 * J_21_inv +
-        omega.block<6, 6>(0, 6) * xi_j1_ch * J_21_inv;  // w2
+        omega(1, 1) * J_i1 * J_21_inv +
+        omega(0, 1) * xi_j1_ch * J_21_inv;  // w2
 
     // evaluate, weight, whiten error
     Eigen::Matrix<double, 3, 1> raw_error_gyro =
