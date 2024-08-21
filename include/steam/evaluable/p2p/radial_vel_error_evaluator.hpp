@@ -36,6 +36,7 @@ class RadialVelErrorEvaluator : public Evaluable<Eigen::Matrix<double, 1, 1>> {
   const Eigen::Vector3d pv_;
   const Eigen::Matrix<double, 1, 1> r_;
   Eigen::Matrix<double, 3, 4> D_ = Eigen::Matrix<double, 3, 4>::Zero();
+  Eigen::Matrix<double, 6, 6> P_ = Eigen::Matrix<double, 6, 6>::Zero();
 };
 
 RadialVelErrorEvaluator::Ptr radialVelError(
