@@ -260,6 +260,21 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   if (psd)
     return P_tau;
 
+  // New patch (because the below still produces non PSD matrices):
+  // Compute new matrix that is PSD and close to P_tau
+  // From: https://math.stackexchange.com/questions/648809/how-to-find-closest-positive-definite-matrix-of-non-symmetric-matrix/1380345#1380345
+  // And: http://www.sciencedirect.com/science/article/pii/0024379588902236
+  Eigen::Matrix<double,12,12> P_fix = 0.5*(P_tau + P_tau.transpose()); // Compute Pseudo Matrix
+  Eigen::EigenSolver<Eigen::Matrix<double,12,12>> es(P_fix);
+  Eigen::MatrixXcd evec = es.eigenvectors(); // Get eigen vectors
+  Eigen::VectorXcd eval = es.eigenvalues(); // Get eigen values
+  for(uint i = 0; i < 12; ++i)
+  {
+    if(eval(i).real() < 0.0) eval(i) = std::complex<double>(0.0, 0.0); // set negative eigen values to zero
+  }
+
+  return evec.real()*eval.real().asDiagonal()*evec.real().transpose(); // Compose matrix with new eigenvalues
+
   // Patch: if Tim's method for Covariance interpolation fails
   // use Sean's method from his thesis (2016).
   // This came up during radar localization when measurements are SE(2)
