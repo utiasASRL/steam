@@ -42,10 +42,10 @@ double P2PSuperCostTerm::cost() const {
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + lambda.block<6, 6>(0, 12) * dw1 +
-        omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2 +
-        omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+        lambda(0, 1) * w1 + lambda(0, 2) * dw1 +
+        omega(0, 0) * xi_21 +
+        omega(0, 1) * J_21_inv_w2 +
+        omega(0, 2) * J_21_inv_curl_dw2;
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
     const Eigen::Matrix4d T_mr = T_i0.inverse().matrix();
@@ -97,11 +97,38 @@ void P2PSuperCostTerm::initialize_interp_matrices_() {
       // Get Lambda, Omega for this time
       const double tau = time - time1_.seconds();
       const double kappa = knot2_->time().seconds() - time;
+
+      
       const Matrix18d Q_tau = interface_->getQPublic(tau, ones);
       const Matrix18d Tran_kappa = interface_->getTranPublic(kappa);
       const Matrix18d Tran_tau = interface_->getTranPublic(tau);
-      const Matrix18d omega = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
-      const Matrix18d lambda = (Tran_tau - omega * Tran_T_);
+      const Matrix18d omega18 = (Q_tau * Tran_kappa.transpose() * Qinv_T_);
+      const Matrix18d lambda18 = (Tran_tau - omega18 * Tran_T_);
+
+      Eigen::Matrix3d omega = Eigen::Matrix3d::Zero();
+      Eigen::Matrix3d lambda = Eigen::Matrix3d::Zero();
+
+      omega(0, 0) = omega18(0, 0);
+      omega(0, 1) = omega18(0, 6);
+      omega(0, 2) = omega18(0, 12);
+      omega(1, 0) = omega18(6, 0);
+      omega(1, 1) = omega18(6, 6);
+      omega(1, 2) = omega18(6, 12);
+      omega(2, 0) = omega18(12, 0);
+      omega(2, 1) = omega18(12, 6);
+      omega(2, 2) = omega18(12, 12);
+
+      lambda(0, 0) = lambda18(0, 0);
+      lambda(0, 1) = lambda18(0, 6);
+      lambda(0, 2) = lambda18(0, 12);
+      lambda(1, 0) = lambda18(6, 0);
+      lambda(1, 1) = lambda18(6, 6);
+      lambda(1, 2) = lambda18(6, 12);
+      lambda(2, 0) = lambda18(12, 0);
+      lambda(2, 1) = lambda18(12, 6);
+      lambda(2, 2) = lambda18(12, 12);
+
+
       interp_mats_.emplace(time, std::make_pair(omega, lambda));
     }
   }
@@ -159,10 +186,10 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
     const auto &omega = interp_mats_.at(ts).first;
     const auto &lambda = interp_mats_.at(ts).second;
     const Eigen::Matrix<double, 6, 1> xi_i1 =
-        lambda.block<6, 6>(0, 6) * w1 + lambda.block<6, 6>(0, 12) * dw1 +
-        omega.block<6, 6>(0, 0) * xi_21 +
-        omega.block<6, 6>(0, 6) * J_21_inv_w2 +
-        omega.block<6, 6>(0, 12) * J_21_inv_curl_dw2;
+        lambda(0, 1) * w1 + lambda(0, 2) * dw1 +
+        omega(0, 0) * xi_21 +
+        omega(0, 1) * J_21_inv_w2 +
+        omega(0, 2) * J_21_inv_curl_dw2;
     const lgmath::se3::Transformation T_i1(xi_i1);
     const lgmath::se3::Transformation T_i0 = T_i1 * T1;
     const Eigen::Matrix4d T_mr = T_i0.inverse().matrix();
@@ -175,24 +202,24 @@ void P2PSuperCostTerm::buildGaussNewtonTerms(
 
     const Eigen::Matrix<double, 6, 6> w =
         J_i1 *
-        (omega.block<6, 6>(0, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
-         omega.block<6, 6>(0, 6) * 0.5 * lgmath::se3::curlyhat(w2) +
-         omega.block<6, 6>(0, 12) * 0.25 * lgmath::se3::curlyhat(w2) *
+        (omega(0, 0) * Eigen::Matrix<double, 6, 6>::Identity() +
+         omega(0, 1) * 0.5 * lgmath::se3::curlyhat(w2) +
+         omega(0, 2) * 0.25 * lgmath::se3::curlyhat(w2) *
              lgmath::se3::curlyhat(w2) +
-         omega.block<6, 6>(0, 12) * 0.5 * lgmath::se3::curlyhat(dw2)) *
+         omega(0, 2) * 0.5 * lgmath::se3::curlyhat(dw2)) *
         J_21_inv;
 
     interp_jac.block<6, 6>(0, 0) = -w * T_21.adjoint() + T_i1.adjoint();  // T1
-    interp_jac.block<6, 6>(0, 6) = lambda.block<6, 6>(0, 6) * J_i1;       // w1
-    interp_jac.block<6, 6>(0, 12) = lambda.block<6, 6>(0, 12) * J_i1;     // dw1
+    interp_jac.block<6, 6>(0, 6) = lambda(0, 1) * J_i1;       // w1
+    interp_jac.block<6, 6>(0, 12) = lambda(0, 2) * J_i1;     // dw1
     interp_jac.block<6, 6>(0, 18) = w;                                    // T2
     interp_jac.block<6, 6>(0, 24) =
-        omega.block<6, 6>(0, 6) * J_i1 * J_21_inv +
-        omega.block<6, 6>(0, 12) * -0.5 * J_i1 *
+        omega(0, 1) * J_i1 * J_21_inv +
+        omega(0, 2) * -0.5 * J_i1 *
             (lgmath::se3::curlyhat(J_21_inv * w2) -
              lgmath::se3::curlyhat(w2) * J_21_inv);  // w2
     interp_jac.block<6, 6>(0, 30) =
-        omega.block<6, 6>(0, 12) * J_i1 * J_21_inv;  // dw2
+        omega(0, 2) * J_i1 * J_21_inv;  // dw2
 
     // get measurement Jacobians
     Eigen::Matrix<double, 1, 6> Gmeas = Eigen::Matrix<double, 1, 6>::Zero();

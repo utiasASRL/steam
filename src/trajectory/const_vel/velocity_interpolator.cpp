@@ -47,6 +47,7 @@ VelocityInterpolator::VelocityInterpolator(const Time& time,
   lambda12_ = lambda(0, 6);
   lambda21_ = lambda(6, 0);
   lambda22_ = lambda(6, 6);
+  // psi11_ = 3.0 * ratio2 - 2.0 * ratio3;
   // psi12_ = tau * (ratio2 - ratio);
   // psi21_ = 6.0 * (ratio - ratio2) / T;
   // psi22_ = 3.0 * ratio2 - 2.0 * ratio;
