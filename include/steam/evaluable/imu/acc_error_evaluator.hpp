@@ -67,8 +67,6 @@ class AccelerationErrorEvaluator
   const Evaluable<BiasInType>::ConstPtr bias_;
   const Evaluable<PoseInType>::ConstPtr transform_i_to_m_;
   const ImuInType acc_meas_;
-  JacType Da_ = JacType::Zero();
-  JacType Dw_ = JacType::Zero();
   JacType jac_accel_ = JacType::Zero();
   JacType jac_bias_ = JacType::Zero();
   Eigen::Matrix<double, 3, 1> gravity_ = Eigen::Matrix<double, 3, 1>::Zero();

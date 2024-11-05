@@ -59,16 +59,16 @@ class IMUSuperCostTerm : public BaseCostTerm {
   using Matrix18d = Eigen::Matrix<double, 18, 18>;
   using Matrix6d = Eigen::Matrix<double, 6, 6>;
 
-  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time &time1,
-                        const Time &time2,
+  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time time1,
+                        const Time time2,
                         const Evaluable<BiasType>::ConstPtr &bias1,
                         const Evaluable<BiasType>::ConstPtr &bias2,
                         const Evaluable<PoseType>::ConstPtr &transform_i_to_m_1,
                         const Evaluable<PoseType>::ConstPtr &transform_i_to_m_2,
                         const Options &options);
 
-  IMUSuperCostTerm(const Interface::ConstPtr &interface, const Time &time1,
-                   const Time &time2,
+  IMUSuperCostTerm(const Interface::ConstPtr &interface, const Time time1,
+                   const Time time2,
                    const Evaluable<BiasType>::ConstPtr &bias1,
                    const Evaluable<BiasType>::ConstPtr &bias2,
                    const Evaluable<PoseType>::ConstPtr &transform_i_to_m_1,
@@ -174,8 +174,8 @@ class IMUSuperCostTerm : public BaseCostTerm {
 
  private:
   const Interface::ConstPtr interface_;
-  const Time &time1_;
-  const Time &time2_;
+  const Time time1_;
+  const Time time2_;
   const Evaluable<BiasType>::ConstPtr bias1_;
   const Evaluable<BiasType>::ConstPtr bias2_;
   const Evaluable<PoseType>::ConstPtr transform_i_to_m_1_;

@@ -16,7 +16,6 @@ GyroErrorEvaluator::GyroErrorEvaluator(
     const Evaluable<VelInType>::ConstPtr &velocity,
     const Evaluable<BiasInType>::ConstPtr &bias, const ImuInType &gyro_meas)
     : velocity_(velocity), bias_(bias), gyro_meas_(gyro_meas) {
-  const Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
   jac_vel_.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
   jac_bias_.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
 }

@@ -28,21 +28,21 @@ class Interface : public traj::Interface {
   Interface(const Eigen::Matrix<double, 6, 1>& Qc_diag =
                 Eigen::Matrix<double, 6, 1>::Ones());
 
-  void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+  void add(const Time time, const Evaluable<PoseType>::Ptr& T_k0,
            const Evaluable<VelocityType>::Ptr& w_0k_ink);
 
-  Variable::ConstPtr get(const Time& time) const;
+  Variable::ConstPtr get(const Time time) const;
 
-  Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
+  Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time time) const;
   Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(
-      const Time& time) const;
-  CovType getCovariance(const Covariance& cov, const Time& time);
+      const Time time) const;
+  CovType getCovariance(const Covariance& cov, const Time time);
 
-  void addPosePrior(const Time& time, const PoseType& T_k0,
+  void addPosePrior(const Time time, const PoseType& T_k0,
                     const Eigen::Matrix<double, 6, 6>& cov);
-  void addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
+  void addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
                         const Eigen::Matrix<double, 6, 6>& cov);
-  void addStatePrior(const Time& time, const PoseType& T_k0,
+  void addStatePrior(const Time time, const PoseType& T_k0,
                      const VelocityType& w_0k_ink, const CovType& cov);
 
   void addPriorCostTerms(Problem& problem) const;

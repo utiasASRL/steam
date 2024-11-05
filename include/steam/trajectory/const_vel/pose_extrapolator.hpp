@@ -20,8 +20,8 @@ class PoseExtrapolator : public Evaluable<lgmath::se3::Transformation> {
   using InVelType = Eigen::Matrix<double, 6, 1>;
   using OutType = lgmath::se3::Transformation;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot);
-  PoseExtrapolator(const Time& time, const Variable::ConstPtr& knot);
+  static Ptr MakeShared(const Time time, const Variable::ConstPtr& knot);
+  PoseExtrapolator(const Time time, const Variable::ConstPtr& knot);
   bool active() const override;
   void getRelatedVarKeys(KeySet& keys) const override;
   OutType value() const override;

@@ -18,13 +18,13 @@ class AccelerationInterpolator
   using ConstPtr = std::shared_ptr<const AccelerationInterpolator>;
   using Variable = steam::traj::const_acc::Variable;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
+  static Ptr MakeShared(const Time time, const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2,
                         const Eigen::Matrix<double, 6, 1>& ad) {
     return std::make_shared<AccelerationInterpolator>(time, knot1, knot2, ad);
   }
 
-  AccelerationInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+  AccelerationInterpolator(const Time time, const Variable::ConstPtr& knot1,
                            const Variable::ConstPtr& knot2,
                            const Eigen::Matrix<double, 6, 1>& ad)
       : steam::traj::const_acc::AccelerationInterpolator(time, knot1, knot2) {

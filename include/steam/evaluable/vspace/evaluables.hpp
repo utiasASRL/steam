@@ -1,6 +1,7 @@
 #pragma once
 
 #include "steam/evaluable/vspace/vspace_state_var.hpp"
+#include "steam/evaluable/vspace/preint_velocity_state_var.hpp"
 
 #include "steam/evaluable/vspace/addition_evaluator.hpp"
 #include "steam/evaluable/vspace/matrix_mult_evaluator.hpp"

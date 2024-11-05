@@ -23,7 +23,7 @@ auto Interface::MakeShared(const Eigen::Matrix<double, 6, 1>& Qc_diag) -> Ptr {
 Interface::Interface(const Eigen::Matrix<double, 6, 1>& Qc_diag)
     : Qc_diag_(Qc_diag) {}
 
-void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+void Interface::add(const Time time, const Evaluable<PoseType>::Ptr& T_k0,
                     const Evaluable<VelocityType>::Ptr& w_0k_ink) {
   if (knot_map_.find(time) != knot_map_.end())
     throw std::runtime_error("adding knot at duplicated time.");
@@ -31,11 +31,11 @@ void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
   knot_map_.insert(knot_map_.end(), std::pair<Time, Variable::Ptr>(time, knot));
 }
 
-Variable::ConstPtr Interface::get(const Time& time) const {
+Variable::ConstPtr Interface::get(const Time time) const {
   return knot_map_.at(time);
 }
 
-auto Interface::getPoseInterpolator(const Time& time) const
+auto Interface::getPoseInterpolator(const Time time) const
     -> Evaluable<PoseType>::ConstPtr {
   // Check that map is not empty
   if (knot_map_.empty()) throw std::runtime_error("knot map is empty");
@@ -75,7 +75,7 @@ auto Interface::getPoseInterpolator(const Time& time) const
   return PoseInterpolator::MakeShared(time, it1->second, it2->second);
 }
 
-auto Interface::getVelocityInterpolator(const Time& time) const
+auto Interface::getVelocityInterpolator(const Time time) const
     -> Evaluable<VelocityType>::ConstPtr {
   // Check that map is not empty
   if (knot_map_.empty()) throw std::runtime_error("knot map is empty");
@@ -114,7 +114,7 @@ auto Interface::getVelocityInterpolator(const Time& time) const
 }
 
 // See State Estimation (2nd Ed) Sections 11.1.4, 11.3.2
-auto Interface::getCovariance(const Covariance& cov, const Time& time)
+auto Interface::getCovariance(const Covariance& cov, const Time time)
     -> CovType {
   // clang-format off
 
@@ -305,7 +305,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   // clang-format on
 }
 
-void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
+void Interface::addPosePrior(const Time time, const PoseType& T_k0,
                              const Eigen::Matrix<double, 6, 6>& cov) {
   if (state_prior_factor_ != nullptr)
     throw std::runtime_error("a state prior already exists.");
@@ -338,7 +338,7 @@ void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
       error_func, noise_model, loss_func);
 }
 
-void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
+void Interface::addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
                                  const Eigen::Matrix<double, 6, 6>& cov) {
   // Only allow adding 1 prior
   if (state_prior_factor_ != nullptr)
@@ -372,7 +372,7 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
       error_func, noise_model, loss_func);
 }
 
-void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
+void Interface::addStatePrior(const Time time, const PoseType& T_k0,
                               const VelocityType& w_0k_ink,
                               const CovType& cov) {
   // Only allow adding 1 prior

@@ -4,7 +4,7 @@
 namespace steam {
 
 P2PSuperCostTerm::Ptr P2PSuperCostTerm::MakeShared(
-    const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
+    const Interface::ConstPtr &interface, const Time time1, const Time time2,
     const Options &options) {
   return std::make_shared<P2PSuperCostTerm>(interface, time1, time2, options);
 }

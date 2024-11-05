@@ -24,7 +24,7 @@ auto Interface::MakeShared(const Eigen::Matrix<double, 6, 1>& Qc_diag) -> Ptr {
 Interface::Interface(const Eigen::Matrix<double, 6, 1>& Qc_diag)
     : Qc_diag_(Qc_diag) {}
 
-void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+void Interface::add(const Time time, const Evaluable<PoseType>::Ptr& T_k0,
                     const Evaluable<VelocityType>::Ptr& w_0k_ink,
                     const Evaluable<VelocityType>::Ptr& dw_0k_ink) {
   if (knot_map_.find(time) != knot_map_.end())
@@ -33,11 +33,11 @@ void Interface::add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
   knot_map_.insert(knot_map_.end(), std::pair<Time, Variable::Ptr>(time, knot));
 }
 
-Variable::ConstPtr Interface::get(const Time& time) const {
+Variable::ConstPtr Interface::get(const Time time) const {
   return knot_map_.at(time);
 }
 
-auto Interface::getPoseInterpolator(const Time& time) const
+auto Interface::getPoseInterpolator(const Time time) const
     -> Evaluable<PoseType>::ConstPtr {
   // Check that map is not empty
   if (knot_map_.empty()) throw std::runtime_error("knot map is empty");
@@ -75,7 +75,7 @@ auto Interface::getPoseInterpolator(const Time& time) const
   return getPoseInterpolator_(time, it1->second, it2->second);
 }
 
-auto Interface::getVelocityInterpolator(const Time& time) const
+auto Interface::getVelocityInterpolator(const Time time) const
     -> Evaluable<VelocityType>::ConstPtr {
   // Check that map is not empty
   if (knot_map_.empty()) throw std::runtime_error("knot map is empty");
@@ -113,7 +113,7 @@ auto Interface::getVelocityInterpolator(const Time& time) const
   return getVelocityInterpolator_(time, it1->second, it2->second);
 }
 
-auto Interface::getAccelerationInterpolator(const Time& time) const
+auto Interface::getAccelerationInterpolator(const Time time) const
     -> Evaluable<AccelerationType>::ConstPtr {
   // Check that map is not empty
   if (knot_map_.empty()) throw std::runtime_error("knot map is empty");
@@ -152,7 +152,7 @@ auto Interface::getAccelerationInterpolator(const Time& time) const
 }
 
 // See State Estimation (2nd Ed) Sections 11.1.4, 11.3.2
-auto Interface::getCovariance(const Covariance& cov, const Time& time)
+auto Interface::getCovariance(const Covariance& cov, const Time time)
     -> CovType {
   // clang-format off
 
@@ -303,7 +303,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time& time)
   // clang-format on
 }
 
-void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
+void Interface::addPosePrior(const Time time, const PoseType& T_k0,
                              const Eigen::Matrix<double, 6, 6>& cov) {
   if (pose_prior_factor_ != nullptr)
     throw std::runtime_error("can only add one pose prior.");
@@ -333,7 +333,7 @@ void Interface::addPosePrior(const Time& time, const PoseType& T_k0,
       error_func, noise_model, loss_func);
 }
 
-void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
+void Interface::addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
                                  const Eigen::Matrix<double, 6, 6>& cov) {
   if (vel_prior_factor_ != nullptr)
     throw std::runtime_error("can only add one velocity prior.");
@@ -363,7 +363,7 @@ void Interface::addVelocityPrior(const Time& time, const VelocityType& w_0k_ink,
       error_func, noise_model, loss_func);
 }
 
-void Interface::addAccelerationPrior(const Time& time,
+void Interface::addAccelerationPrior(const Time time,
                                      const AccelerationType& dw_0k_ink,
                                      const Eigen::Matrix<double, 6, 6>& cov) {
   if (acc_prior_factor_ != nullptr)
@@ -394,7 +394,7 @@ void Interface::addAccelerationPrior(const Time& time,
       error_func, noise_model, loss_func);
 }
 
-void Interface::addStatePrior(const Time& time, const PoseType& T_k0,
+void Interface::addStatePrior(const Time time, const PoseType& T_k0,
                               const VelocityType& w_0k_ink,
                               const AccelerationType& dw_0k_ink,
                               const CovType& cov) {
@@ -497,14 +497,14 @@ Eigen::Matrix<double, 18, 18> Interface::getQinv_(
   return getQinv(dt, Qc_diag);
 }
 
-auto Interface::getPoseInterpolator_(const Time& time,
+auto Interface::getPoseInterpolator_(const Time time,
                                      const Variable::ConstPtr& knot1,
                                      const Variable::ConstPtr& knot2) const
     -> Evaluable<PoseType>::Ptr {
   return PoseInterpolator::MakeShared(time, knot1, knot2);
 }
 
-auto Interface::getVelocityInterpolator_(const Time& time,
+auto Interface::getVelocityInterpolator_(const Time time,
                                          const Variable::ConstPtr& knot1,
                                          const Variable::ConstPtr& knot2) const
     -> Evaluable<VelocityType>::Ptr {
@@ -512,25 +512,25 @@ auto Interface::getVelocityInterpolator_(const Time& time,
 }
 
 auto Interface::getAccelerationInterpolator_(
-    const Time& time, const Variable::ConstPtr& knot1,
+    const Time time, const Variable::ConstPtr& knot1,
     const Variable::ConstPtr& knot2) const -> Evaluable<AccelerationType>::Ptr {
   return AccelerationInterpolator::MakeShared(time, knot1, knot2);
 }
 
-auto Interface::getPoseExtrapolator_(const Time& time,
+auto Interface::getPoseExtrapolator_(const Time time,
                                      const Variable::ConstPtr& knot) const
     -> Evaluable<PoseType>::Ptr {
   return PoseExtrapolator::MakeShared(time, knot);
 }
 
-auto Interface::getVelocityExtrapolator_(const Time& time,
+auto Interface::getVelocityExtrapolator_(const Time time,
                                          const Variable::ConstPtr& knot) const
     -> Evaluable<VelocityType>::Ptr {
   return VelocityExtrapolator::MakeShared(time, knot);
 }
 
 auto Interface::getAccelerationExtrapolator_(
-    const Time& time, const Variable::ConstPtr& knot) const
+    const Time time, const Variable::ConstPtr& knot) const
     -> Evaluable<AccelerationType>::Ptr {
   return AccelerationExtrapolator::MakeShared(time, knot);
 }
