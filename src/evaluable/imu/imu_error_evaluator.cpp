@@ -29,9 +29,6 @@ IMUErrorEvaluator::IMUErrorEvaluator(
       bias_(bias),
       transform_i_to_m_(transform_i_to_m),
       imu_meas_(imu_meas) {
-  const Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
-  Da_ = I.block<3, 6>(0, 0);
-  Dw_ = I.block<3, 6>(3, 0);
   gravity_(2, 0) = -9.8042;
 }
 
@@ -54,9 +51,8 @@ auto IMUErrorEvaluator::value() const -> OutType {
   const Eigen::Matrix3d C_vm = transform_->value().C_ba();
   const Eigen::Matrix3d C_mi = transform_i_to_m_->value().C_ba();
   OutType error = Eigen::Matrix<double, 6, 1>::Zero();
-  // error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * acceleration_->value() + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
-  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * acceleration_->value() - bias_->value().block<3, 1>(0, 0);
-  error.block<3, 1>(3, 0) = imu_meas_.block<3, 1>(3, 0) + Dw_ * velocity_->value() - bias_->value().block<3, 1>(3, 0);
+  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + acceleration_->value().block<3, 1>(0, 0) + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
+  error.block<3, 1>(3, 0) = imu_meas_.block<3, 1>(3, 0) + velocity_->value().block<3, 1>(3, 0) - bias_->value().block<3, 1>(3, 0);
   return error;
   // clang-format on
 }
@@ -76,9 +72,8 @@ auto IMUErrorEvaluator::forward() const -> Node<OutType>::Ptr {
 
   // clang-format off
   OutType error = Eigen::Matrix<double, 6, 1>::Zero();
-  // error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
-  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + Da_ * dw_mv_in_v - b.block<3, 1>(0, 0);
-  error.block<3, 1>(3, 0) = imu_meas_.block<3, 1>(3, 0) + Dw_ * w_mv_in_v - b.block<3, 1>(3, 0);
+  error.block<3, 1>(0, 0) = imu_meas_.block<3, 1>(0, 0) + dw_mv_in_v.block<3, 1>(0, 0) + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
+  error.block<3, 1>(3, 0) = imu_meas_.block<3, 1>(3, 0) + w_mv_in_v.block<3, 1>(3, 0) - b.block<3, 1>(3, 0);
   // clang-format on
 
   const auto node = Node<OutType>::MakeShared(error);

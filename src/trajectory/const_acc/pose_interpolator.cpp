@@ -13,12 +13,12 @@ namespace traj {
 namespace const_acc {
 
 PoseInterpolator::Ptr PoseInterpolator::MakeShared(
-    const Time& time, const Variable::ConstPtr& knot1,
+    const Time time, const Variable::ConstPtr& knot1,
     const Variable::ConstPtr& knot2) {
   return std::make_shared<PoseInterpolator>(time, knot1, knot2);
 }
 
-PoseInterpolator::PoseInterpolator(const Time& time,
+PoseInterpolator::PoseInterpolator(const Time time,
                                    const Variable::ConstPtr& knot1,
                                    const Variable::ConstPtr& knot2)
     : knot1_(knot1), knot2_(knot2) {

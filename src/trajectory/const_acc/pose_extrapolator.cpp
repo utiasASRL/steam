@@ -6,11 +6,11 @@ namespace traj {
 namespace const_acc {
 
 PoseExtrapolator::Ptr PoseExtrapolator::MakeShared(
-    const Time& time, const Variable::ConstPtr& knot) {
+    const Time time, const Variable::ConstPtr& knot) {
   return std::make_shared<PoseExtrapolator>(time, knot);
 }
 
-PoseExtrapolator::PoseExtrapolator(const Time& time,
+PoseExtrapolator::PoseExtrapolator(const Time time,
                                    const Variable::ConstPtr& knot)
     : knot_(knot) {
   const double tau = (time - knot->time()).seconds();

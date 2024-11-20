@@ -21,9 +21,9 @@ class VelocityInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   using InVelType = Eigen::Matrix<double, 6, 1>;
   using OutType = Eigen::Matrix<double, 6, 1>;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
+  static Ptr MakeShared(const Time time, const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2);
-  VelocityInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+  VelocityInterpolator(const Time time, const Variable::ConstPtr& knot1,
                        const Variable::ConstPtr& knot2);
 
   bool active() const override;

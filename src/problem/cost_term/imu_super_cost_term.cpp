@@ -4,7 +4,7 @@
 namespace steam {
 
 IMUSuperCostTerm::Ptr IMUSuperCostTerm::MakeShared(
-    const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
+    const Interface::ConstPtr &interface, const Time time1, const Time time2,
     const Evaluable<BiasType>::ConstPtr &bias1,
     const Evaluable<BiasType>::ConstPtr &bias2,
     const Evaluable<PoseType>::ConstPtr &transform_i_to_m_1,

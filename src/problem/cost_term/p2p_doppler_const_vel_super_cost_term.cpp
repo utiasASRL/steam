@@ -5,7 +5,7 @@
 namespace steam {
 
 P2PDopplerCVSuperCostTerm::Ptr P2PDopplerCVSuperCostTerm::MakeShared(
-    const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
+    const Interface::ConstPtr &interface, const Time time1, const Time time2,
     const Options &options) {
   return std::make_shared<P2PDopplerCVSuperCostTerm>(interface, time1, time2,
                                                      options);

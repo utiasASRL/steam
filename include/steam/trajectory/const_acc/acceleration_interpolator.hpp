@@ -22,9 +22,9 @@ class AccelerationInterpolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   using InAccType = Eigen::Matrix<double, 6, 1>;
   using OutType = Eigen::Matrix<double, 6, 1>;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot1,
+  static Ptr MakeShared(const Time time, const Variable::ConstPtr& knot1,
                         const Variable::ConstPtr& knot2);
-  AccelerationInterpolator(const Time& time, const Variable::ConstPtr& knot1,
+  AccelerationInterpolator(const Time time, const Variable::ConstPtr& knot1,
                            const Variable::ConstPtr& knot2);
 
   bool active() const override;

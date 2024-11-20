@@ -26,8 +26,6 @@ AccelerationErrorEvaluator::AccelerationErrorEvaluator(
       bias_(bias),
       transform_i_to_m_(transform_i_to_m),
       acc_meas_(acc_meas) {
-  const Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
-  Da_ = I.block<3, 6>(0, 0);
   gravity_(2, 0) = -9.8042;
   jac_accel_.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity();
   jac_bias_.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Identity() * -1;
@@ -50,9 +48,6 @@ auto AccelerationErrorEvaluator::value() const -> OutType {
   const Eigen::Matrix3d C_vm = transform_->value().C_ba();
   const Eigen::Matrix3d C_mi = transform_i_to_m_->value().C_ba();
   OutType error = acc_meas_ + acceleration_->value().block<3, 1>(0, 0) + C_vm * C_mi * gravity_ - bias_->value().block<3, 1>(0, 0);
-  // error(1, 0) = 0.0;
-  // error(2, 0) = 0.0;
-  // OutType error = acc_meas_ + Da_ * acceleration_->value() - bias_->value().block<3, 1>(0, 0);
   return error;
   // clang-format on
 }
@@ -70,9 +65,6 @@ auto AccelerationErrorEvaluator::forward() const -> Node<OutType>::Ptr {
 
   // clang-format off
   OutType error = acc_meas_.block<3, 1>(0, 0) + dw_mv_in_v.block<3, 1>(0, 0) + C_vm * C_mi * gravity_ - b.block<3, 1>(0, 0);
-  // error(1, 0) = 0.0;
-  // error(2, 0) = 0.0;
-  // OutType error = acc_meas_ + Da_ * dw_mv_in_v - b.block<3, 1>(0, 0);
   // clang-format on
 
   const auto node = Node<OutType>::MakeShared(error);

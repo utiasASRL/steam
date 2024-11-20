@@ -9,72 +9,69 @@
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/noise_model/static_noise_model.hpp"
 #include "steam/problem/problem.hpp"
-#include "steam/trajectory/const_vel/interface.hpp"
 #include "steam/trajectory/time.hpp"
 
 #include <iostream>
 
 namespace steam {
 
-class PreintAccCostTerm : public BaseCostTerm {
+struct PreintegratedMeasurement {
+  Eigen::Matrix3d C_ij;
+  Eigen::Vector3d r_ij;
+  Eigen::Vector3d v_ij;
+  Eigen::Matrix<double, 9, 9> cov;
+
+  PreintegratedMeasurement(Eigen::Matrix3d C_ij_, Eigen::Vector3d r_ij_, Eigen::Vector3d v_ij_, Eigen::Matrix<double, 9, 9> cov_) : C_ij(C_ij_), r_ij(r_ij_), v_ij(v_ij_), cov(cov_) {}
+  PreintegratedMeasurement() {}
+};
+
+class PreintIMUCostTerm : public BaseCostTerm {
  public:
   enum class LOSS_FUNC { L2, DCS, CAUCHY, GM };
 
   struct Options {
-    int num_threads = 1;
     LOSS_FUNC loss_func = LOSS_FUNC::L2;
     double loss_sigma = 1.0;
-    Eigen::Matrix<double, 3, 1> gravity = Eigen::Matrix<double, 3, 1>::Zero();
+    Eigen::Matrix<double, 3, 1> gravity = {0, 0, -9.8042};
     Eigen::Matrix<double, 3, 1> r_imu_acc = Eigen::Matrix<double, 3, 1>::Zero();
-    bool se2 = false;
+    Eigen::Matrix<double, 3, 1> r_imu_ang = Eigen::Matrix<double, 3, 1>::Zero();
   };
 
-  using Ptr = std::shared_ptr<PreintAccCostTerm>;
-  using ConstPtr = std::shared_ptr<const PreintAccCostTerm>;
+  using Ptr = std::shared_ptr<PreintIMUCostTerm>;
+  using ConstPtr = std::shared_ptr<const PreintIMUCostTerm>;
 
   using PoseType = lgmath::se3::Transformation;
-  using VelType = Eigen::Matrix<double, 6, 1>;
+  using VelType = Eigen::Matrix<double, 3, 1>;
   using BiasType = Eigen::Matrix<double, 6, 1>;
-
-  using Interface = steam::traj::const_vel::Interface;
-
-  using Variable = steam::traj::const_vel::Variable;
 
   using Time = steam::traj::Time;
 
-  using Matrix12d = Eigen::Matrix<double, 12, 12>;
-  using Matrix6d = Eigen::Matrix<double, 6, 6>;
 
-  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time time1,
+  static Ptr MakeShared(const Time time1,
                         const Time time2,
-                        const Evaluable<BiasType>::ConstPtr &bias1,
-                        const Evaluable<BiasType>::ConstPtr &bias2,
-                        const Evaluable<PoseType>::ConstPtr &transform_i_to_m_1,
-                        const Evaluable<PoseType>::ConstPtr &transform_i_to_m_2,
+                        const Evaluable<PoseType>::ConstPtr &transform_r_to_m_1,
+                        const Evaluable<PoseType>::ConstPtr &transform_r_to_m_2,
+                        const Evaluable<VelType>::ConstPtr &v_m_to_r_in_m_1,
+                        const Evaluable<VelType>::ConstPtr &v_m_to_r_in_m_2,
+                        const Evaluable<BiasType>::ConstPtr &bias,
                         const Options &options);
 
-  PreintAccCostTerm(const Interface::ConstPtr &interface, const Time time1,
+  PreintIMUCostTerm(const Time time1,
                     const Time time2,
-                    const Evaluable<BiasType>::ConstPtr &bias1,
-                    const Evaluable<BiasType>::ConstPtr &bias2,
-                    const Evaluable<PoseType>::ConstPtr &transform_i_to_m_1,
-                    const Evaluable<PoseType>::ConstPtr &transform_i_to_m_2,
+                    const Evaluable<PoseType>::ConstPtr &transform_r_to_m_1,
+                    const Evaluable<PoseType>::ConstPtr &transform_r_to_m_2,
+                    const Evaluable<VelType>::ConstPtr &v_m_to_r_in_m_1,
+                    const Evaluable<VelType>::ConstPtr &v_m_to_r_in_m_2,
+                    const Evaluable<BiasType>::ConstPtr &bias,
                     const Options &options)
-      : interface_(interface),
-        time1_(time1),
+      : time1_(time1),
         time2_(time2),
-        bias1_(bias1),
-        bias2_(bias2),
-        transform_i_to_m_1_(transform_i_to_m_1),
-        transform_i_to_m_2_(transform_i_to_m_2),
-        options_(options),
-        knot1_(interface_->get(time1)),
-        knot2_(interface_->get(time2)) {
-    const double T = (knot2_->time() - knot1_->time()).seconds();
-    const Eigen::Matrix<double, 6, 1> ones =
-        Eigen::Matrix<double, 6, 1>::Ones();
-    Qinv_T_ = steam::traj::const_vel::getQinv(T, ones);
-    Tran_T_ = steam::traj::const_vel::getTran(T);
+        transform_r_to_m_1_(transform_r_to_m_1),
+        transform_r_to_m_2_(transform_r_to_m_2),
+        v_m_to_r_in_m_1_(v_m_to_r_in_m_1),
+        v_m_to_r_in_m_2_(v_m_to_r_in_m_2),
+        bias_(bias),
+        options_(options) {
 
     loss_func_ = [this]() -> BaseLossFunc::Ptr {
       switch (options_.loss_func) {
@@ -92,14 +89,9 @@ class PreintAccCostTerm : public BaseCostTerm {
       return nullptr;
     }();
 
-    jac_bias_accel_.block<3, 3>(0, 0) =
-        Eigen::Matrix<double, 3, 3>::Identity() * -1;
-
-    if (options_.se2) {
-      jac_bias_accel_(2, 2) = 0.;
-    }
-
     R_acc_.diagonal() = options_.r_imu_acc;
+    R_ang_.diagonal() = options_.r_imu_ang;
+    gravity_ = options_.gravity;
   }
 
   /** \brief Compute the cost to the objective function */
@@ -130,35 +122,43 @@ class PreintAccCostTerm : public BaseCostTerm {
                              BlockSparseMatrix *approximate_hessian,
                              BlockVector *gradient_vector) const override;
 
+  
+
+  /** \brief Returns the 9x24 Jacbobian of the error with respect to the state variables
+   * e = [e(r); e(p); e(v)], x = [dp_i; dr_i; dv_i; dp_j; dr_j; dv_j; db_a; db_g].
+   * Returns: d e / d x
+  */
+  Eigen::Matrix<double, 9, 24> get_jacobian() const;
+
+  /** \brief Returns the 9x1 error vector associated with this preintegrated IMU factor. 
+   * e = [e(r); e(p); e(v)]
+  */
+  Eigen::Matrix<double, 9, 1> get_error() const;
+
+  /** \brief Produces the preintegrated IMU measurement.
+   * Returns a tuple of C_ij, r_ij, v_ij, covariance(dr, dp, dv).
+   */
+  PreintegratedMeasurement preintegrate_() const;
+
+
  private:
-  const Interface::ConstPtr interface_;
   const Time time1_;
   const Time time2_;
-  const Evaluable<BiasType>::ConstPtr bias1_;
-  const Evaluable<BiasType>::ConstPtr bias2_;
-  const Evaluable<PoseType>::ConstPtr transform_i_to_m_1_;
-  const Evaluable<PoseType>::ConstPtr transform_i_to_m_2_;
+  const Evaluable<PoseType>::ConstPtr transform_r_to_m_1_;
+  const Evaluable<PoseType>::ConstPtr transform_r_to_m_2_;
+  const Evaluable<VelType>::ConstPtr v_m_to_r_in_m_1_;
+  const Evaluable<VelType>::ConstPtr v_m_to_r_in_m_2_;
+  const Evaluable<BiasType>::ConstPtr bias_;
   const Options options_;
-  const Variable::ConstPtr knot1_;
-  const Variable::ConstPtr knot2_;
-  Matrix12d Qinv_T_ = Matrix12d::Identity();
-  Matrix12d Tran_T_ = Matrix12d::Identity();
-  std::map<double, std::pair<Eigen::Matrix4d, Eigen::Matrix4d>> interp_mats_;
 
   std::vector<IMUData> imu_data_vec_;
-  std::vector<double> meas_times_;
 
   BaseLossFunc::Ptr loss_func_ = L2LossFunc::MakeShared();
-  const Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
-  StaticNoiseModel<3>::Ptr acc_noise_model_ =
-      StaticNoiseModel<3>::MakeShared(R);
-
-  Eigen::Matrix<double, 3, 6> jac_bias_accel_ =
-      Eigen::Matrix<double, 3, 6>::Zero();
 
   Eigen::Matrix3d R_acc_ = Eigen::Matrix3d::Zero();
-
-  void initialize_interp_matrices_();
+  Eigen::Matrix3d R_ang_ = Eigen::Matrix3d::Zero();
+  Eigen::Vector3d gravity_ = {0, 0, -9.8042};
+  
 };
 
 }  // namespace steam

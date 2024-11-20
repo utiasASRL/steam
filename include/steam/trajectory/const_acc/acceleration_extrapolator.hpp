@@ -18,8 +18,8 @@ class AccelerationExtrapolator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   using InAccType = Eigen::Matrix<double, 6, 1>;
   using OutType = Eigen::Matrix<double, 6, 1>;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot);
-  AccelerationExtrapolator(const Time& time, const Variable::ConstPtr& knot);
+  static Ptr MakeShared(const Time time, const Variable::ConstPtr& knot);
+  AccelerationExtrapolator(const Time time, const Variable::ConstPtr& knot);
 
   bool active() const override;
   void getRelatedVarKeys(KeySet& keys) const override;

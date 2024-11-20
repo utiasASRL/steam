@@ -42,11 +42,11 @@ class P2PDopplerCASuperCostTerm : public BaseCostTerm {
   using Matrix18d = Eigen::Matrix<double, 18, 18>;
   using Matrix6d = Eigen::Matrix<double, 6, 6>;
 
-  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time &time1,
-                        const Time &time2, const Options &options);
+  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time time1,
+                        const Time time2, const Options &options);
 
   P2PDopplerCASuperCostTerm(const Interface::ConstPtr &interface,
-                            const Time &time1, const Time &time2,
+                            const Time time1, const Time time2,
                             const Options &options)
       : interface_(interface),
         time1_(time1),
@@ -110,8 +110,8 @@ class P2PDopplerCASuperCostTerm : public BaseCostTerm {
 
  private:
   const Interface::ConstPtr interface_;
-  const Time &time1_;
-  const Time &time2_;
+  const Time time1_;
+  const Time time2_;
   const Options options_;
   const Variable::ConstPtr knot1_;
   const Variable::ConstPtr knot2_;

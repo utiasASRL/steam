@@ -4,7 +4,7 @@
 namespace steam {
 
 GyroSuperCostTerm::Ptr GyroSuperCostTerm::MakeShared(
-    const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
+    const Interface::ConstPtr &interface, const Time time1, const Time time2,
     const Evaluable<BiasType>::ConstPtr &bias1,
     const Evaluable<BiasType>::ConstPtr &bias2, const Options &options) {
   return std::make_shared<GyroSuperCostTerm>(interface, time1, time2, bias1,

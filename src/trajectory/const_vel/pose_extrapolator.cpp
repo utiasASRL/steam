@@ -5,12 +5,12 @@ namespace steam {
 namespace traj {
 namespace const_vel {
 
-auto PoseExtrapolator::MakeShared(const Time& time,
+auto PoseExtrapolator::MakeShared(const Time time,
                                   const Variable::ConstPtr& knot) -> Ptr {
   return std::make_shared<PoseExtrapolator>(time, knot);
 }
 
-PoseExtrapolator::PoseExtrapolator(const Time& time,
+PoseExtrapolator::PoseExtrapolator(const Time time,
                                    const Variable::ConstPtr& knot)
     : knot_(knot) {
   const double tau = (time - knot->time()).seconds();

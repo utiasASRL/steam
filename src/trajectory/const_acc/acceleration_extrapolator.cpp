@@ -5,14 +5,14 @@ namespace steam {
 namespace traj {
 namespace const_acc {
 
-auto AccelerationExtrapolator::MakeShared(const Time& time,
+auto AccelerationExtrapolator::MakeShared(const Time time,
                                           const Variable::ConstPtr& knot)
     -> Ptr {
   return std::make_shared<AccelerationExtrapolator>(time, knot);
 }
 
 AccelerationExtrapolator::AccelerationExtrapolator(
-    const Time& time, const Variable::ConstPtr& knot)
+    const Time time, const Variable::ConstPtr& knot)
     : knot_(knot) {
   const double tau = (time - knot->time()).seconds();
   Phi_ = getTran(tau);

@@ -79,31 +79,31 @@ class Interface : public steam::traj::const_acc::Interface {
     return getQ(dt, alpha_diag_, Qc_diag).inverse();
   }
   Evaluable<PoseType>::Ptr getPoseInterpolator_(
-      const Time& time, const Variable::ConstPtr& knot1,
+      const Time time, const Variable::ConstPtr& knot1,
       const Variable::ConstPtr& knot2) const {
     return PoseInterpolator::MakeShared(time, knot1, knot2, alpha_diag_);
   }
   Evaluable<VelocityType>::Ptr getVelocityInterpolator_(
-      const Time& time, const Variable::ConstPtr& knot1,
+      const Time time, const Variable::ConstPtr& knot1,
       const Variable::ConstPtr& knot2) const {
     return VelocityInterpolator::MakeShared(time, knot1, knot2, alpha_diag_);
   }
   Evaluable<AccelerationType>::Ptr getAccelerationInterpolator_(
-      const Time& time, const Variable::ConstPtr& knot1,
+      const Time time, const Variable::ConstPtr& knot1,
       const Variable::ConstPtr& knot2) const {
     return AccelerationInterpolator::MakeShared(time, knot1, knot2,
                                                 alpha_diag_);
   }
   Evaluable<PoseType>::Ptr getPoseExtrapolator_(
-      const Time& time, const Variable::ConstPtr& knot) const {
+      const Time time, const Variable::ConstPtr& knot) const {
     return PoseExtrapolator::MakeShared(time, knot, alpha_diag_);
   }
   Evaluable<VelocityType>::Ptr getVelocityExtrapolator_(
-      const Time& time, const Variable::ConstPtr& knot) const {
+      const Time time, const Variable::ConstPtr& knot) const {
     return VelocityExtrapolator::MakeShared(time, knot, alpha_diag_);
   }
   Evaluable<AccelerationType>::Ptr getAccelerationExtrapolator_(
-      const Time& time, const Variable::ConstPtr& knot) const {
+      const Time time, const Variable::ConstPtr& knot) const {
     return AccelerationExtrapolator::MakeShared(time, knot, alpha_diag_);
   }
   Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr getPriorFactor_(

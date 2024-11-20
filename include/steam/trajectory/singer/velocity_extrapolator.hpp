@@ -18,12 +18,12 @@ class VelocityExtrapolator
   using ConstPtr = std::shared_ptr<const VelocityExtrapolator>;
   using Variable = steam::traj::const_acc::Variable;
 
-  static Ptr MakeShared(const Time& time, const Variable::ConstPtr& knot,
+  static Ptr MakeShared(const Time time, const Variable::ConstPtr& knot,
                         const Eigen::Matrix<double, 6, 1>& ad) {
     return std::make_shared<VelocityExtrapolator>(time, knot, ad);
   }
 
-  VelocityExtrapolator(const Time& time, const Variable::ConstPtr& knot,
+  VelocityExtrapolator(const Time time, const Variable::ConstPtr& knot,
                        const Eigen::Matrix<double, 6, 1>& ad)
       : steam::traj::const_acc::VelocityExtrapolator(time, knot) {
     const double tau = (time - knot->time()).seconds();

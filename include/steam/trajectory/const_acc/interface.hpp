@@ -29,22 +29,22 @@ class Interface : public traj::Interface {
   Interface(const Eigen::Matrix<double, 6, 1>& Qc_diag =
                 Eigen::Matrix<double, 6, 1>::Ones());
 
-  void add(const Time& time, const Evaluable<PoseType>::Ptr& T_k0,
+  void add(const Time time, const Evaluable<PoseType>::Ptr& T_k0,
            const Evaluable<VelocityType>::Ptr& w_0k_ink,
            const Evaluable<AccelerationType>::Ptr& dw_0k_ink);
 
-  Variable::ConstPtr get(const Time& time) const;
+  Variable::ConstPtr get(const Time time) const;
 
   // clang-format off
-  Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time& time) const;
-  Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(const Time& time) const;
-  Evaluable<AccelerationType>::ConstPtr getAccelerationInterpolator(const Time& time) const;
-  CovType getCovariance(const Covariance& cov, const Time& time);
+  Evaluable<PoseType>::ConstPtr getPoseInterpolator(const Time time) const;
+  Evaluable<VelocityType>::ConstPtr getVelocityInterpolator(const Time time) const;
+  Evaluable<AccelerationType>::ConstPtr getAccelerationInterpolator(const Time time) const;
+  CovType getCovariance(const Covariance& cov, const Time time);
 
-  void addPosePrior(const Time& time, const PoseType& T_k0, const Eigen::Matrix<double, 6, 6>& cov);
-  void addVelocityPrior(const Time& time, const VelocityType& w_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
-  void addAccelerationPrior(const Time& time, const AccelerationType& dw_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
-  void addStatePrior(const Time& time, const PoseType& T_k0,
+  void addPosePrior(const Time time, const PoseType& T_k0, const Eigen::Matrix<double, 6, 6>& cov);
+  void addVelocityPrior(const Time time, const VelocityType& w_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
+  void addAccelerationPrior(const Time time, const AccelerationType& dw_0k_ink, const Eigen::Matrix<double, 6, 6>& cov);
+  void addStatePrior(const Time time, const PoseType& T_k0,
                      const VelocityType& w_0k_ink, const AccelerationType& dw_0k_ink, const CovType& cov);
   // clang-format on
 
@@ -77,20 +77,20 @@ class Interface : public traj::Interface {
   Eigen::Matrix<double, 18, 18> getQinv_(
       const double& dt, const Eigen::Matrix<double, 6, 1>& Qc_diag) const;
   Evaluable<PoseType>::Ptr getPoseInterpolator_(
-      const Time& time, const Variable::ConstPtr& knot1,
+      const Time time, const Variable::ConstPtr& knot1,
       const Variable::ConstPtr& knot2) const;
   Evaluable<VelocityType>::Ptr getVelocityInterpolator_(
-      const Time& time, const Variable::ConstPtr& knot1,
+      const Time time, const Variable::ConstPtr& knot1,
       const Variable::ConstPtr& knot2) const;
   Evaluable<AccelerationType>::Ptr getAccelerationInterpolator_(
-      const Time& time, const Variable::ConstPtr& knot1,
+      const Time time, const Variable::ConstPtr& knot1,
       const Variable::ConstPtr& knot2) const;
   Evaluable<PoseType>::Ptr getPoseExtrapolator_(
-      const Time& time, const Variable::ConstPtr& knot) const;
+      const Time time, const Variable::ConstPtr& knot) const;
   Evaluable<VelocityType>::Ptr getVelocityExtrapolator_(
-      const Time& time, const Variable::ConstPtr& knot) const;
+      const Time time, const Variable::ConstPtr& knot) const;
   Evaluable<AccelerationType>::Ptr getAccelerationExtrapolator_(
-      const Time& time, const Variable::ConstPtr& knot) const;
+      const Time time, const Variable::ConstPtr& knot) const;
   Evaluable<Eigen::Matrix<double, 18, 1>>::Ptr getPriorFactor_(
       const Variable::ConstPtr& knot1, const Variable::ConstPtr& knot2) const;
 };
