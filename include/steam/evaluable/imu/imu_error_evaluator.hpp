@@ -53,8 +53,6 @@ class IMUErrorEvaluator : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   const Evaluable<BiasInType>::ConstPtr bias_;
   const Evaluable<PoseInType>::ConstPtr transform_i_to_m_;
   const ImuInType imu_meas_;
-  Eigen::Matrix<double, 3, 6> Da_ = Eigen::Matrix<double, 3, 6>::Zero();
-  Eigen::Matrix<double, 3, 6> Dw_ = Eigen::Matrix<double, 3, 6>::Zero();
   Eigen::Matrix<double, 3, 1> gravity_ = Eigen::Matrix<double, 3, 1>::Zero();
 };
 

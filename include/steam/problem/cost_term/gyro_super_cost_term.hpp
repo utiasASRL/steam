@@ -44,14 +44,14 @@ class GyroSuperCostTerm : public BaseCostTerm {
   using Matrix12d = Eigen::Matrix<double, 12, 12>;
   using Matrix6d = Eigen::Matrix<double, 6, 6>;
 
-  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time &time1,
-                        const Time &time2,
+  static Ptr MakeShared(const Interface::ConstPtr &interface, const Time time1,
+                        const Time time2,
                         const Evaluable<BiasType>::ConstPtr &bias1,
                         const Evaluable<BiasType>::ConstPtr &bias2,
                         const Options &options);
 
-  GyroSuperCostTerm(const Interface::ConstPtr &interface, const Time &time1,
-                    const Time &time2,
+  GyroSuperCostTerm(const Interface::ConstPtr &interface, const Time time1,
+                    const Time time2,
                     const Evaluable<BiasType>::ConstPtr &bias1,
                     const Evaluable<BiasType>::ConstPtr &bias2,
                     const Options &options)
@@ -128,8 +128,8 @@ class GyroSuperCostTerm : public BaseCostTerm {
 
  private:
   const Interface::ConstPtr interface_;
-  const Time &time1_;
-  const Time &time2_;
+  const Time time1_;
+  const Time time2_;
   const Evaluable<BiasType>::ConstPtr bias1_;
   const Evaluable<BiasType>::ConstPtr bias2_;
   const Options options_;

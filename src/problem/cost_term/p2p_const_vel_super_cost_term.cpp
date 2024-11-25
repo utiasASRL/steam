@@ -5,7 +5,7 @@
 namespace steam {
 
 P2PCVSuperCostTerm::Ptr P2PCVSuperCostTerm::MakeShared(
-    const Interface::ConstPtr &interface, const Time &time1, const Time &time2,
+    const Interface::ConstPtr &interface, const Time time1, const Time time2,
     const Options &options) {
   return std::make_shared<P2PCVSuperCostTerm>(interface, time1, time2, options);
 }
@@ -89,10 +89,10 @@ void P2PCVSuperCostTerm::initialize_interp_matrices_() {
   for (const double &time : meas_times_) {
     if (interp_mats_.find(time) == interp_mats_.end()) {
       const double tau = (Time(time) - time1_).seconds();
-      const double T = (time2_ - time1_).seconds();
-      const double ratio = tau / T;
-      const double ratio2 = ratio * ratio;
-      const double ratio3 = ratio2 * ratio;
+      // const double T = (time2_ - time1_).seconds();
+      // const double ratio = tau / T;
+      // const double ratio2 = ratio * ratio;
+      // const double ratio3 = ratio2 * ratio;
       // Calculate 'omega' interpolation values
       Eigen::Matrix4d omega = Eigen::Matrix4d::Zero();
       // omega(0, 0) = 3.0 * ratio2 - 2.0 * ratio3;

@@ -6,12 +6,12 @@ namespace traj {
 namespace const_acc {
 
 VelocityInterpolator::Ptr VelocityInterpolator::MakeShared(
-    const Time& time, const Variable::ConstPtr& knot1,
+    const Time time, const Variable::ConstPtr& knot1,
     const Variable::ConstPtr& knot2) {
   return std::make_shared<VelocityInterpolator>(time, knot1, knot2);
 }
 
-VelocityInterpolator::VelocityInterpolator(const Time& time,
+VelocityInterpolator::VelocityInterpolator(const Time time,
                                            const Variable::ConstPtr& knot1,
                                            const Variable::ConstPtr& knot2)
     : knot1_(knot1), knot2_(knot2) {
