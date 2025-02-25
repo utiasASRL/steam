@@ -28,13 +28,12 @@ void GyroErrorEvaluator::getRelatedVarKeys(KeySet &keys) const {
 auto GyroErrorEvaluator::value() const -> OutType {
     // Form measured and predicted printegrated DCM: prev (p) curr (c)
     Eigen::Vector3d meas_vec = gyro_meas_;
-    const lgmath::so3::Rotation C_pc_meas(meas_vec);
-    const lgmath::so3::Rotation C_cp_eval((T_ms_curr_->value().C_ba().inverse() * 
-                                           T_ms_prev_->value().C_ba()).eval());
-    std::cout << "Gyro error: " << -lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix()).transpose() << std::endl;
+    const lgmath::so3::Rotation RMI_Y(meas_vec);
+    const lgmath::so3::Rotation RMI_X((T_ms_prev_->value().C_ba().transpose() *
+                                        T_ms_curr_->value().C_ba()).eval());
 
     // Return error (minus sign bc rot2vec flips rotation direction)
-    return -lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix());
+    return -lgmath::so3::rot2vec((RMI_X.inverse() * RMI_Y).matrix());
 }
 
 auto GyroErrorEvaluator::forward() const -> Node<OutType>::Ptr {
@@ -47,10 +46,11 @@ auto GyroErrorEvaluator::forward() const -> Node<OutType>::Ptr {
     // Form measured and predicted printegrated DCM: prev (p) curr (c)
     // clang-format off
     Eigen::Vector3d meas_vec = gyro_meas_;
-    const lgmath::so3::Rotation C_pc_meas(meas_vec);
-    const lgmath::so3::Rotation C_cp_eval((C_ms_curr.transpose() * C_ms_prev).eval());
+    const lgmath::so3::Rotation RMI_Y(meas_vec);
+    const lgmath::so3::Rotation RMI_X((C_ms_prev.transpose() * 
+                                        C_ms_curr).eval());
     // Compute error (minus sign bc rot2vec flips rotation direction)
-    OutType error = -lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix());
+    OutType error = -lgmath::so3::rot2vec((RMI_X.inverse() * RMI_Y).matrix());
     // clang-format on
 
     const auto node = Node<OutType>::MakeShared(error);
@@ -62,13 +62,20 @@ auto GyroErrorEvaluator::forward() const -> Node<OutType>::Ptr {
 void GyroErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
                                        const Node<OutType>::Ptr &node,
                                        Jacobians &jacs) const {
+    
+    Eigen::Vector3d meas_vec = gyro_meas_;
+    const lgmath::so3::Rotation RMI_Y(meas_vec);
+    const lgmath::so3::Rotation RMI_X((T_ms_prev_->value().C_ba().transpose() * 
+                                        T_ms_curr_->value().C_ba()).eval());
+    const auto error = -lgmath::so3::rot2vec((RMI_X.inverse() * RMI_Y).matrix());
+    const auto J_l_inv = lgmath::so3::vec2jacinv(error);
+
     if (T_ms_prev_->active()) {
         const auto child1 = std::static_pointer_cast<Node<PoseInType>>(node->at(0));
         
         Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
 
-        Eigen::Vector3d meas_vec = gyro_meas_;
-        jac.block<3, 3>(0, 3) = -1 * lgmath::so3::vec2rot(meas_vec).transpose();
+        jac.block<3, 3>(0, 3) = -J_l_inv * RMI_Y.matrix().inverse();
 
         T_ms_prev_->backward(lhs * jac, child1, jacs);
     }
@@ -77,7 +84,7 @@ void GyroErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
         const auto child2 = std::static_pointer_cast<Node<PoseInType>>(node->at(1));
         Eigen::Matrix<double, 3, 6> jac = Eigen::Matrix<double, 3, 6>::Zero();
         
-        jac.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
+        jac.block<3, 3>(0, 3) = J_l_inv * Eigen::Matrix3d::Identity();
 
         T_ms_curr_->backward(lhs * jac, child2, jacs);
     }
