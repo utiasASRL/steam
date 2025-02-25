@@ -31,15 +31,10 @@ auto GyroErrorEvaluator::value() const -> OutType {
     const lgmath::so3::Rotation C_pc_meas(meas_vec);
     const lgmath::so3::Rotation C_cp_eval((T_ms_curr_->value().C_ba().inverse() * 
                                            T_ms_prev_->value().C_ba()).eval());
-    std::cout << "C_cp_eval: " << C_cp_eval.matrix() << std::endl;
-    std::cout << "C_pc_meas: " << C_pc_meas.matrix() << std::endl;
-    std::cout << "Error: " << lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix()).transpose() << std::endl;
+    std::cout << "Gyro error: " << -lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix()).transpose() << std::endl;
 
-    // std::cout << "C_cp_meas: " << C_pc_meas.matrix().inverse() << std::endl;
-    // std::cout << "Error: " << lgmath::so3::rot2vec((C_cp_eval * C_pc_meas.inverse()).matrix()).transpose() << std::endl << std::endl;
-
-    // Return error
-    return lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix());
+    // Return error (minus sign bc rot2vec flips rotation direction)
+    return -lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix());
 }
 
 auto GyroErrorEvaluator::forward() const -> Node<OutType>::Ptr {
@@ -54,7 +49,8 @@ auto GyroErrorEvaluator::forward() const -> Node<OutType>::Ptr {
     Eigen::Vector3d meas_vec = gyro_meas_;
     const lgmath::so3::Rotation C_pc_meas(meas_vec);
     const lgmath::so3::Rotation C_cp_eval((C_ms_curr.transpose() * C_ms_prev).eval());
-    OutType error = lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix());
+    // Compute error (minus sign bc rot2vec flips rotation direction)
+    OutType error = -lgmath::so3::rot2vec((C_cp_eval * C_pc_meas).matrix());
     // clang-format on
 
     const auto node = Node<OutType>::MakeShared(error);
