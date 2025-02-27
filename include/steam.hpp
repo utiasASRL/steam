@@ -36,6 +36,7 @@
 #include "steam/solver/covariance.hpp"
 #include "steam/solver/dogleg_gauss_newton_solver.hpp"
 #include "steam/solver/gauss_newton_solver.hpp"
+#include "steam/solver/gauss_newton_solver_nva.hpp"
 #include "steam/solver/lev_marq_gauss_newton_solver.hpp"
 #include "steam/solver/line_search_gauss_newton_solver.hpp"
 
