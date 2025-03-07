@@ -23,7 +23,7 @@ class Covariance {
                         const std::vector<StateVarBase::ConstPtr>& cvars) const;
 
  private:
-  const StateVector::ConstWeakPtr state_vector_;
+  const StateVector::ConstPtr state_vector_;
   using SolverType =
       Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper>;
   const std::shared_ptr<SolverType> hessian_solver_;

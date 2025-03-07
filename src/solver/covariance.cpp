@@ -44,7 +44,7 @@ Eigen::MatrixXd Covariance::query(
 Eigen::MatrixXd Covariance::query(
     const std::vector<StateVarBase::ConstPtr>& rvars,
     const std::vector<StateVarBase::ConstPtr>& cvars) const {
-  const auto state_vector = state_vector_.lock();
+  const auto state_vector = state_vector_;//.lock();
   if (!state_vector) throw std::runtime_error{"state vector expired."};
 
   // Creating indexing
