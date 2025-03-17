@@ -2124,7 +2124,6 @@ TEST(P2P, P2PErrorDopplerEvaluator) {
   query << 10, 20, 30;
   const Eigen::Vector3d abar = query.normalized();
   const double beta = 0.0535;
-  const bool rm_ori = false;
   const Eigen::Vector3d delta_q =
       beta * abar * abar.transpose() *
       lgmath::se3::point2fs(query).block<3, 6>(0, 0) *
@@ -2136,7 +2135,7 @@ TEST(P2P, P2PErrorDopplerEvaluator) {
   const auto w_mv_in_v_var = vspace::VSpaceStateVar<6>::MakeShared(w_m_v_in_v);
 
   const auto p2p_err_eval =
-      p2pErrorDoppler(T_vm_var, w_mv_in_v_var, reference, query, beta, rm_ori);
+      p2pErrorDoppler(T_vm_var, w_mv_in_v_var, reference, query, beta);
 
   // check the Jacobians by comparing against numerical Jacobians.
   const double eps = 1.0e-5;
@@ -2163,9 +2162,9 @@ TEST(P2P, P2PErrorDopplerEvaluator) {
           se3::SE3StateVar::MakeShared(lgmath::se3::Transformation(xi2) * T_vm);
 
       const auto p2p_err_eval_mod1 =
-          p2pErrorDoppler(T_vm_var_mod1, w_mv_in_v_var, reference, query, beta, rm_ori);
+          p2pErrorDoppler(T_vm_var_mod1, w_mv_in_v_var, reference, query, beta);
       const auto p2p_err_eval_mod2 =
-          p2pErrorDoppler(T_vm_var_mod2, w_mv_in_v_var, reference, query, beta, rm_ori);
+          p2pErrorDoppler(T_vm_var_mod2, w_mv_in_v_var, reference, query, beta);
 
       njac.block<3, 1>(0, j) =
           (p2p_err_eval_mod1->evaluate() - p2p_err_eval_mod2->evaluate()) /
@@ -2199,9 +2198,9 @@ TEST(P2P, P2PErrorDopplerEvaluator) {
           vspace::VSpaceStateVar<6>::MakeShared(w_m_v_in_v + xi2);
 
       const auto p2p_err_eval_mod1 =
-          p2pErrorDoppler(T_vm_var, w_mv_in_v_var_mod1, reference, query, beta, rm_ori);
+          p2pErrorDoppler(T_vm_var, w_mv_in_v_var_mod1, reference, query, beta);
       const auto p2p_err_eval_mod2 =
-          p2pErrorDoppler(T_vm_var, w_mv_in_v_var_mod2, reference, query, beta, rm_ori);
+          p2pErrorDoppler(T_vm_var, w_mv_in_v_var_mod2, reference, query, beta);
 
       njac.block<3, 1>(0, j) =
           (p2p_err_eval_mod1->evaluate() - p2p_err_eval_mod2->evaluate()) /

@@ -21,8 +21,20 @@ class P2PErrorDopplerEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &T_rq,
                         const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
                         const Eigen::Vector3d &reference,
+                        const Eigen::Vector3d &query, const float beta) {
+      return MakeShared(T_rq, w_r_q_in_q, reference, query, beta, false);
+    }
+  static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &T_rq,
+                        const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
+                        const Eigen::Vector3d &reference,
                         const Eigen::Vector3d &query, const float beta,
                         const bool rm_ori);
+
+  P2PErrorDopplerEvaluator(const Evaluable<PoseInType>::ConstPtr &T_rq,
+                          const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
+                          const Eigen::Vector3d &reference,
+                          const Eigen::Vector3d &query, const float beta)
+      : P2PErrorDopplerEvaluator(T_rq, w_r_q_in_q, reference, query, beta, false) {}
   P2PErrorDopplerEvaluator(const Evaluable<PoseInType>::ConstPtr &T_rq,
                            const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
                            const Eigen::Vector3d &reference,
@@ -54,6 +66,14 @@ P2PErrorDopplerEvaluator::Ptr p2pErrorDoppler(
     const Evaluable<P2PErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
     const float beta, const bool rm_ori);
+
+inline P2PErrorDopplerEvaluator::Ptr p2pErrorDoppler(
+  const Evaluable<P2PErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
+  const Evaluable<P2PErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
+  const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
+  const float beta) {
+    return p2pErrorDoppler(T_rq, w_r_q_in_q, reference, query, beta, false);
+  }
 
 }  // namespace p2p
 }  // namespace steam
