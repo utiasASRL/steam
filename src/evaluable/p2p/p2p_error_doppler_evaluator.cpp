@@ -77,7 +77,7 @@ void P2PErrorDopplerEvaluator::backward(const Eigen::MatrixXd &lhs,
       D_.transpose() * beta_ * abar * abar.transpose() * D_ * lgmath::se3::point2fs(D_ * query_, 1.0) * w_r_q_in_q;
     Eigen::Matrix<double, 3, 1> Tq = (T_rq * (query_ - delta_q)).block<3, 1>(0, 0);
     Eigen::Matrix<double, 3, 6> new_lhs = -D_ * lgmath::se3::point2fs(Tq);
-    if (rm_ori_) new_lhs.block<3, 3>(0, 3) = Eigen::Matrix3d::Zero();
+    if (rm_ori_) new_lhs.block<3, 1>(0, 5) = Eigen::Vector3d::Zero();
     T_rq_->backward(lhs * new_lhs, child1, jacs);
   }
 

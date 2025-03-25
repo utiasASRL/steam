@@ -48,7 +48,7 @@ void P2PErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
     const auto T_rq = child->value();
     Eigen::Matrix<double, 3, 1> Tq = (T_rq * query_).block<3, 1>(0, 0);
     Eigen::Matrix<double, 3, 6> new_lhs = - D_ * lgmath::se3::point2fs(Tq);
-    if (rm_ori_) new_lhs.block<3, 3>(0, 3) = Eigen::Matrix3d::Zero();
+    if (rm_ori_) new_lhs.block<3, 1>(0, 5) = Eigen::Vector3d::Zero();
 
     T_rq_->backward(lhs * new_lhs, child, jacs);
   }
