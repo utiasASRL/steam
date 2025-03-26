@@ -21,11 +21,25 @@ class P2PErrorDopplerEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &T_rq,
                         const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
                         const Eigen::Vector3d &reference,
-                        const Eigen::Vector3d &query, const float beta);
+                        const Eigen::Vector3d &query, const float beta) {
+      return MakeShared(T_rq, w_r_q_in_q, reference, query, beta, false);
+    }
+  static Ptr MakeShared(const Evaluable<PoseInType>::ConstPtr &T_rq,
+                        const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
+                        const Eigen::Vector3d &reference,
+                        const Eigen::Vector3d &query, const float beta,
+                        const bool rm_ori);
+
+  P2PErrorDopplerEvaluator(const Evaluable<PoseInType>::ConstPtr &T_rq,
+                          const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
+                          const Eigen::Vector3d &reference,
+                          const Eigen::Vector3d &query, const float beta)
+      : P2PErrorDopplerEvaluator(T_rq, w_r_q_in_q, reference, query, beta, false) {}
   P2PErrorDopplerEvaluator(const Evaluable<PoseInType>::ConstPtr &T_rq,
                            const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
                            const Eigen::Vector3d &reference,
-                           const Eigen::Vector3d &query, const float beta);
+                           const Eigen::Vector3d &query, const float beta,
+                           const bool rm_ori);
 
   bool active() const override;
   void getRelatedVarKeys(KeySet &keys) const override;
@@ -44,13 +58,22 @@ class P2PErrorDopplerEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
   Eigen::Vector4d reference_ = Eigen::Vector4d::Constant(1);
   Eigen::Vector4d query_ = Eigen::Vector4d::Constant(1);
   const float beta_;
+  const bool rm_ori_;
 };
 
 P2PErrorDopplerEvaluator::Ptr p2pErrorDoppler(
     const Evaluable<P2PErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
     const Evaluable<P2PErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
-    const float beta);
+    const float beta, const bool rm_ori);
+
+inline P2PErrorDopplerEvaluator::Ptr p2pErrorDoppler(
+  const Evaluable<P2PErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
+  const Evaluable<P2PErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
+  const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
+  const float beta) {
+    return p2pErrorDoppler(T_rq, w_r_q_in_q, reference, query, beta, false);
+  }
 
 }  // namespace p2p
 }  // namespace steam

@@ -1,5 +1,4 @@
 #include "steam/evaluable/p2p/p2p_error_doppler_evaluator.hpp"
-
 namespace steam {
 namespace p2p {
 
@@ -7,17 +6,17 @@ auto P2PErrorDopplerEvaluator::MakeShared(
     const Evaluable<PoseInType>::ConstPtr &T_rq,
     const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
-    const float beta) -> Ptr {
+    const float beta, const bool rm_ori) -> Ptr {
   return std::make_shared<P2PErrorDopplerEvaluator>(T_rq, w_r_q_in_q, reference,
-                                                    query, beta);
+                                                    query, beta, rm_ori);
 }
 
 P2PErrorDopplerEvaluator::P2PErrorDopplerEvaluator(
     const Evaluable<PoseInType>::ConstPtr &T_rq,
     const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
-    const float beta)
-    : T_rq_(T_rq), w_r_q_in_q_(w_r_q_in_q), beta_(beta) {
+    const float beta, const bool rm_ori)
+    : T_rq_(T_rq), w_r_q_in_q_(w_r_q_in_q), beta_(beta), rm_ori_(rm_ori) {
   D_.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
   reference_.block<3, 1>(0, 0) = reference;
   query_.block<3, 1>(0, 0) = query;
@@ -77,14 +76,17 @@ void P2PErrorDopplerEvaluator::backward(const Eigen::MatrixXd &lhs,
     const auto delta_q =
       D_.transpose() * beta_ * abar * abar.transpose() * D_ * lgmath::se3::point2fs(D_ * query_, 1.0) * w_r_q_in_q;
     Eigen::Matrix<double, 3, 1> Tq = (T_rq * (query_ - delta_q)).block<3, 1>(0, 0);
-    Eigen::Matrix<double, 3, 6> new_lhs = -lhs * D_ * lgmath::se3::point2fs(Tq);
-    T_rq_->backward(new_lhs, child1, jacs);
+    Eigen::Matrix<double, 3, 6> new_lhs = -D_ * lgmath::se3::point2fs(Tq);
+    if (rm_ori_) new_lhs.block<3, 1>(0, 5) = Eigen::Vector3d::Zero();
+    T_rq_->backward(lhs * new_lhs, child1, jacs);
   }
 
   if (w_r_q_in_q_->active()) {
     Eigen::Matrix<double, 3, 6> new_lhs =
-      lhs * D_ * T_rq.matrix() * D_.transpose() * beta_ * abar * abar.transpose() * D_ * lgmath::se3::point2fs(D_ * query_, 1.0);
-    w_r_q_in_q_->backward(new_lhs, child2, jacs);
+      D_ * T_rq.matrix() * D_.transpose() * beta_ * abar * abar.transpose() * D_ * lgmath::se3::point2fs(D_ * query_, 1.0);
+    // Zero out orientation contributions since there's no dependency and minor numerical issues can occur
+    new_lhs.block<3, 3>(0, 3) = Eigen::Matrix3d::Zero();
+    w_r_q_in_q_->backward(lhs * new_lhs, child2, jacs);
   }
   // clang-format on
 }
@@ -93,9 +95,9 @@ P2PErrorDopplerEvaluator::Ptr p2pErrorDoppler(
     const Evaluable<P2PErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
     const Evaluable<P2PErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector3d &reference, const Eigen::Vector3d &query,
-    const float beta) {
+    const float beta, const bool rm_ori) {
   return P2PErrorDopplerEvaluator::MakeShared(T_rq, w_r_q_in_q, reference,
-                                              query, beta);
+                                              query, beta, rm_ori);
 }
 
 }  // namespace p2p
