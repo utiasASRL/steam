@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Eigen/Core>
-
 #include "steam/evaluable/evaluable.hpp"
 
 namespace steam {

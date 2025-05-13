@@ -350,7 +350,7 @@ void Interface::addPosePrior(const Time time, const PoseType& T_k0,
 
   // Create cost term
   pose_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
-      error_func, noise_model, loss_func);
+      error_func, noise_model, loss_func, "pose_prior_cost");
 }
 
 void Interface::addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
@@ -384,7 +384,7 @@ void Interface::addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
 
   // Create cost term
   vel_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
-      error_func, noise_model, loss_func);
+      error_func, noise_model, loss_func, "velocity_prior_cost");
 }
 
 void Interface::addStatePrior(const Time time, const PoseType& T_k0,
@@ -420,7 +420,7 @@ void Interface::addStatePrior(const Time time, const PoseType& T_k0,
 
   // Create cost term
   state_prior_factor_ = WeightedLeastSqCostTerm<12>::MakeShared(
-      error_func, noise_model, loss_func);
+      error_func, noise_model, loss_func, "state_prior_cost");
 }
 
 void Interface::addPriorCostTerms(Problem& problem) const {
@@ -457,7 +457,7 @@ void Interface::addPriorCostTerms(Problem& problem) const {
       const auto error_function = PriorFactor::MakeShared(knot1, knot2);
       // Create cost term
       const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<12>>(
-          error_function, noise_model, loss_function);
+          error_function, noise_model, loss_function, "WNOA_cost");
       //
       problem.addCostTerm(cost_term);
     }

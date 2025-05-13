@@ -21,11 +21,13 @@ class WeightedLeastSqCostTerm : public BaseCostTerm {
   static Ptr MakeShared(
       const typename Evaluable<ErrorType>::ConstPtr &error_function,
       const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
-      const BaseLossFunc::ConstPtr &loss_function);
+      const BaseLossFunc::ConstPtr &loss_function,
+      const std::string &name = "");
   WeightedLeastSqCostTerm(
       const typename Evaluable<ErrorType>::ConstPtr &error_function,
       const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
-      const BaseLossFunc::ConstPtr &loss_function);
+      const BaseLossFunc::ConstPtr &loss_function,
+      const std::string &name = "");
 
   /**
    * \brief Evaluates the cost of this term. Error is first whitened by the
@@ -33,6 +35,10 @@ class WeightedLeastSqCostTerm : public BaseCostTerm {
    *     cost = loss(sqrt(e^T * cov^{-1} * e))
    */
   double cost() const override;
+
+  std::string name() const override {
+    return name_;
+  }
 
   /** \brief Get keys of variables related to this cost term */
   void getRelatedVarKeys(KeySet &keys) const override;
@@ -62,25 +68,30 @@ class WeightedLeastSqCostTerm : public BaseCostTerm {
   typename BaseNoiseModel<DIM>::ConstPtr noise_model_;
   /** \brief Loss function */
   BaseLossFunc::ConstPtr loss_function_;
+
 };
 
 template <int DIM>
 auto WeightedLeastSqCostTerm<DIM>::MakeShared(
     const typename Evaluable<ErrorType>::ConstPtr &error_function,
     const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
-    const BaseLossFunc::ConstPtr &loss_function) -> Ptr {
+    const BaseLossFunc::ConstPtr &loss_function,
+    const std::string &name) -> Ptr {
   return std::make_shared<WeightedLeastSqCostTerm<DIM>>(
-      error_function, noise_model, loss_function);
+      error_function, noise_model, loss_function, name);
 }
 
 template <int DIM>
 WeightedLeastSqCostTerm<DIM>::WeightedLeastSqCostTerm(
     const typename Evaluable<ErrorType>::ConstPtr &error_function,
     const typename BaseNoiseModel<DIM>::ConstPtr &noise_model,
-    const BaseLossFunc::ConstPtr &loss_function)
+    const BaseLossFunc::ConstPtr &loss_function,
+    const std::string &name)
     : error_function_(error_function),
       noise_model_(noise_model),
-      loss_function_(loss_function) {}
+      loss_function_(loss_function) {
+        name_ = name;
+      }
 
 template <int DIM>
 double WeightedLeastSqCostTerm<DIM>::cost() const {

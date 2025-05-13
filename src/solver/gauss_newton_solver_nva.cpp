@@ -56,7 +56,6 @@ bool GaussNewtonSolverNVA::linearizeSolveAndUpdate(double& cost,
         // Apply update
         cost = proposeUpdate(alpha * perturbation);
         update_time += timer.milliseconds();  
-        std::cout << "line search it: " << j << " prev_cost: " << prev_cost_ << " new_cost: " << cost << " alpha: " << alpha << std::endl;
         if (cost <= prev_cost_) {
           acceptProposedState();
           break;

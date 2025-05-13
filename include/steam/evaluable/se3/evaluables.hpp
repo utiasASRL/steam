@@ -12,3 +12,4 @@
 #include "steam/evaluable/se3/pose_interpolator.hpp"
 #include "steam/evaluable/se3/se3_error_evaluator.hpp"
 #include "steam/evaluable/se3/se3_error_global_perturb_evaluator.hpp"
+#include "steam/evaluable/se3/se3_3d_error_evaluator.hpp"

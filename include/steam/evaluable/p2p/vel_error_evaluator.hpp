@@ -7,13 +7,13 @@
 namespace steam {
 namespace p2p {
 
-class VelErrorEvaluator : public Evaluable<Eigen::Matrix<double, 2, 1>> {
+class VelErrorEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
  public:
   using Ptr = std::shared_ptr<VelErrorEvaluator>;
   using ConstPtr = std::shared_ptr<const VelErrorEvaluator>;
 
   using InType = Eigen::Matrix<double, 6, 1>;
-  using OutType = Eigen::Matrix<double, 2, 1>;
+  using OutType = Eigen::Matrix<double, 3, 1>;
 
   static Ptr MakeShared(const Eigen::Vector2d vel_meas,
                         const Evaluable<InType>::ConstPtr &w_iv_inv);
@@ -33,7 +33,7 @@ class VelErrorEvaluator : public Evaluable<Eigen::Matrix<double, 2, 1>> {
   const Evaluable<InType>::ConstPtr w_iv_inv_;
   // constants
   const Eigen::Vector2d vel_meas_;
-  Eigen::Matrix<double, 2, 6> D_;
+  Eigen::Matrix<double, 3, 6> D_;
 };
 
 VelErrorEvaluator::Ptr velError(

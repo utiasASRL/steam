@@ -38,6 +38,7 @@
 #include "steam/solver/gauss_newton_solver.hpp"
 #include "steam/solver/lev_marq_gauss_newton_solver.hpp"
 #include "steam/solver/line_search_gauss_newton_solver.hpp"
+#include "steam/solver/gauss_newton_solver_nva.hpp"
 
 // trajectory
 #include "steam/trajectory/bspline/interface.hpp"
