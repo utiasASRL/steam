@@ -56,6 +56,8 @@ cmake --build .
 cmake --install . # (optional) install, default location is /usr/local/
 ```
 
+Note that the CMakeList default setting for `USE_AMENT` is `ON`. Turn off if not intending to use with ROS.
+
 Preprocessor macros
 
 - `STEAM_DEFAULT_NUM_OPENMP_THREADS=<num. threads>`: Default to 4. Define number of threads to be used by OpenMP in STEAM.

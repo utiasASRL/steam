@@ -106,13 +106,16 @@ if (BUILD_TESTING)
   add_executable(pattern_test tests/pattern_test.cpp)
   add_executable(time_test tests/time_test.cpp)
   add_executable(jacobian_test tests/jacobian_test.cpp)
+  add_executable(br2d_test tests/br2d_error_eval_test.cpp)
   target_link_libraries(pattern_test ${PROJECT_NAME} GTest::gtest_main)
   target_link_libraries(time_test ${PROJECT_NAME} GTest::gtest_main)
   target_link_libraries(jacobian_test ${PROJECT_NAME} GTest::gtest_main)
+  target_link_libraries(br2d_test ${PROJECT_NAME} GTest::gtest_main)
   include(GoogleTest)
   gtest_discover_tests(pattern_test)
   gtest_discover_tests(time_test)
   gtest_discover_tests(jacobian_test)
+  gtest_discover_tests(br2d_test)
 endif()
 
 ## ROS2 ament_cmake flow
@@ -127,6 +130,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(lgmath REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
 
 # Libraries
 file(GLOB_RECURSE SOURCE
@@ -181,6 +185,12 @@ add_executable(SimpleBundleAdjustmentFullRel samples/SimpleBundleAdjustmentFullR
 add_executable(SimpleBAandConstVelTrajPrior samples/SimpleBAandConstVelTrajPrior.cpp)
 add_executable(SlidingWindowFilterExample samples/SlidingWindowFilterExample.cpp)
 add_executable(MotionPriors samples/MotionPriors.cpp)
+add_executable(LostInTheWoods samples/LostInTheWoodsSteam.cpp)
+target_link_libraries(LostInTheWoods yaml-cpp)
+# if(yaml-cpp_FOUND)
+#   add_executable(LostInTheWoods samples/LostInTheWoodsSteam.cpp)
+#   target_link_libraries(LostInTheWoods yaml-cpp::yaml-cpp)
+# endif()
 
 if (USE_AMENT)
 
@@ -218,6 +228,8 @@ if(BUILD_TESTING)
   target_link_libraries(pattern_test ${PROJECT_NAME})
   ament_add_gtest(jacobian_test tests/jacobian_test.cpp)
   target_link_libraries(jacobian_test ${PROJECT_NAME})
+  ament_add_gtest(br2d_test tests/br2d_error_eval_test.cpp)
+  target_link_libraries(br2d_test ${PROJECT_NAME})
 
   # Linting
   find_package(ament_lint_auto REQUIRED)
