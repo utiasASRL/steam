@@ -1,0 +1,22 @@
+files:
+  input : "samples/LostInTheWoods.txt"
+  output : "results/lost_steam.csv" 
+  gt_out : "results/lost_gt.csv"
+params:
+  r_max: 1.0
+  del_t: 0.1
+  start: 1000
+  end: 2000
+  solver: "LM"
+flags:
+  prior: false
+  odom: false
+  wnoa: true
+  br: true
+  gt_init: false
+noise:
+  prior: [1e-3, 1e-3, 1e-4]
+  odom_y: 1.0e-2
+  wnoa: [1e-2, 1e-3, 5e-4]
+  bearing: 1.0
+  range: 1.0
