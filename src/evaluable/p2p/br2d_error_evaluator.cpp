@@ -1,7 +1,5 @@
 #include "steam/evaluable/p2p/br2d_error_evaluator.hpp"
 
-using namespace std;
-
 namespace steam {
 namespace p2p {
 
@@ -44,7 +42,7 @@ void BRError2DEvaluator::backward(const Eigen::MatrixXd& lhs,
                                   const Node<OutType>::Ptr& node,
                                   Jacobians& jacs) const {
   // get child node pointer
-  const auto child = static_pointer_cast<Node<InType>>(node->at(0));
+  const auto child = std::static_pointer_cast<Node<InType>>(node->at(0));
   // build jacobian
   if (point_->active()) {
     // Retrieve range

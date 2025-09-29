@@ -7,8 +7,6 @@
 
 #include "steam/evaluable/evaluable.hpp"
 
-using namespace std;
-
 namespace steam {
 namespace p2p {
 
