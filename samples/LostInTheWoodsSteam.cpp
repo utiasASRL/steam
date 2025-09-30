@@ -269,8 +269,8 @@ int main(int argc, char* argv[]) {
   }
   for (int i = start; i <= end; i++) {
     // current velocity for odometry (NOTE: Negative signs are required)
-    Eigen::Matrix<double, 6, 1> vel(-data.v[i], 0.0, 0.0, 0.0, 0.0,
-                                    -data.om[i]);
+    Eigen::Matrix<double, 6, 1> vel;
+    vel << -data.v[i], 0.0, 0.0, 0.0, 0.0, -data.om[i];
     // Use gt for initial pose, or if initing from gt
     if (i == start || gt_init) {
       // get pose and vel
@@ -325,7 +325,7 @@ int main(int argc, char* argv[]) {
   if (include_odom) {
     cout << "Adding odometry measurements" << endl;
     // Setup shared noise and loss functions
-    Eigen::Vector<double, 6> cov_diag;
+    Eigen::Matrix<double, 6, 1> cov_diag;
     double sigma_small_sq = pow(sigma_small, 2);
     cov_diag << data.v_var, sigma_small_sq, sigma_small_sq, sigma_small_sq,
         sigma_small_sq, data.om_var;
