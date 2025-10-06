@@ -14,10 +14,10 @@ STEAM (Simultaneous Trajectory Estimation and Mapping) Engine is an optimization
 - [lgmath (>=1.1.0)](https://github.com/utiasASRL/lgmath.git)
 - (Optional) ROS2 Foxy or later (colcon+ament_cmake)
 
-### Install c++ compiler, cmake and OpenMP
+### Install c++ compiler, cmake, OpenMP, and yaml support
 
 ```bash
-sudo apt -q -y install build-essential cmake libomp-dev
+sudo apt -q -y install build-essential cmake libomp-dev libyaml-cpp-dev
 ```
 
 ### Install Eigen (>=3.3.7)
