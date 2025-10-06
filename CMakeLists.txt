@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(steam)
 
-option(USE_AMENT "Use ament_cmake to build lgmath for ROS2." ON)
+find_package(ament_cmake QUIET)
 option(BUILD_TESTING "build tests for steam" OFF)
 
 # Compiler setup (assumed to be GNU)
@@ -21,7 +21,7 @@ add_compile_options(-march=native -O3 -Wall -pedantic -Wno-unused-function)
 add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
 
 ## cmake flow (default)
-if (NOT USE_AMENT)
+if (NOT ament_cmake)
 
 set(PROJECT_VERSION 1.1.0)
 
@@ -192,7 +192,7 @@ target_link_libraries(LostInTheWoods yaml-cpp)
 #   target_link_libraries(LostInTheWoods yaml-cpp::yaml-cpp)
 # endif()
 
-if (USE_AMENT)
+if (ament_cmake)
 
 install(
   TARGETS
