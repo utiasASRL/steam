@@ -3,6 +3,7 @@ project(steam)
 
 option(BUILD_TESTING "build tests for steam" OFF)
 
+find_package(ament_cmake QUIET)
 set(cmake_build FALSE)
 if ((NOT ament_cmake_FOUND) OR ("/usr/local" STREQUAL ${CMAKE_INSTALL_PREFIX}))
   set(cmake_build TRUE)
@@ -26,6 +27,7 @@ add_definitions(-DSTEAM_DEFAULT_NUM_OPENMP_THREADS=4)
 
 ## cmake flow (default)
 if (cmake_build)
+  message(STATUS "Not using ROS to build")
   set(PROJECT_VERSION 1.1.0)
 
   # Find dependencies
@@ -122,6 +124,7 @@ if (cmake_build)
   endif()
 ## ROS2 ament_cmake flow
 else()
+  message(STATUS "Using ROS to build")
   # Find dependencies
   find_package(ament_cmake REQUIRED)
   find_package(Boost REQUIRED COMPONENTS system)
