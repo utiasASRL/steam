@@ -20,6 +20,7 @@
 
 #include "steam/evaluable/imu/evaluables.hpp"
 #include "steam/evaluable/p2p/evaluables.hpp"
+#include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/stereo/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
@@ -44,4 +45,5 @@
 #include "steam/trajectory/bspline/interface.hpp"
 #include "steam/trajectory/const_acc/interface.hpp"
 #include "steam/trajectory/const_vel/interface.hpp"
+#include "steam/trajectory/const_vel_2d/interface.hpp"
 #include "steam/trajectory/singer/interface.hpp"
