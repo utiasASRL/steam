@@ -5,7 +5,7 @@ option(BUILD_TESTING "build tests for steam" OFF)
 
 find_package(ament_cmake QUIET)
 set(cmake_build FALSE)
-if ((NOT ament_cmake_FOUND) OR ("/usr/local" STREQUAL ${CMAKE_INSTALL_PREFIX}))
+if ((NOT ament_cmake_FOUND) OR (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
   set(cmake_build TRUE)
 endif()
 
