@@ -45,12 +45,12 @@ void ComposeVelocityEvaluator::backward(const Eigen::MatrixXd &lhs,
   const auto child2 = std::static_pointer_cast<Node<VelInType>>(node->at(1));
 
   if (transform_->active()) {
-    transform_->backward((-1) * lhs * lgmath::se3::curlyhat(node->value()),
+    transform_->backward((-1) * lhs * lgmath::se2::curlyhat(node->value()),
                          child1, jacs);
   }
 
   if (velocity_->active()) {
-    velocity_->backward(lhs * lgmath::se3::tranAd(child1->value().matrix()),
+    velocity_->backward(lhs * lgmath::se2::tranAd(child1->value().matrix()),
                         child2, jacs);
   }
 }
