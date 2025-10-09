@@ -2807,8 +2807,10 @@ TEST(IMU, PreintIMUCostTerm) {
       Sigma += error * error.transpose();
     }
     Sigma /= N;
+    std::cout << "Preint_cov:" << std::endl;
     std::cout << preint_cov << std::endl;
     std::cout << "--------------------------------------" << std::endl;
+    std::cout << "Sigma:" << std::endl;
     std::cout << Sigma << std::endl;
     for (int i = 0; i < preint_cov.rows(); ++i) {
       for (int j = 0; j < preint_cov.cols(); ++j) {
