@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "steam/trajectory/const_vel_se2/interface.hpp"
 
 #include "steam/evaluable/se2/evaluables.hpp"

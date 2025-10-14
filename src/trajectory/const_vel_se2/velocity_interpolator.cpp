@@ -1,6 +1,5 @@
 #include "steam/trajectory/const_vel_se2/velocity_interpolator.hpp"
 
-#include <iostream>
 #include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
 #include "steam/trajectory/const_vel_se2/evaluable/j_velocity_evaluator.hpp"
