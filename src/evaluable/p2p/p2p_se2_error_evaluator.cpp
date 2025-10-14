@@ -15,7 +15,7 @@ P2PSE2ErrorEvaluator::P2PSE2ErrorEvaluator(const Evaluable<InType>::ConstPtr &T_
                                      const Eigen::Vector2d &query,
                                      const bool rm_ori)
     : T_rq_(T_rq), rm_ori_(rm_ori) {
-  D_.block<2, 2>(0, 0) = Eigen::Matrix3d::Identity();
+  D_.block<2, 2>(0, 0) = Eigen::Matrix2d::Identity();
   reference_.block<2, 1>(0, 0) = reference;
   query_.block<2, 1>(0, 0) = query;
 }
