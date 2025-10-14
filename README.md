@@ -14,10 +14,10 @@ STEAM (Simultaneous Trajectory Estimation and Mapping) Engine is an optimization
 - [lgmath (>=1.1.0)](https://github.com/utiasASRL/lgmath.git)
 - (Optional) ROS2 Foxy or later (colcon+ament_cmake)
 
-### Install c++ compiler, cmake and OpenMP
+### Install c++ compiler, cmake, OpenMP, and yaml support
 
 ```bash
-sudo apt -q -y install build-essential cmake libomp-dev
+sudo apt -q -y install build-essential cmake libomp-dev libyaml-cpp-dev
 ```
 
 ### Install Eigen (>=3.3.7)
@@ -49,12 +49,10 @@ mkdir -p ${WORKSPACE}/steam && cd $_
 git clone https://github.com/utiasASRL/steam.git .
 # build and install
 mkdir -p build && cd $_
-cmake ..
+cmake .. # optionally include -DBUILD_TESTING=ON to build tests
 cmake --build .
 cmake --install . # (optional) install, default location is /usr/local/
 ```
-
-Note that the CMakeList default setting for `USE_AMENT` is `ON`. Turn off if not intending to use with ROS.
 
 Preprocessor macros
 
@@ -78,6 +76,8 @@ cmake --build .  # Executables will be generated in build_samples
 
 ### Build and install steam using `ROS2(colcon+ament_cmake)`
 
+CMake will automatically determine if you are building as part of a colcon build command.
+
 ```bash
 WORKSPACE=~/workspace  # choose your own workspace directory
 
@@ -85,7 +85,7 @@ mkdir -p ${WORKSPACE}/steam && cd $_
 git clone https://github.com/utiasASRL/steam.git .
 
 source <your ROS2 worspace that includes steam>
-colcon build --symlink-install --cmake-args "-DUSE_AMENT=ON"
+colcon build
 ```
 
 Same preprocessor macro mentioned above also apply.
