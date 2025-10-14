@@ -4,15 +4,15 @@ namespace steam {
 namespace p2p {
 
 auto P2PSE2ErrorEvaluator::MakeShared(const Evaluable<InType>::ConstPtr &T_rq,
-                                   const Eigen::Vector3d &reference,
-                                   const Eigen::Vector3d &query,
+                                   const Eigen::Vector2d &reference,
+                                   const Eigen::Vector2d &query,
                                    const bool rm_ori) -> Ptr {
   return std::make_shared<P2PSE2ErrorEvaluator>(T_rq, reference, query, rm_ori);
 }
 
 P2PSE2ErrorEvaluator::P2PSE2ErrorEvaluator(const Evaluable<InType>::ConstPtr &T_rq,
-                                     const Eigen::Vector3d &reference,
-                                     const Eigen::Vector3d &query,
+                                     const Eigen::Vector2d &reference,
+                                     const Eigen::Vector2d &query,
                                      const bool rm_ori)
     : T_rq_(T_rq), rm_ori_(rm_ori) {
   D_.block<2, 2>(0, 0) = Eigen::Matrix3d::Identity();
@@ -63,7 +63,7 @@ Eigen::Matrix<double, 2, 3> P2PSE2ErrorEvaluator::getJacobianPose() const {
 
 P2PSE2ErrorEvaluator::Ptr p2pSE2Error(
     const Evaluable<P2PSE2ErrorEvaluator::InType>::ConstPtr &T_rq,
-    const Eigen::Vector3d &reference, const Eigen::Vector3d &query, const bool rm_ori) {
+    const Eigen::Vector2d &reference, const Eigen::Vector2d &query, const bool rm_ori) {
   return P2PSE2ErrorEvaluator::MakeShared(T_rq, reference, query, rm_ori);
 }
 
