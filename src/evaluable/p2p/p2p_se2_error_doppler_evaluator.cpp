@@ -1,17 +1,17 @@
-#include "steam/evaluable/p2p/p2p_2d_error_doppler_evaluator.hpp"
+#include "steam/evaluable/p2p/p2p_se2_error_doppler_evaluator.hpp"
 namespace steam {
 namespace p2p {
 
-auto P2P2DErrorDopplerEvaluator::MakeShared(
+auto P2PSE2ErrorDopplerEvaluator::MakeShared(
     const Evaluable<PoseInType>::ConstPtr &T_rq,
     const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector2d &reference, const Eigen::Vector2d &query,
     const float beta, const bool rm_ori) -> Ptr {
-  return std::make_shared<P2P2DErrorDopplerEvaluator>(T_rq, w_r_q_in_q, reference,
+  return std::make_shared<P2PSE2ErrorDopplerEvaluator>(T_rq, w_r_q_in_q, reference,
                                                     query, beta, rm_ori);
 }
 
-P2P2DErrorDopplerEvaluator::P2P2DErrorDopplerEvaluator(
+P2PSE2ErrorDopplerEvaluator::P2PSE2ErrorDopplerEvaluator(
     const Evaluable<PoseInType>::ConstPtr &T_rq,
     const Evaluable<VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector2d &reference, const Eigen::Vector2d &query,
@@ -22,16 +22,16 @@ P2P2DErrorDopplerEvaluator::P2P2DErrorDopplerEvaluator(
   query_.block<2, 1>(0, 0) = query;
 }
 
-bool P2P2DErrorDopplerEvaluator::active() const {
+bool P2PSE2ErrorDopplerEvaluator::active() const {
   return T_rq_->active() || w_r_q_in_q_->active();
 }
 
-void P2P2DErrorDopplerEvaluator::getRelatedVarKeys(KeySet &keys) const {
+void P2PSE2ErrorDopplerEvaluator::getRelatedVarKeys(KeySet &keys) const {
   T_rq_->getRelatedVarKeys(keys);
   w_r_q_in_q_->getRelatedVarKeys(keys);
 }
 
-auto P2P2DErrorDopplerEvaluator::value() const -> OutType {
+auto P2PSE2ErrorDopplerEvaluator::value() const -> OutType {
   // clang-format off
   const auto abar = D_ * query_ / std::sqrt(query_.transpose() * D_.transpose() * D_ * query_);
   const auto delta_q =
@@ -40,7 +40,7 @@ auto P2P2DErrorDopplerEvaluator::value() const -> OutType {
   // clang-format on
 }
 
-auto P2P2DErrorDopplerEvaluator::forward() const -> Node<OutType>::Ptr {
+auto P2PSE2ErrorDopplerEvaluator::forward() const -> Node<OutType>::Ptr {
   const auto child1 = T_rq_->forward();
   const auto child2 = w_r_q_in_q_->forward();
 
@@ -61,7 +61,7 @@ auto P2P2DErrorDopplerEvaluator::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
-void P2P2DErrorDopplerEvaluator::backward(const Eigen::MatrixXd &lhs,
+void P2PSE2ErrorDopplerEvaluator::backward(const Eigen::MatrixXd &lhs,
                                         const Node<OutType>::Ptr &node,
                                         Jacobians &jacs) const {
   const auto child1 = std::static_pointer_cast<Node<PoseInType>>(node->at(0));
@@ -91,12 +91,12 @@ void P2P2DErrorDopplerEvaluator::backward(const Eigen::MatrixXd &lhs,
   // clang-format on
 }
 
-P2P2DErrorDopplerEvaluator::Ptr p2p2DErrorDoppler(
-    const Evaluable<P2P2DErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
-    const Evaluable<P2P2DErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
+P2PSE2ErrorDopplerEvaluator::Ptr p2pSE2ErrorDoppler(
+    const Evaluable<P2PSE2ErrorDopplerEvaluator::PoseInType>::ConstPtr &T_rq,
+    const Evaluable<P2PSE2ErrorDopplerEvaluator::VelInType>::ConstPtr &w_r_q_in_q,
     const Eigen::Vector2d &reference, const Eigen::Vector2d &query,
     const float beta, const bool rm_ori) {
-  return P2P2DErrorDopplerEvaluator::MakeShared(T_rq, w_r_q_in_q, reference,
+  return P2PSE2ErrorDopplerEvaluator::MakeShared(T_rq, w_r_q_in_q, reference,
                                               query, beta, rm_ori);
 }
 
