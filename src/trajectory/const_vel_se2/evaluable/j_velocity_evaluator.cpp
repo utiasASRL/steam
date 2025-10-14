@@ -1,8 +1,8 @@
-#include "steam/trajectory/const_vel_2d/evaluable/j_velocity_evaluator.hpp"
+#include "steam/trajectory/const_vel_se2/evaluable/j_velocity_evaluator.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 auto JVelocityEvaluator::MakeShared(
     const Evaluable<XiInType>::ConstPtr& xi,
@@ -67,6 +67,6 @@ JVelocityEvaluator::Ptr j_velocity(
   return JVelocityEvaluator::MakeShared(xi, velocity);
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

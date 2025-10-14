@@ -2,11 +2,11 @@
 
 #include <Eigen/Core>
 
-#include "steam/trajectory/const_vel_2d/variable.hpp"
+#include "steam/trajectory/const_vel_se2/variable.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 // See State Estimation (2nd Ed) Section 11.1.4 for explanation of these
 // Jacobians "F" in SE book
@@ -117,6 +117,6 @@ inline Eigen::Matrix<double, 6, 6> getTran(const double& dt) {
   return Tran;
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

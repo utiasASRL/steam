@@ -1,14 +1,14 @@
-#include "steam/trajectory/const_vel_2d/prior_factor.hpp"
+#include "steam/trajectory/const_vel_se2/prior_factor.hpp"
 #include <iostream>
 
 #include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
-#include "steam/trajectory/const_vel_2d/evaluable/jinv_velocity_evaluator.hpp"
-#include "steam/trajectory/const_vel_2d/helper.hpp"
+#include "steam/trajectory/const_vel_se2/evaluable/jinv_velocity_evaluator.hpp"
+#include "steam/trajectory/const_vel_se2/helper.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 auto PriorFactor::MakeShared(const Variable::ConstPtr& knot1,
                              const Variable::ConstPtr& knot2) -> Ptr {
@@ -100,6 +100,6 @@ void PriorFactor::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

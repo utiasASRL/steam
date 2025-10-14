@@ -8,7 +8,7 @@
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 class JinvVelocityEvaluator : public Evaluable<Eigen::Matrix<double, 3, 1>> {
  public:
@@ -41,6 +41,6 @@ JinvVelocityEvaluator::Ptr jinv_velocity(
     const Evaluable<JinvVelocityEvaluator::XiInType>::ConstPtr& xi,
     const Evaluable<JinvVelocityEvaluator::VelInType>::ConstPtr& velocity);
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

@@ -5,13 +5,13 @@
 #include "steam/problem/cost_term/weighted_least_sq_cost_term.hpp"
 #include "steam/problem/problem.hpp"
 #include "steam/solver/covariance.hpp"
-#include "steam/trajectory/const_vel_2d/variable.hpp"
+#include "steam/trajectory/const_vel_se2/variable.hpp"
 #include "steam/trajectory/interface.hpp"
 #include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 class Interface : public traj::Interface {
  public:
@@ -55,6 +55,6 @@ class Interface : public traj::Interface {
   WeightedLeastSqCostTerm<6>::Ptr state_prior_factor_ = nullptr;
 };
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

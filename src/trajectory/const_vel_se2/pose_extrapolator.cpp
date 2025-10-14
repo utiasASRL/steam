@@ -1,9 +1,9 @@
-#include "steam/trajectory/const_vel_2d/pose_extrapolator.hpp"
-#include "steam/trajectory/const_vel_2d/helper.hpp"
+#include "steam/trajectory/const_vel_se2/pose_extrapolator.hpp"
+#include "steam/trajectory/const_vel_se2/helper.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 auto PoseExtrapolator::MakeShared(const Time time,
                                   const Variable::ConstPtr& knot) -> Ptr {
@@ -64,6 +64,6 @@ void PoseExtrapolator::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

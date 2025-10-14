@@ -1,15 +1,15 @@
-#include "steam/trajectory/const_vel_2d/velocity_interpolator.hpp"
+#include "steam/trajectory/const_vel_se2/velocity_interpolator.hpp"
 
 #include <iostream>
 #include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
-#include "steam/trajectory/const_vel_2d/evaluable/j_velocity_evaluator.hpp"
-#include "steam/trajectory/const_vel_2d/evaluable/jinv_velocity_evaluator.hpp"
-#include "steam/trajectory/const_vel_2d/helper.hpp"
+#include "steam/trajectory/const_vel_se2/evaluable/j_velocity_evaluator.hpp"
+#include "steam/trajectory/const_vel_se2/evaluable/jinv_velocity_evaluator.hpp"
+#include "steam/trajectory/const_vel_se2/helper.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 VelocityInterpolator::Ptr VelocityInterpolator::MakeShared(
     const Time time, const Variable::ConstPtr& knot1,
@@ -187,6 +187,6 @@ void VelocityInterpolator::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

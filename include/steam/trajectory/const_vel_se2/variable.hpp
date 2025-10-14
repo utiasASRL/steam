@@ -9,7 +9,7 @@
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 class Variable {
  public:
@@ -40,6 +40,6 @@ class Variable {
   const Evaluable<VelocityType>::Ptr w_0k_ink_;
 };
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

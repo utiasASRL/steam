@@ -1,7 +1,7 @@
 /**
- * \file SimpleConstVel2DTrajPrior.cpp
+ * \file SimpleConstVelSE2TrajPrior.cpp
  * \author Daniil Lisus, Autonomous Space Robotics Lab (ASRL)
- * \brief A sample usage of the STEAM Engine library for a 2D trajectory prior
+ * \brief A sample usage of the STEAM Engine library for a 2D SE(2) trajectory prior
  * problem.
  */
 #include <iostream>
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
   }
 
   // Setup Trajectory
-  const_vel_2d::Interface traj(Qc_diag);
+  const_vel_se2::Interface traj(Qc_diag);
   for (const auto& state : states)
     traj.add(state.time, state.pose, state.velocity);
 

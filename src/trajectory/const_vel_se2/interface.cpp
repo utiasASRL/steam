@@ -1,20 +1,20 @@
 #include <iostream>
 
-#include "steam/trajectory/const_vel_2d/interface.hpp"
+#include "steam/trajectory/const_vel_se2/interface.hpp"
 
 #include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/noise_model/static_noise_model.hpp"
-#include "steam/trajectory/const_vel_2d/helper.hpp"
-#include "steam/trajectory/const_vel_2d/pose_extrapolator.hpp"
-#include "steam/trajectory/const_vel_2d/pose_interpolator.hpp"
-#include "steam/trajectory/const_vel_2d/prior_factor.hpp"
-#include "steam/trajectory/const_vel_2d/velocity_interpolator.hpp"
+#include "steam/trajectory/const_vel_se2/helper.hpp"
+#include "steam/trajectory/const_vel_se2/pose_extrapolator.hpp"
+#include "steam/trajectory/const_vel_se2/pose_interpolator.hpp"
+#include "steam/trajectory/const_vel_se2/prior_factor.hpp"
+#include "steam/trajectory/const_vel_se2/velocity_interpolator.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 auto Interface::MakeShared(const Eigen::Matrix<double, 3, 1>& Qc_diag) -> Ptr {
   return std::make_shared<Interface>(Qc_diag);
@@ -464,6 +464,6 @@ void Interface::addPriorCostTerms(Problem& problem) const {
   }
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

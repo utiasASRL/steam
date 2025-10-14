@@ -5,11 +5,11 @@
 #include "lgmath.hpp"
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/const_vel_2d/variable.hpp"
+#include "steam/trajectory/const_vel_se2/variable.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 class PriorFactor : public Evaluable<Eigen::Matrix<double, 6, 1>> {
  public:
@@ -39,6 +39,6 @@ class PriorFactor : public Evaluable<Eigen::Matrix<double, 6, 1>> {
   const Variable::ConstPtr knot2_;
 };
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

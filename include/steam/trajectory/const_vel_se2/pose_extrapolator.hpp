@@ -3,12 +3,12 @@
 #include <Eigen/Core>
 
 #include "steam/evaluable/evaluable.hpp"
-#include "steam/trajectory/const_vel_2d/variable.hpp"
+#include "steam/trajectory/const_vel_se2/variable.hpp"
 #include "steam/trajectory/time.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 /** \brief Simple transform evaluator for a transformation state variable */
 class PoseExtrapolator : public Evaluable<lgmath::se2::Transformation> {
@@ -36,6 +36,6 @@ class PoseExtrapolator : public Evaluable<lgmath::se2::Transformation> {
   Eigen::Matrix<double, 6, 6> Phi_;
 };
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

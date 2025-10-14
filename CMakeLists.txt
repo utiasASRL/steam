@@ -178,7 +178,7 @@ add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
-add_executable(SimpleConstVel2DTrajPrior samples/SimpleConstVel2DTrajPrior.cpp)
+add_executable(SimpleConstVelSE2TrajPrior samples/SimpleConstVelSE2TrajPrior.cpp)
 add_executable(SimpleConstVelTrajPrior samples/SimpleConstVelTrajPrior.cpp)
 add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
 add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)
@@ -206,7 +206,7 @@ install(
     SpherePoseGraphRelax
     SimplePointCloudAlignment
     TrustRegionExample
-    SimpleConstVel2DTrajPrior
+    SimpleConstVelSE2TrajPrior
     SimpleConstVelTrajPrior
     SimpleBundleAdjustment
     SimpleBundleAdjustmentRelLand

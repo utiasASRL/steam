@@ -1,13 +1,13 @@
-#include "steam/trajectory/const_vel_2d/pose_interpolator.hpp"
+#include "steam/trajectory/const_vel_se2/pose_interpolator.hpp"
 
 #include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
-#include "steam/trajectory/const_vel_2d/evaluable/jinv_velocity_evaluator.hpp"
-#include "steam/trajectory/const_vel_2d/helper.hpp"
+#include "steam/trajectory/const_vel_se2/evaluable/jinv_velocity_evaluator.hpp"
+#include "steam/trajectory/const_vel_se2/helper.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel_2d {
+namespace const_vel_se2 {
 
 PoseInterpolator::Ptr PoseInterpolator::MakeShared(
     const Time time, const Variable::ConstPtr& knot1,
@@ -143,6 +143,6 @@ void PoseInterpolator::backward(const Eigen::MatrixXd& lhs,
   }
 }
 
-}  // namespace const_vel_2d
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam
