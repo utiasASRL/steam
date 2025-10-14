@@ -78,7 +78,7 @@ P2PSE2ErrorEvaluator::Ptr p2pSE2Error(
 
 inline P2PSE2ErrorEvaluator::Ptr p2pSE2Error(
     const Evaluable<P2PSE2ErrorEvaluator::InType>::ConstPtr &T_rq,
-    const Eigen::Vector2d &reference, 
+    const Eigen::Vector2d &reference,
     const Eigen::Vector2d &query) {
       return p2pSE2Error(T_rq, reference, query, false);
     }
