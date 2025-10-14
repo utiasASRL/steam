@@ -1,18 +1,18 @@
-#include "steam/evaluable/imu/gyro_error_evaluator_2d.hpp"
+#include "steam/evaluable/imu/gyro_error_evaluator_se2.hpp"
 #include <iostream>
 #include <lgmath/so2/Operations.hpp>
 
 namespace steam {
 namespace imu {
 
-auto GyroErrorEvaluator2D::MakeShared(
+auto GyroErrorEvaluatorSE2::MakeShared(
     const Evaluable<VelInType>::ConstPtr &velocity,
     const Evaluable<BiasInType>::ConstPtr &bias, const ImuInType &gyro_meas)
     -> Ptr {
-  return std::make_shared<GyroErrorEvaluator2D>(velocity, bias, gyro_meas);
+  return std::make_shared<GyroErrorEvaluatorSE2>(velocity, bias, gyro_meas);
 }
 
-GyroErrorEvaluator2D::GyroErrorEvaluator2D(
+GyroErrorEvaluatorSE2::GyroErrorEvaluatorSE2(
     const Evaluable<VelInType>::ConstPtr &velocity,
     const Evaluable<BiasInType>::ConstPtr &bias, const ImuInType &gyro_meas)
     : velocity_(velocity), bias_(bias), gyro_meas_(gyro_meas) {
@@ -20,23 +20,23 @@ GyroErrorEvaluator2D::GyroErrorEvaluator2D(
   jac_bias_(0, 2) = -1;
 }
 
-bool GyroErrorEvaluator2D::active() const {
+bool GyroErrorEvaluatorSE2::active() const {
   return velocity_->active() || bias_->active();
 }
 
-void GyroErrorEvaluator2D::getRelatedVarKeys(KeySet &keys) const {
+void GyroErrorEvaluatorSE2::getRelatedVarKeys(KeySet &keys) const {
   velocity_->getRelatedVarKeys(keys);
   bias_->getRelatedVarKeys(keys);
 }
 
-auto GyroErrorEvaluator2D::value() const -> OutType {
+auto GyroErrorEvaluatorSE2::value() const -> OutType {
   // clang-format off
   OutType error(gyro_meas_ + (velocity_->value())(2, 0) - bias_->value()(2, 0));
   return error;
   // clang-format on
 }
 
-auto GyroErrorEvaluator2D::forward() const -> Node<OutType>::Ptr {
+auto GyroErrorEvaluatorSE2::forward() const -> Node<OutType>::Ptr {
   const auto child1 = velocity_->forward();
   const auto child2 = bias_->forward();
   const auto w_mv_in_v = child1->value();
@@ -53,7 +53,7 @@ auto GyroErrorEvaluator2D::forward() const -> Node<OutType>::Ptr {
   return node;
 }
 
-void GyroErrorEvaluator2D::backward(const Eigen::MatrixXd &lhs,
+void GyroErrorEvaluatorSE2::backward(const Eigen::MatrixXd &lhs,
                                      const Node<OutType>::Ptr &node,
                                      Jacobians &jacs) const {
   const auto child1 = std::static_pointer_cast<Node<VelInType>>(node->at(0));
@@ -68,11 +68,11 @@ void GyroErrorEvaluator2D::backward(const Eigen::MatrixXd &lhs,
   // clang-format on
 }
 
-GyroErrorEvaluator2D::Ptr GyroError2D(
-    const Evaluable<GyroErrorEvaluator2D::VelInType>::ConstPtr &velocity,
-    const Evaluable<GyroErrorEvaluator2D::BiasInType>::ConstPtr &bias,
-    const GyroErrorEvaluator2D::ImuInType &gyro_meas) {
-  return GyroErrorEvaluator2D::MakeShared(velocity, bias, gyro_meas);
+GyroErrorEvaluatorSE2::Ptr GyroErrorSE2(
+    const Evaluable<GyroErrorEvaluatorSE2::VelInType>::ConstPtr &velocity,
+    const Evaluable<GyroErrorEvaluatorSE2::BiasInType>::ConstPtr &bias,
+    const GyroErrorEvaluatorSE2::ImuInType &gyro_meas) {
+  return GyroErrorEvaluatorSE2::MakeShared(velocity, bias, gyro_meas);
 }
 
 }  // namespace imu

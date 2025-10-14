@@ -10,10 +10,10 @@
 namespace steam {
 namespace imu {
 
-class GyroErrorEvaluator2D : public Evaluable<Eigen::Matrix<double, 1, 1>> {
+class GyroErrorEvaluatorSE2 : public Evaluable<Eigen::Matrix<double, 1, 1>> {
  public:
-  using Ptr = std::shared_ptr<GyroErrorEvaluator2D>;
-  using ConstPtr = std::shared_ptr<const GyroErrorEvaluator2D>;
+  using Ptr = std::shared_ptr<GyroErrorEvaluatorSE2>;
+  using ConstPtr = std::shared_ptr<const GyroErrorEvaluatorSE2>;
 
   using VelInType = Eigen::Matrix<double, 3, 1>;
   using BiasInType = Eigen::Matrix<double, 3, 1>;
@@ -26,7 +26,7 @@ class GyroErrorEvaluator2D : public Evaluable<Eigen::Matrix<double, 1, 1>> {
                         const Evaluable<BiasInType>::ConstPtr &bias,
                         const ImuInType &gyro_meas);
   // gyro_meas: wz
-  GyroErrorEvaluator2D(const Evaluable<VelInType>::ConstPtr &velocity,
+  GyroErrorEvaluatorSE2(const Evaluable<VelInType>::ConstPtr &velocity,
                         const Evaluable<BiasInType>::ConstPtr &bias,
                         const ImuInType &gyro_meas);
 
@@ -61,10 +61,10 @@ class GyroErrorEvaluator2D : public Evaluable<Eigen::Matrix<double, 1, 1>> {
   bool time_init_ = false;
 };
 
-GyroErrorEvaluator2D::Ptr GyroError2D(
-    const Evaluable<GyroErrorEvaluator2D::VelInType>::ConstPtr &velocity,
-    const Evaluable<GyroErrorEvaluator2D::BiasInType>::ConstPtr &bias,
-    const GyroErrorEvaluator2D::ImuInType &gyro_meas);
+GyroErrorEvaluatorSE2::Ptr GyroErrorSE2(
+    const Evaluable<GyroErrorEvaluatorSE2::VelInType>::ConstPtr &velocity,
+    const Evaluable<GyroErrorEvaluatorSE2::BiasInType>::ConstPtr &bias,
+    const GyroErrorEvaluatorSE2::ImuInType &gyro_meas);
 
 }  // namespace imu
 }  // namespace steam
