@@ -1,5 +1,4 @@
 #include "steam/trajectory/const_vel/prior_factor.hpp"
-#include <iostream>
 
 #include "steam/evaluable/se3/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"

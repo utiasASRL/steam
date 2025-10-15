@@ -1,6 +1,5 @@
 #include "steam/trajectory/const_vel_se2/velocity_interpolator.hpp"
 
-#include <iostream>
 #include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
 #include "steam/trajectory/const_vel_se2/evaluable/j_velocity_evaluator.hpp"
@@ -35,9 +34,6 @@ VelocityInterpolator::VelocityInterpolator(const Time time,
   const auto psi = (Q_tau * Tran_kappa.transpose() * Qinv_T);
   const auto lambda = (Tran_tau - psi * Tran_T);
 
-  // const double ratio = tau / T;
-  // const double ratio2 = ratio * ratio;
-  // const double ratio3 = ratio2 * ratio;
   // // Calculate 'psi' interpolation values
   psi11_ = psi(0, 0);
   psi12_ = psi(0, 3);
@@ -47,15 +43,6 @@ VelocityInterpolator::VelocityInterpolator(const Time time,
   lambda12_ = lambda(0, 3);
   lambda21_ = lambda(3, 0);
   lambda22_ = lambda(3, 3);
-  // psi11_ = 3.0 * ratio2 - 2.0 * ratio3;
-  // psi12_ = tau * (ratio2 - ratio);
-  // psi21_ = 6.0 * (ratio - ratio2) / T;
-  // psi22_ = 3.0 * ratio2 - 2.0 * ratio;
-  // // Calculate 'lambda' interpolation values
-  // lambda11_ = 1.0 - psi11_;
-  // lambda12_ = tau - T * psi11_ - psi12_;
-  // lambda21_ = -psi21_;
-  // lambda22_ = 1.0 - T * psi21_ - psi22_;
 }
 
 bool VelocityInterpolator::active() const {
@@ -138,15 +125,8 @@ void VelocityInterpolator::backward(const Eigen::MatrixXd& lhs,
   // transformation matrix
   const Eigen::Matrix<double, 3, 3> J_i1 = lgmath::se2::vec2jac(xi_i1);
   // temp value for speed
-  // const auto xi_j1_c = lgmath::se2::curlyhat(xi_j1);
-  // const auto xi_i1_c = lgmath::se2::curlyhat(xi_i1);
   const Eigen::Matrix<double, 3, 3> xi_j1_ch =
       -0.5 * lgmath::se2::curlyhat(xi_j1);
-  // (1 / 6) * lgmath::se2::curlyhat(xi_i1_c * xi_j1) -
-  // (1 / 6) * xi_i1_c * xi_j1_c -
-  // (1 / 24) * lgmath::se2::curlyhat(xi_i1_c * xi_i1_c * xi_j1) -
-  // (1 / 24) * xi_i1_c * lgmath::se2::curlyhat(xi_i1_c * xi_j1) -
-  // (1 / 24) * xi_i1_c * xi_i1_c * xi_j1_c;
 
   // Calculate relative transformation matrix
   // const lgmath::se2::Transformation T_21(xi_21);
@@ -154,12 +134,7 @@ void VelocityInterpolator::backward(const Eigen::MatrixXd& lhs,
   if (knot1_->pose()->active() || knot2_->pose()->active()) {
     // Precompute part of jacobian matrices
     const Eigen::Matrix<double, 3, 3> wtmp =
-        (0.5 * lgmath::se2::curlyhat(w2)
-         // - (1 / 6) * lgmath::se2::curlyhat(xi_21) * lgmath::se2::curlyhat(w2)
-         //  - (1 / 6) * lgmath::se2::curlyhat(lgmath::se2::curlyhat(xi_21) *
-         //  w2)
-         ) *
-        J_21_inv;
+        (0.5 * lgmath::se2::curlyhat(w2)) * J_21_inv;
     const Eigen::Matrix<double, 3, 3> w =
         J_i1 * (psi21_ * J_21_inv + psi22_ * wtmp) +
         xi_j1_ch * (psi11_ * J_21_inv + psi12_ * wtmp);

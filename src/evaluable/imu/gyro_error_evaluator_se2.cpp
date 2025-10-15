@@ -1,5 +1,4 @@
 #include "steam/evaluable/imu/gyro_error_evaluator_se2.hpp"
-#include <iostream>
 #include <lgmath/so2/Operations.hpp>
 
 namespace steam {

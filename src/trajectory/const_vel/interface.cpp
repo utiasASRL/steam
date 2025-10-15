@@ -400,7 +400,7 @@ void Interface::addStatePrior(const Time time, const PoseType& T_k0,
   // Check that map is not empty
   if (knot_map_.empty()) throw std::runtime_error("knot map is empty.");
 
-  // Try to find knot at unprovided time
+  // Try to find knot at provided time
   auto it = knot_map_.find(time);
   if (it == knot_map_.end())
     throw std::runtime_error("no knot at provided time.");
