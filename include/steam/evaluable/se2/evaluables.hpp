@@ -10,3 +10,4 @@
 #include "steam/evaluable/se2/se2_state_var.hpp"
 #include "steam/evaluable/se2/se2_error_evaluator.hpp"
 #include "steam/evaluable/se2/linear_vel_error_evaluator.hpp"
+#include "steam/evaluable/se2/radial_vel_error_evaluator.hpp"
