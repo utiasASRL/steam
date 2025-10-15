@@ -69,7 +69,6 @@ void RadialVelErrorEvaluator::backward(const Eigen::MatrixXd &lhs,
   if (bias_->active()) {
     bias_->backward(lhs * D_, child2, jacs);
   }
-  // clang-format on
 }
 
 RadialVelErrorEvaluator::Ptr radialVelError(
