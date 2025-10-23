@@ -1,6 +1,5 @@
 #include "steam/evaluable/imu/gyro_error_evaluator_se2.hpp"
-#include <iostream>
-#include <lgmath/so3/Operations.hpp>
+#include <lgmath/so2/Operations.hpp>
 
 namespace steam {
 namespace imu {
@@ -16,8 +15,8 @@ GyroErrorEvaluatorSE2::GyroErrorEvaluatorSE2(
     const Evaluable<VelInType>::ConstPtr &velocity,
     const Evaluable<BiasInType>::ConstPtr &bias, const ImuInType &gyro_meas)
     : velocity_(velocity), bias_(bias), gyro_meas_(gyro_meas) {
-  jac_vel_(0, 5) = 1;
-  jac_bias_(0, 5) = -1;
+  jac_vel_(0, 2) = 1;
+  jac_bias_(0, 2) = -1;
 }
 
 bool GyroErrorEvaluatorSE2::active() const {
@@ -31,7 +30,7 @@ void GyroErrorEvaluatorSE2::getRelatedVarKeys(KeySet &keys) const {
 
 auto GyroErrorEvaluatorSE2::value() const -> OutType {
   // clang-format off
-  OutType error(gyro_meas_(2, 0) + (velocity_->value())(5, 0) - bias_->value()(5, 0));
+  OutType error(gyro_meas_ + (velocity_->value())(2, 0) - bias_->value()(2, 0));
   return error;
   // clang-format on
 }
@@ -43,7 +42,7 @@ auto GyroErrorEvaluatorSE2::forward() const -> Node<OutType>::Ptr {
   const auto b = child2->value();
 
   // clang-format off
-  OutType error(gyro_meas_(2, 0) + w_mv_in_v(5, 0) - b(5, 0));
+  OutType error(gyro_meas_ + w_mv_in_v(2, 0) - b(2, 0));
   // clang-format on
 
   const auto node = Node<OutType>::MakeShared(error);

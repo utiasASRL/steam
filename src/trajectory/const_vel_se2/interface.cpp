@@ -1,26 +1,24 @@
-#include <iostream>
+#include "steam/trajectory/const_vel_se2/interface.hpp"
 
-#include "steam/trajectory/const_vel/interface.hpp"
-
-#include "steam/evaluable/se3/evaluables.hpp"
+#include "steam/evaluable/se2/evaluables.hpp"
 #include "steam/evaluable/vspace/evaluables.hpp"
 #include "steam/problem/loss_func/loss_funcs.hpp"
 #include "steam/problem/noise_model/static_noise_model.hpp"
-#include "steam/trajectory/const_vel/helper.hpp"
-#include "steam/trajectory/const_vel/pose_extrapolator.hpp"
-#include "steam/trajectory/const_vel/pose_interpolator.hpp"
-#include "steam/trajectory/const_vel/prior_factor.hpp"
-#include "steam/trajectory/const_vel/velocity_interpolator.hpp"
+#include "steam/trajectory/const_vel_se2/helper.hpp"
+#include "steam/trajectory/const_vel_se2/pose_extrapolator.hpp"
+#include "steam/trajectory/const_vel_se2/pose_interpolator.hpp"
+#include "steam/trajectory/const_vel_se2/prior_factor.hpp"
+#include "steam/trajectory/const_vel_se2/velocity_interpolator.hpp"
 
 namespace steam {
 namespace traj {
-namespace const_vel {
+namespace const_vel_se2 {
 
-auto Interface::MakeShared(const Eigen::Matrix<double, 6, 1>& Qc_diag) -> Ptr {
+auto Interface::MakeShared(const Eigen::Matrix<double, 3, 1>& Qc_diag) -> Ptr {
   return std::make_shared<Interface>(Qc_diag);
 }
 
-Interface::Interface(const Eigen::Matrix<double, 6, 1>& Qc_diag)
+Interface::Interface(const Eigen::Matrix<double, 3, 1>& Qc_diag)
     : Qc_diag_(Qc_diag) {}
 
 void Interface::add(const Time time, const Evaluable<PoseType>::Ptr& T_k0,
@@ -134,8 +132,8 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
     if (!T_k0->active() || !w_0k_ink->active())
       throw std::runtime_error("extrapolation from a locked knot not implemented.");
 
-    const auto T_k0_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_k0);
-    const auto w_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_0k_ink);
+    const auto T_k0_var = std::dynamic_pointer_cast<se2::SE2StateVar>(T_k0);
+    const auto w_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<3>>(w_0k_ink);
     if (!T_k0_var || !w_0k_ink_var)
       throw std::runtime_error("trajectory states are not variables.");
 
@@ -155,7 +153,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
 
     // end knot covariance
     const std::vector<StateVarBase::ConstPtr> state_var{T_k0_var, w_0k_ink_var};
-    const Eigen::Matrix<double, 12, 12> P_end = cov.query(state_var);
+    const Eigen::Matrix<double, 6, 6> P_end = cov.query(state_var);
 
     // Compute covariance
     return E_t1_inv * (F_t1 * P_end * F_t1.transpose() + Qt1) * E_t1_inv.transpose();
@@ -169,8 +167,8 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
     if (!T_k0->active() || !w_0k_ink->active())
       throw std::runtime_error("extrapolation from a locked knot not implemented.");
 
-    const auto T_k0_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_k0);
-    const auto w_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_0k_ink);
+    const auto T_k0_var = std::dynamic_pointer_cast<se2::SE2StateVar>(T_k0);
+    const auto w_0k_ink_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<3>>(w_0k_ink);
     if (!T_k0_var || !w_0k_ink_var)
       throw std::runtime_error("trajectory states are not variables.");
 
@@ -196,10 +194,10 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
   if (!T_10->active() || !w_01_in1->active() || !T_20->active() || !w_02_in2->active())
     throw std::runtime_error("extrapolation from a locked knot not implemented.");
 
-  const auto T_10_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_10);
-  const auto w_01_in1_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_01_in1);
-  const auto T_20_var = std::dynamic_pointer_cast<se3::SE3StateVar>(T_20);
-  const auto w_02_in2_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<6>>(w_02_in2);
+  const auto T_10_var = std::dynamic_pointer_cast<se2::SE2StateVar>(T_10);
+  const auto w_01_in1_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<3>>(w_01_in1);
+  const auto T_20_var = std::dynamic_pointer_cast<se2::SE2StateVar>(T_20);
+  const auto w_02_in2_var = std::dynamic_pointer_cast<vspace::VSpaceStateVar<3>>(w_02_in2);
   if (!T_10_var || !w_01_in1_var || !T_20_var || !w_02_in2_var)
     throw std::runtime_error("trajectory states are not variables.");
 
@@ -212,46 +210,46 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
   // Note: jacKnot1 will return the negative of F as defined in
   // the state estimation textbook where we take the interpolation equations.
   // This doesn't apply to jacKnot2.
-  const Eigen::Matrix<double, 12, 12> F_t1 = -getJacKnot1(knot1, knotq);
-  const Eigen::Matrix<double, 12, 12> E_t1 = getJacKnot2(knot1, knotq);
-  const Eigen::Matrix<double, 12, 12> F_2t = -getJacKnot1(knotq, knot2);
-  const Eigen::Matrix<double, 12, 12> E_2t = getJacKnot2(knotq, knot2);
+  const Eigen::Matrix<double, 6, 6> F_t1 = -getJacKnot1(knot1, knotq);
+  const Eigen::Matrix<double, 6, 6> E_t1 = getJacKnot2(knot1, knotq);
+  const Eigen::Matrix<double, 6, 6> F_2t = -getJacKnot1(knotq, knot2);
+  const Eigen::Matrix<double, 6, 6> E_2t = getJacKnot2(knotq, knot2);
 
   // Prior inverse covariances
-  const Eigen::Matrix<double, 12, 12> Qt1_inv = getQinv((knotq->time() - knot1->time()).seconds(), Qc_diag_);
-  const Eigen::Matrix<double, 12, 12> Q2t_inv = getQinv((knot2->time() - knotq->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 6, 6> Qt1_inv = getQinv((knotq->time() - knot1->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 6, 6> Q2t_inv = getQinv((knot2->time() - knotq->time()).seconds(), Qc_diag_);
 
   // Covariance of knot1 and knot2
   const std::vector<StateVarBase::ConstPtr> state_var{T_10_var, w_01_in1_var, T_20_var, w_02_in2_var};
-  const Eigen::Matrix<double, 24, 24> P_1n2 = cov.query(state_var);
+  const Eigen::Matrix<double, 12, 12> P_1n2 = cov.query(state_var);
 
   // Helper matrices
-  Eigen::Matrix<double, 24, 12> A = Eigen::Matrix<double, 24, 12>::Zero();
-  A.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * E_t1;
-  A.block<12, 12>(12, 0) = E_2t.transpose() * Q2t_inv * F_2t;
+  Eigen::Matrix<double, 12, 6> A = Eigen::Matrix<double, 12, 6>::Zero();
+  A.block<6, 6>(0, 0) = F_t1.transpose() * Qt1_inv * E_t1;
+  A.block<6, 6>(6, 0) = E_2t.transpose() * Q2t_inv * F_2t;
 
-  Eigen::Matrix<double, 24, 24> B = Eigen::Matrix<double, 24, 24>::Zero();
-  B.block<12, 12>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
-  B.block<12, 12>(12, 12) = E_2t.transpose() * Q2t_inv * E_2t;
+  Eigen::Matrix<double, 12, 12> B = Eigen::Matrix<double, 12, 12>::Zero();
+  B.block<6, 6>(0, 0) = F_t1.transpose() * Qt1_inv * F_t1;
+  B.block<6, 6>(6, 6) = E_2t.transpose() * Q2t_inv * E_2t;
 
-  const Eigen::Matrix<double, 12, 12> F_21 = -getJacKnot1(knot1, knot2);
-  const Eigen::Matrix<double, 12, 12> E_21 = getJacKnot2(knot1, knot2);
-  const Eigen::Matrix<double, 12, 12> Q21_inv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
+  const Eigen::Matrix<double, 6, 6> F_21 = -getJacKnot1(knot1, knot2);
+  const Eigen::Matrix<double, 6, 6> E_21 = getJacKnot2(knot1, knot2);
+  const Eigen::Matrix<double, 6, 6> Q21_inv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
 
-  Eigen::Matrix<double, 24, 24> Pinv_comp = Eigen::Matrix<double, 24, 24>::Zero();
-  Pinv_comp.block<12, 12>(0, 0) = F_21.transpose() * Q21_inv * F_21;
-  Pinv_comp.block<12, 12>(12, 0) = -E_21.transpose() * Q21_inv * F_21;
-  Pinv_comp.block<12, 12>(0, 12) = Pinv_comp.block<12, 12>(12, 0).transpose();
-  Pinv_comp.block<12, 12>(12, 12) = E_21.transpose() * Q21_inv * E_21;
+  Eigen::Matrix<double, 12, 12> Pinv_comp = Eigen::Matrix<double, 12, 12>::Zero();
+  Pinv_comp.block<6, 6>(0, 0) = F_21.transpose() * Q21_inv * F_21;
+  Pinv_comp.block<6, 6>(6, 0) = -E_21.transpose() * Q21_inv * F_21;
+  Pinv_comp.block<6, 6>(0, 6) = Pinv_comp.block<6, 6>(6, 0).transpose();
+  Pinv_comp.block<6, 6>(6, 6) = E_21.transpose() * Q21_inv * E_21;
 
   // interpolated covariance
-  const Eigen::Matrix<double, 12, 12> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 + F_2t.transpose() * Q2t_inv * F_2t -
+  const Eigen::Matrix<double, 6, 6> P_t_inv = E_t1.transpose() * Qt1_inv * E_t1 + F_2t.transpose() * Q2t_inv * F_2t -
                  A.transpose() * (P_1n2.inverse() + B - Pinv_comp).inverse() * A;
 
-  Eigen::Matrix<double, 12, 12> P_tau = P_t_inv.inverse();
+  Eigen::Matrix<double, 6, 6> P_tau = P_t_inv.inverse();
   const Eigen::VectorXcd evalues = P_tau.eigenvalues();
   bool psd = true;
-  for (uint i = 0; i < 12; ++i) {
+  for (uint i = 0; i < 6; ++i) {
     if (evalues(i).real() < 0.0) {
         psd = false;
         break;
@@ -264,11 +262,11 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
   // Compute new matrix that is PSD and close to P_tau
   // From: https://math.stackexchange.com/questions/648809/how-to-find-closest-positive-definite-matrix-of-non-symmetric-matrix/1380345#1380345
   // And: http://www.sciencedirect.com/science/article/pii/0024379588902236
-  Eigen::Matrix<double,12,12> P_fix = 0.5*(P_tau + P_tau.transpose()); // Compute Pseudo Matrix
-  Eigen::EigenSolver<Eigen::Matrix<double,12,12>> es(P_fix);
+  Eigen::Matrix<double,6,6> P_fix = 0.5*(P_tau + P_tau.transpose()); // Compute Pseudo Matrix
+  Eigen::EigenSolver<Eigen::Matrix<double,6,6>> es(P_fix);
   Eigen::MatrixXcd evec = es.eigenvectors(); // Get eigen vectors
   Eigen::VectorXcd eval = es.eigenvalues(); // Get eigen values
-  for(uint i = 0; i < 12; ++i)
+  for(uint i = 0; i < 6; ++i)
   {
     if(eval(i).real() < 0.0) eval(i) = std::complex<double>(0.0, 0.0); // set negative eigen values to zero
   }
@@ -285,14 +283,14 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
   const auto Xi_1 = getXi(knot1, knot1);
   const auto Xi_2 = getXi(knot1, knot2);
 
-  Eigen::Matrix<double, 24, 24> P_1n2_k = Eigen::Matrix<double, 24, 24>::Zero();
-  P_1n2_k.block<12, 12>(0, 0) = G_1 * (P_1n2.block<12, 12>(0, 0) -
-    Xi_1 * P_1n2.block<12, 12>(0, 0) * Xi_1.transpose()) * G_1.transpose();
-  P_1n2_k.block<12, 12>(0, 12) = G_1 * (P_1n2.block<12, 12>(0, 12) -
-    Xi_1 * P_1n2.block<12, 12>(0, 0) * Xi_2.transpose()) * G_2.transpose();
-  P_1n2_k.block<12, 12>(12, 0) = P_1n2_k.block<12, 12>(0, 12).transpose();
-  P_1n2_k.block<12, 12>(12, 12) = G_2 * (P_1n2.block<12, 12>(12, 12) -
-    Xi_2 * P_1n2.block<12, 12>(0, 0) * Xi_2.transpose()) * G_2.transpose();
+  Eigen::Matrix<double, 12, 12> P_1n2_k = Eigen::Matrix<double, 12, 12>::Zero();
+  P_1n2_k.block<6, 6>(0, 0) = G_1 * (P_1n2.block<6, 6>(0, 0) -
+    Xi_1 * P_1n2.block<6, 6>(0, 0) * Xi_1.transpose()) * G_1.transpose();
+  P_1n2_k.block<6, 6>(0, 6) = G_1 * (P_1n2.block<6, 6>(0, 6) -
+    Xi_1 * P_1n2.block<6, 6>(0, 0) * Xi_2.transpose()) * G_2.transpose();
+  P_1n2_k.block<6, 6>(6, 0) = P_1n2_k.block<6, 6>(0, 6).transpose();
+  P_1n2_k.block<6, 6>(6, 6) = G_2 * (P_1n2.block<6, 6>(6, 6) -
+    Xi_2 * P_1n2.block<6, 6>(0, 0) * Xi_2.transpose()) * G_2.transpose();
 
   // now we interpolate the local posterior P_k_tau using 6.116:
   const auto Qt1 = getQ((knotq->time() - knot1->time()).seconds(), Qc_diag_);
@@ -303,9 +301,9 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
   const auto Lambda = Phi_t1 - Omega * Phi_21;
   const auto Qk = Qt1 - Qt1 * Phi_2t.transpose() * Q21_inv * Phi_t1 * Qt1;
 
-  Eigen::Matrix<double, 12, 24> Int = Eigen::Matrix<double, 12, 24>::Zero();
-  Int.block<12, 12>(0, 0) = Lambda;
-  Int.block<12, 12>(0, 12) = Omega;
+  Eigen::Matrix<double, 6, 12> Int = Eigen::Matrix<double, 6, 12>::Zero();
+  Int.block<6, 6>(0, 0) = Lambda;
+  Int.block<6, 6>(0, 6) = Omega;
 
   const auto P_k_tau = Int * P_1n2_k * Int.transpose() + Qk;
 
@@ -313,7 +311,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
   const auto G_tau_inv = getJacKnot3(knot1, knotq);
   const auto Xi_tau = getXi(knot1, knotq);
   P_tau = G_tau_inv * P_k_tau * G_tau_inv.transpose() +
-    Xi_tau * P_1n2.block<12, 12>(0, 0) * Xi_tau.transpose();
+    Xi_tau * P_1n2.block<6, 6>(0, 0) * Xi_tau.transpose();
 
   return P_tau;
 
@@ -321,7 +319,7 @@ auto Interface::getCovariance(const Covariance& cov, const Time time)
 }
 
 void Interface::addPosePrior(const Time time, const PoseType& T_k0,
-                             const Eigen::Matrix<double, 6, 6>& cov) {
+                             const Eigen::Matrix<double, 3, 3>& cov) {
   if (state_prior_factor_ != nullptr)
     throw std::runtime_error("a state prior already exists.");
 
@@ -344,17 +342,17 @@ void Interface::addPosePrior(const Time time, const PoseType& T_k0,
     throw std::runtime_error("tried to add prior to locked pose.");
 
   // Set up loss function, noise model, and error function
-  auto error_func = se3::se3_error(knot->pose(), T_k0);
-  auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
+  auto error_func = se2::se2_error(knot->pose(), T_k0);
+  auto noise_model = StaticNoiseModel<3>::MakeShared(cov);
   auto loss_func = L2LossFunc::MakeShared();
 
   // Create cost term
-  pose_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
+  pose_prior_factor_ = WeightedLeastSqCostTerm<3>::MakeShared(
       error_func, noise_model, loss_func, "pose_prior_cost");
 }
 
 void Interface::addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
-                                 const Eigen::Matrix<double, 6, 6>& cov) {
+                                 const Eigen::Matrix<double, 3, 3>& cov) {
   // Only allow adding 1 prior
   if (state_prior_factor_ != nullptr)
     throw std::runtime_error("a state prior already exists.");
@@ -378,12 +376,12 @@ void Interface::addVelocityPrior(const Time time, const VelocityType& w_0k_ink,
     throw std::runtime_error("tried to add prior to locked velocity.");
 
   // Set up loss function, noise model, and error function
-  auto error_func = vspace::vspace_error<6>(knot->velocity(), w_0k_ink);
-  auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
+  auto error_func = vspace::vspace_error<3>(knot->velocity(), w_0k_ink);
+  auto noise_model = StaticNoiseModel<3>::MakeShared(cov);
   auto loss_func = L2LossFunc::MakeShared();
 
   // Create cost term
-  vel_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
+  vel_prior_factor_ = WeightedLeastSqCostTerm<3>::MakeShared(
       error_func, noise_model, loss_func, "velocity_prior_cost");
 }
 
@@ -412,14 +410,14 @@ void Interface::addStatePrior(const Time time, const PoseType& T_k0,
   if ((!knot->pose()->active()) || (!knot->velocity()->active()))
     throw std::runtime_error("tried to add prior to locked state.");
 
-  auto pose_error = se3::se3_error(knot->pose(), T_k0);
-  auto velo_error = vspace::vspace_error<6>(knot->velocity(), w_0k_ink);
-  auto error_func = vspace::merge<6, 6>(pose_error, velo_error);
-  auto noise_model = StaticNoiseModel<12>::MakeShared(cov);
+  auto pose_error = se2::se2_error(knot->pose(), T_k0);
+  auto velo_error = vspace::vspace_error<3>(knot->velocity(), w_0k_ink);
+  auto error_func = vspace::merge<3, 3>(pose_error, velo_error);
+  auto noise_model = StaticNoiseModel<6>::MakeShared(cov);
   auto loss_func = L2LossFunc::MakeShared();
 
   // Create cost term
-  state_prior_factor_ = WeightedLeastSqCostTerm<12>::MakeShared(
+  state_prior_factor_ = WeightedLeastSqCostTerm<6>::MakeShared(
       error_func, noise_model, loss_func, "state_prior_cost");
 }
 
@@ -449,14 +447,14 @@ void Interface::addPriorCostTerms(Problem& problem) const {
     // Check if any of the variables are unlocked
     if (knot1->pose()->active() || knot1->velocity()->active() ||
         knot2->pose()->active() || knot2->velocity()->active()) {
-      // Generate 12 x 12 information matrix for GP prior factor
+      // Generate 6 x 6 information matrix for GP prior factor
       auto Qinv = getQinv((knot2->time() - knot1->time()).seconds(), Qc_diag_);
       const auto noise_model =
-          std::make_shared<StaticNoiseModel<12>>(Qinv, NoiseType::INFORMATION);
+          std::make_shared<StaticNoiseModel<6>>(Qinv, NoiseType::INFORMATION);
       //
       const auto error_function = PriorFactor::MakeShared(knot1, knot2);
       // Create cost term
-      const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<12>>(
+      const auto cost_term = std::make_shared<WeightedLeastSqCostTerm<6>>(
           error_function, noise_model, loss_function, "WNOA_cost");
       //
       problem.addCostTerm(cost_term);
@@ -464,6 +462,6 @@ void Interface::addPriorCostTerms(Problem& problem) const {
   }
 }
 
-}  // namespace const_vel
+}  // namespace const_vel_se2
 }  // namespace traj
 }  // namespace steam

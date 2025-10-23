@@ -36,7 +36,7 @@ if (cmake_build)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   find_package(Eigen3 3.3.7 REQUIRED)
-  find_package(lgmath 1.1.0 REQUIRED)
+  find_package(lgmath 3.0.0 REQUIRED)
 
   # Build library
   file(GLOB_RECURSE SOURCE
@@ -181,6 +181,7 @@ add_executable(SimplePoseGraphRelax samples/SimplePoseGraphRelax.cpp)
 add_executable(SpherePoseGraphRelax samples/SpherePoseGraphRelax.cpp)
 add_executable(SimplePointCloudAlignment samples/SimplePointCloudAlignment.cpp)
 add_executable(TrustRegionExample samples/TrustRegionExample.cpp)
+add_executable(SimpleConstVelSE2TrajPrior samples/SimpleConstVelSE2TrajPrior.cpp)
 add_executable(SimpleConstVelTrajPrior samples/SimpleConstVelTrajPrior.cpp)
 add_executable(SimpleBundleAdjustment samples/SimpleBundleAdjustment.cpp)
 add_executable(SimpleBundleAdjustmentRelLand samples/SimpleBundleAdjustmentRelLand.cpp)

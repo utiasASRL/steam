@@ -15,17 +15,17 @@ class GyroErrorEvaluatorSE2 : public Evaluable<Eigen::Matrix<double, 1, 1>> {
   using Ptr = std::shared_ptr<GyroErrorEvaluatorSE2>;
   using ConstPtr = std::shared_ptr<const GyroErrorEvaluatorSE2>;
 
-  using VelInType = Eigen::Matrix<double, 6, 1>;
-  using BiasInType = Eigen::Matrix<double, 6, 1>;
-  using ImuInType = Eigen::Matrix<double, 3, 1>;
+  using VelInType = Eigen::Matrix<double, 3, 1>;
+  using BiasInType = Eigen::Matrix<double, 3, 1>;
+  using ImuInType = double;  // wz
   using OutType = Eigen::Matrix<double, 1, 1>;
   using Time = steam::traj::Time;
-  using JacType = Eigen::Matrix<double, 1, 6>;
+  using JacType = Eigen::Matrix<double, 1, 3>;
 
   static Ptr MakeShared(const Evaluable<VelInType>::ConstPtr &velocity,
                         const Evaluable<BiasInType>::ConstPtr &bias,
                         const ImuInType &gyro_meas);
-  // gyro_meas: ax,ay,az,wx,wy,wz
+  // gyro_meas: wz
   GyroErrorEvaluatorSE2(const Evaluable<VelInType>::ConstPtr &velocity,
                         const Evaluable<BiasInType>::ConstPtr &bias,
                         const ImuInType &gyro_meas);

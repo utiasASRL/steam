@@ -2,7 +2,9 @@
 
 #include "steam/evaluable/p2p/br2d_error_evaluator.hpp"
 #include "steam/evaluable/p2p/p2p_error_doppler_evaluator.hpp"
+#include "steam/evaluable/p2p/p2p_se2_error_doppler_evaluator.hpp"
 #include "steam/evaluable/p2p/p2p_error_evaluator.hpp"
+#include "steam/evaluable/p2p/p2p_se2_error_evaluator.hpp"
 #include "steam/evaluable/p2p/p2p_rv_error_evaluator.hpp"
 #include "steam/evaluable/p2p/p2plane_error_evaluator.hpp"
 #include "steam/evaluable/p2p/p2plane_error_global_perturb_evaluator.hpp"
